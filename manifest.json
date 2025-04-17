@@ -1,0 +1,11 @@
+{
+  "id": "co-intelligence",
+  "name": "Co-Intelligence",
+  "version": "0.0.1",
+  "minAppVersion": "1.5.0",
+  "description": "Co-Intelligence is a plugin for working with AI in Obsidian.",
+  "author": "Epistemic Technology",
+  "authorUrl": "https://github.com/Epistemic-Technology",
+  "main": "main.js",
+  "css": "main.css"
+}
