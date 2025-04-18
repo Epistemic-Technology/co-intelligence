@@ -6,6 +6,7 @@ export interface CoIntelligenceSettings {
   anthropicApiKey: string;
   googleApiKey: string;
   perplexityApiKey: string;
+  defaultFolder: string;
 }
 
 export const DEFAULT_SETTINGS: CoIntelligenceSettings = {
@@ -13,6 +14,7 @@ export const DEFAULT_SETTINGS: CoIntelligenceSettings = {
   anthropicApiKey: "",
   googleApiKey: "",
   perplexityApiKey: "",
+  defaultFolder: "coi",
 };
 
 export class CoIntelligenceSettingsTab extends PluginSettingTab {
@@ -76,6 +78,19 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
           .setValue(this.plugin.settings.perplexityApiKey)
           .onChange(async (value) => {
             this.plugin.settings.perplexityApiKey = value;
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("Default Folder")
+      .setDesc("Enter the default folder for CoIntelligence")
+      .addText((text) =>
+        text
+          .setPlaceholder("Enter the default folder for CoIntelligence")
+          .setValue(this.plugin.settings.defaultFolder)
+          .onChange(async (value) => {
+            this.plugin.settings.defaultFolder = value;
             await this.plugin.saveSettings();
           }),
       );

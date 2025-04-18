@@ -8,6 +8,8 @@ import {
   DEFAULT_SETTINGS,
 } from "./settings";
 
+import { NewChatCommand } from "./commands/new-chat";
+
 export default class CoIntelligencePlugin extends Plugin {
   settings: CoIntelligenceSettings;
 
@@ -18,8 +20,8 @@ export default class CoIntelligencePlugin extends Plugin {
 
   async onload() {
     await this.loadSettings();
-
     this.addSettingTab(new CoIntelligenceSettingsTab(this.app, this));
+    this.addCommand(new NewChatCommand(this));
   }
 
   onunload() {}
