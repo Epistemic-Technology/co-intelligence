@@ -10,6 +10,11 @@ export default defineConfig({
       targets: [{ src: "manifest.json", dest: "." }],
     }),
   ],
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
   build: {
     outDir: "dist",
     emptyOutDir: true,
