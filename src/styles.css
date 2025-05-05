@@ -1,7 +1,61 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+.coi-app {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
 
-h1 {
-    font-size: 2rem;
+.coi-app > * {
+    user-select: text;
+}
+
+/* Ensure the div containing chat history and user input takes full height */
+.coi-app > div {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.coi-chat-history {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.coi-bot-message {
+}
+
+.coi-user-message {
+    background-color: var(--interactive-normal);
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.coi-user-input {
+    margin-top: auto; /* Pushes the user input to the bottom */
+}
+
+.coi-user-input textarea {
+    width: 100%;
+    border-color: var(--background-modifier-border);
+}
+
+.coi-error-container {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin: 1rem 0;
+}
+
+.coi-app .coi-error {
+    border: 2px solid var(--text-error);
+    color: var(--text-error);
+    padding: 1.5rem 2rem;
+    border-radius: 0.5rem;
+    text-align: center;
+    display: block;
+    box-sizing: border-box;
+    max-width: 90%;
+    height: auto;
+    min-height: 50px;
 }

@@ -7,5 +7,5 @@
   "author": "Epistemic Technology",
   "authorUrl": "https://github.com/Epistemic-Technology",
   "main": "main.js",
-  "css": "main.css"
+  "css": "styles.css"
 }

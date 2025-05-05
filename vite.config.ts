@@ -3,6 +3,8 @@ import solid from "vite-plugin-solid";
 import { viteStaticCopy } from "vite-plugin-static-copy";
 import path from "path";
 
+const isWatchMode = process.argv.includes("--watch");
+
 export default defineConfig({
   plugins: [
     solid(),
@@ -16,19 +18,27 @@ export default defineConfig({
     },
   },
   build: {
+    watch: isWatchMode ? {} : undefined,
+    minify: !isWatchMode,
+    sourcemap: !isWatchMode,
     outDir: "dist",
     emptyOutDir: true,
-    cssCodeSplit: true,
+    cssCodeSplit: false,
     lib: {
-      entry: path.resolve(__dirname, "src/main.tsx"),
+      entry: path.resolve(__dirname, "src/CoIntelligencePlugin.tsx"),
       formats: ["cjs"], // Obsidian loads CommonJS
       fileName: () => "main.js",
     },
     rollupOptions: {
-      external: ["obsidian", "electron"], // don’t bundle the host libs
+      external: ["obsidian", "electron"], // don't bundle the host libs
       output: {
-        exports: "default",
+        exports: "named",
+        assetFileNames: () => "styles.css", // Always output CSS as styles.css
+        entryFileNames: "main.js", // Ensure the main entry file is named correctly
       },
     },
+  },
+  css: {
+    modules: false,
   },
 });

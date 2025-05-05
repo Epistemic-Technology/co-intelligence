@@ -8,18 +8,20 @@ import {
   DEFAULT_SETTINGS,
 } from "./settings";
 
-import { NewChatCommand } from "./commands/new-chat";
+import { NewChatCommand } from "@/commands/new-chat";
+import { ChatView, VIEW_TYPE_COI_CHAT } from "@/ChatView";
+import { ModelRegistry } from "@/services/model-registry";
 
-import { ChatView, VIEW_TYPE_COI_CHAT } from "./ui/chat-view";
+import { openCOINote } from "./utils/notes";
 
-import { isCOINote } from "./utils/notes";
-
-export default class CoIntelligencePlugin extends Plugin {
+export class CoIntelligencePlugin extends Plugin {
   settings: CoIntelligenceSettings;
+  registry: ModelRegistry;
 
   constructor(app: App, manifest: PluginManifest) {
     super(app, manifest);
     this.settings = DEFAULT_SETTINGS;
+    this.registry = ModelRegistry.getInstance(this);
   }
 
   async onload() {
@@ -28,25 +30,17 @@ export default class CoIntelligencePlugin extends Plugin {
     this.addCommand(new NewChatCommand(this));
     this.registerView(
       VIEW_TYPE_COI_CHAT,
-      (leaf: WorkspaceLeaf) => new ChatView(leaf),
+      (leaf: WorkspaceLeaf) => new ChatView(leaf, this, this.app),
     );
-    this.app.workspace.on("file-open", async (file: TFile) => {
-      if (isCOINote(file, this.app)) {
-        console.log("COI note opened");
-        const leaf = this.app.workspace.getLeaf(true);
-        await leaf.openFile(file, { active: true });
-        await leaf.setViewState({
-          type: VIEW_TYPE_COI_CHAT,
-          state: { file: file.path },
-          active: true,
-        });
-      } else {
-        console.log("Non-COI note opened");
-      }
-    });
+
+    this.registerEvent(
+      this.app.workspace.on("file-open" as any, this.handleFileOpen.bind(this)),
+    );
   }
 
-  onunload() {}
+  private async handleFileOpen(file: TFile) {
+    await openCOINote(file, this.app, this.registry);
+  }
 
   async activateView() {}
 
@@ -58,3 +52,6 @@ export default class CoIntelligencePlugin extends Plugin {
     await this.saveData(this.settings);
   }
 }
+
+// Add default export for Obsidian compatibility
+export default CoIntelligencePlugin;

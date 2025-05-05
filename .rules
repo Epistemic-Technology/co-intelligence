@@ -1,0 +1,5 @@
+# Rules for code generation in the co-intelligence plugin
+
+- The stack for the project is TypeScript and SolidJS.
+- UI components in tsx files are *not* React components, they are SolidJS components. In particular, they use the 'class' attribute instead of 'className' and lists do not need explicit keys.
+- Use '@' imports rather than relative imports. The '@' specifies the src directory.

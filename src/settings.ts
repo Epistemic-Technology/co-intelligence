@@ -1,4 +1,4 @@
-import type CoIntelligencePlugin from "src/main";
+import type CoIntelligencePlugin from "@/CoIntelligencePlugin";
 import { App, PluginSettingTab, Setting } from "obsidian";
 
 export interface CoIntelligenceSettings {
@@ -7,6 +7,7 @@ export interface CoIntelligenceSettings {
   googleApiKey: string;
   perplexityApiKey: string;
   defaultFolder: string;
+  defaultModel: string;
 }
 
 export const DEFAULT_SETTINGS: CoIntelligenceSettings = {
@@ -15,6 +16,7 @@ export const DEFAULT_SETTINGS: CoIntelligenceSettings = {
   googleApiKey: "",
   perplexityApiKey: "",
   defaultFolder: "coi",
+  defaultModel: "",
 };
 
 export class CoIntelligenceSettingsTab extends PluginSettingTab {
@@ -40,6 +42,8 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
           .onChange(async (value) => {
             this.plugin.settings.openaiApiKey = value;
             await this.plugin.saveSettings();
+            this.plugin.registry.reinitialize();
+            this.display(); // Refresh the settings to update the dropdown
           }),
       );
 
@@ -53,6 +57,8 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
           .onChange(async (value) => {
             this.plugin.settings.anthropicApiKey = value;
             await this.plugin.saveSettings();
+            this.plugin.registry.reinitialize();
+            this.display(); // Refresh the settings to update the dropdown
           }),
       );
 
@@ -66,6 +72,8 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
           .onChange(async (value) => {
             this.plugin.settings.googleApiKey = value;
             await this.plugin.saveSettings();
+            this.plugin.registry.reinitialize();
+            this.display(); // Refresh the settings to update the dropdown
           }),
       );
 
@@ -79,6 +87,8 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
           .onChange(async (value) => {
             this.plugin.settings.perplexityApiKey = value;
             await this.plugin.saveSettings();
+            this.plugin.registry.reinitialize();
+            this.display(); // Refresh the settings to update the dropdown
           }),
       );
 
@@ -94,5 +104,26 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
             await this.plugin.saveSettings();
           }),
       );
+
+    new Setting(containerEl)
+      .setName("Default Model")
+      .setDesc("Enter the default model for CoIntelligence")
+      .addDropdown((dropdown) => {
+        const availableModels = this.plugin.registry.availableModels;
+        
+        if (availableModels.length === 0) {
+          dropdown.addOption("", "No models available - add API keys first");
+        } else {
+          for (const model of availableModels) {
+            dropdown.addOption(model.id, model.name);
+          }
+        }
+        
+        dropdown.setValue(this.plugin.settings.defaultModel || "");
+        dropdown.onChange(async (value) => {
+          this.plugin.settings.defaultModel = value;
+          await this.plugin.saveSettings();
+        });
+      });
   }
 }
