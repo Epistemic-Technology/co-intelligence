@@ -40,7 +40,7 @@ export const ChatInterface = ({ initialMessages }: ChatInterfaceProps) => {
 
   const handleSendMessage = async (message: string) => {
     if (!message.trim()) {
-      console.log("Message is empty");
+      console.warn("Message is empty");
       return;
     }
     const newMessage: CoreMessage = { role: "user", content: message };

@@ -15,7 +15,6 @@ export function isCOINote(note: TFile, app: App): boolean {
 }
 
 export async function createCOINote(app: App, plugin: CoIntelligencePlugin) {
-  console.log("Creating a new chat...");
   const folderPath = normalizePath(plugin.settings.defaultFolder);
   let folder = app.vault.getAbstractFileByPath(folderPath);
   if (!(folder instanceof TFolder)) {
@@ -60,7 +59,6 @@ export async function serializeCoiNote(
   app: App,
   messages: CoreMessage[],
 ) {
-  console.log("serializeCoiNote");
   const currentNoteContent = await app.vault.cachedRead(note);
 
   if (
@@ -122,7 +120,6 @@ export async function deserializeCoiNote(
     if (line.startsWith("## ")) {
       flushContent();
       const candidateRole = line.replace(/^## /, "").replace(/\:/, "").trim();
-      console.log(candidateRole);
       if (candidateRole !== "user" && candidateRole !== "assistant") {
         console.error(`Invalid role: ${candidateRole}`);
         break;
@@ -134,6 +131,5 @@ export async function deserializeCoiNote(
     }
   }
   flushContent();
-  console.log(messages);
   return messages;
 }

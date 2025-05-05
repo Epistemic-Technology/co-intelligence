@@ -32,7 +32,6 @@ export class ChatView extends ItemView {
   }
 
   async handleChatChange(newMessages: CoreMessage[]): Promise<void> {
-    console.log("handleChatChange");
     if (this.updating) return;
     this.updating = true;
     if (!this.file) {
@@ -48,7 +47,6 @@ export class ChatView extends ItemView {
   }
 
   async onOpen(): Promise<void> {
-    console.log("ChatView onOpen");
     if (!this.file) {
       console.error("No file provided for chat view");
       return;
