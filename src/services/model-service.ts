@@ -33,3 +33,19 @@ export async function generateChatResponse(
   const result = streamText(config);
   return result.textStream;
 }
+
+export async function generateChatTitle(
+  modelId: ModelId,
+  messages: CoreMessage[],
+  registry: ModelRegistry,
+): Promise<string> {
+  const model = registry.getLanguageModel(modelId);
+  const params = {
+    model,
+    messages: messages,
+    system:
+      "Summarize this conversation into a short title of six words or less. Use the normal rules for sentence capitalization rather than title case. There should not be a period at the end of the summary. The title must not contain the characters /, \\, or :",
+  };
+  const summary = (await generateText(params)).text.replaceAll(/[/\\:]/g, "-");
+  return `${summary} (Chat)`;
+}

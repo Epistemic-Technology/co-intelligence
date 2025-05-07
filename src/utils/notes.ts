@@ -9,9 +9,39 @@ const CHAT_START = "<!-- CHAT-THREAD-START -->";
 const CHAT_END = "<!-- CHAT-THREAD-END -->";
 const pattern = new RegExp(`${CHAT_START}[\\s\\S]*?${CHAT_END}`, "m");
 
-export function isCOINote(note: TFile, app: App): boolean {
+/**
+ * Checks if a note is a COI note.
+ *
+ * @param note - The note to check.
+ * @param app - The Obsidian app instance.
+ * @returns True if the note is a COI note, false otherwise.
+ */
+export function isCoiNote(note: TFile, app: App): boolean {
   const metadata = app.metadataCache.getFileCache(note);
   return metadata?.frontmatter?.["is-coi-chat"] === true;
+}
+
+/**
+ * Checks if a note is active COI note. A note is active if it is a COI note and
+ * the active view is chat view.
+ *
+ * @param note - The note to check.
+ * @param app - The Obsidian app instance.
+ * @returns True if the note is active COI note, false otherwise.
+ */
+export function isActiveCoiNote(note: TFile, app: App): boolean {
+  const metadata = app.metadataCache.getFileCache(note);
+  return (
+    metadata?.frontmatter?.["is-coi-chat"] === true &&
+    metadata?.frontmatter?.["coi-chat-view"] === true
+  );
+}
+
+export interface CoiNoteFrontmatter {
+  "is-coi-chat": boolean;
+  "coi-chat-view": boolean;
+  "note-renamed": boolean;
+  tags: string[];
 }
 
 export async function createCOINote(app: App, plugin: CoIntelligencePlugin) {
@@ -25,9 +55,14 @@ export async function createCOINote(app: App, plugin: CoIntelligencePlugin) {
   const newChatName = `chat_${dateString}_${timeString}`;
   const file = await app.vault.create(`${folder.path}/${newChatName}.md`, "");
   await app.vault.modify(file, `${CHAT_START}\n\n${CHAT_END}`);
+  const newFrontmatter: CoiNoteFrontmatter = {
+    "is-coi-chat": true,
+    "coi-chat-view": true,
+    "note-renamed": false,
+    tags: ["coi-chat"],
+  };
   await app.fileManager.processFrontMatter(file, (frontmatter) => {
-    frontmatter["is-coi-chat"] = true;
-    frontmatter.tags = ["coi-chat"];
+    Object.assign(frontmatter, newFrontmatter);
   });
   // Add a small delay to allow the frontmatter to be saved before opening the note.
   await new Promise((resolve) => setTimeout(resolve, 100));
@@ -35,12 +70,35 @@ export async function createCOINote(app: App, plugin: CoIntelligencePlugin) {
   await leaf.openFile(file);
 }
 
+export async function renameNote(
+  note: TFile,
+  app: App,
+  newName: string,
+): Promise<TFile> {
+  const metadata = app.metadataCache.getFileCache(note);
+  if (metadata?.frontmatter?.["note-renamed"]) {
+    return note;
+  }
+
+  try {
+    const parentPath = note.parent ? note.parent.path : "";
+    const newPath = normalizePath(
+      `${parentPath}/${newName}${note.extension ? "." + note.extension : ""}`,
+    );
+    await app.fileManager.renameFile(note, newPath);
+    return app.vault.getAbstractFileByPath(newPath) as TFile;
+  } catch (error) {
+    console.error("Error renaming note:", error);
+    return note;
+  }
+}
+
 export async function openCOINote(
   file: TFile,
   app: App,
   registry: ModelRegistry,
 ) {
-  if (!isCOINote(file, app)) {
+  if (!isCoiNote(file, app)) {
     return;
   }
 

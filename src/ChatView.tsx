@@ -4,7 +4,12 @@ import { CoreMessage } from "ai";
 
 import { CoiChatApp } from "@/CoiChatApp";
 import { CoIntelligencePlugin } from "@/CoIntelligencePlugin";
-import { serializeCoiNote, deserializeCoiNote } from "@/utils/notes";
+import {
+  serializeCoiNote,
+  deserializeCoiNote,
+  renameNote,
+  isActiveCoiNote,
+} from "@/utils/notes";
 
 export const VIEW_TYPE_COI_CHAT = "coi-chat-view";
 
@@ -31,7 +36,10 @@ export class ChatView extends ItemView {
     return "Co-Intelligence Chat";
   }
 
-  async handleChatChange(newMessages: CoreMessage[]): Promise<void> {
+  async handleChatChange(
+    newMessages: CoreMessage[],
+    newTitle: string,
+  ): Promise<void> {
     if (this.updating) return;
     this.updating = true;
     if (!this.file) {
@@ -39,6 +47,7 @@ export class ChatView extends ItemView {
     }
     try {
       await serializeCoiNote(this.file, this.app, newMessages);
+      await renameNote(this.file, this.app, newTitle);
     } catch (error) {
       throw new Error(`Error serializing CoiNote: ${error}`);
     } finally {
@@ -49,6 +58,11 @@ export class ChatView extends ItemView {
   async onOpen(): Promise<void> {
     if (!this.file) {
       console.error("No file provided for chat view");
+      this.leaf.detach();
+      return;
+    }
+    if (!isActiveCoiNote(this.file, this.app)) {
+      this.leaf.detach();
       return;
     }
     const messages = await deserializeCoiNote(this.file, this.app);

@@ -2,7 +2,11 @@ import { Component, createSignal, useContext } from "solid-js";
 import { CoreMessage } from "ai";
 
 import { ModelRegistry, Model, ModelId } from "@/services/model-registry";
-import { generateChatResponse, ChatRequest } from "@/services/model-service";
+import {
+  generateChatResponse,
+  ChatRequest,
+  generateChatTitle,
+} from "@/services/model-service";
 import { PluginContext, ChangeCallbackContext } from "@/CoiChatApp";
 import { ChatHistory } from "@/components/ChatHistory";
 import { UserInput } from "@/components/UserInput";
@@ -72,8 +76,9 @@ export const ChatInterface = ({ initialMessages }: ChatInterfaceProps) => {
         return updatedMessages;
       });
     }
+    const newTitle = await generateChatTitle(model().id, messages(), registry);
     if (onChange) {
-      onChange(messages());
+      onChange(messages(), newTitle);
     }
   };
 

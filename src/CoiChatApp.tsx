@@ -9,13 +9,13 @@ export const PluginContext = createContext<CoIntelligencePlugin>();
 export const AppContext = createContext<App>();
 export const FileContext = createContext<TFile>();
 export const ChangeCallbackContext =
-  createContext<(messages: CoreMessage[]) => void>();
+  createContext<(messages: CoreMessage[], title: string) => void>();
 
 export interface AppProps {
   app: App;
   file: TFile;
   plugin: CoIntelligencePlugin;
-  onChange: (messages: CoreMessage[]) => void;
+  onChange: (messages: CoreMessage[], title: string) => void;
   initialMessages: CoreMessage[];
 }
 

@@ -9,6 +9,7 @@ import {
 } from "./settings";
 
 import { NewChatCommand } from "@/commands/new-chat";
+import { ToggleChatViewCommand } from "@/commands/toggle-chat-view";
 import { ChatView, VIEW_TYPE_COI_CHAT } from "@/ChatView";
 import { ModelRegistry } from "@/services/model-registry";
 
@@ -28,6 +29,7 @@ export class CoIntelligencePlugin extends Plugin {
     await this.loadSettings();
     this.addSettingTab(new CoIntelligenceSettingsTab(this.app, this));
     this.addCommand(new NewChatCommand(this));
+    this.addCommand(new ToggleChatViewCommand(this));
     this.registerView(
       VIEW_TYPE_COI_CHAT,
       (leaf: WorkspaceLeaf) => new ChatView(leaf, this, this.app),
