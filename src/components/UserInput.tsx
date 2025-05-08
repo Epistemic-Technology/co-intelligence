@@ -21,6 +21,13 @@ export const UserInput: Component<UserInputProps> = ({
   let textareaRef: HTMLTextAreaElement | undefined;
   const app = useContext(AppContext);
   
+  // Add effect to auto-focus the textarea when component mounts
+  createEffect(() => {
+    if (textareaRef) {
+      textareaRef.focus();
+    }
+  });
+  
   const [isWikilinkOpen, setIsWikilinkOpen] = createSignal(false);
   const [wikilinkQuery, setWikilinkQuery] = createSignal("");
   const [cursorPosition, setCursorPosition] = createSignal({ x: 0, y: 0 });
