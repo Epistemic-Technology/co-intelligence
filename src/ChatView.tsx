@@ -33,7 +33,7 @@ export class ChatView extends ItemView {
   }
 
   getDisplayText(): string {
-    return "Co-Intelligence Chat";
+    return this.file?.path || "Co-Intelligence Chat";
   }
 
   async handleChatChange(
@@ -66,7 +66,10 @@ export class ChatView extends ItemView {
       this.leaf.detach();
       return;
     }
-    const { messages, linkedNotes } = await deserializeCoiNote(this.file, this.app);
+    const { messages, linkedNotes } = await deserializeCoiNote(
+      this.file,
+      this.app,
+    );
     const rootElement = this.containerEl.children[1];
     render(
       () => (
@@ -74,7 +77,9 @@ export class ChatView extends ItemView {
           app={this.app}
           plugin={this.plugin}
           file={this.file as TFile}
-          onChange={(newMessages, newTitle) => this.handleChatChange(newMessages, newTitle, linkedNotes)}
+          onChange={(newMessages, newTitle) =>
+            this.handleChatChange(newMessages, newTitle, linkedNotes)
+          }
           initialMessages={messages}
           initialLinkedNotes={linkedNotes}
         />
