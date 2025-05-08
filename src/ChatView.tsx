@@ -39,6 +39,7 @@ export class ChatView extends ItemView {
   async handleChatChange(
     newMessages: CoreMessage[],
     newTitle: string,
+    linkedNotes?: TFile[],
   ): Promise<void> {
     if (this.updating) return;
     this.updating = true;
@@ -46,7 +47,7 @@ export class ChatView extends ItemView {
       throw new Error("File is null while trying to handle chat change");
     }
     try {
-      await serializeCoiNote(this.file, this.app, newMessages);
+      await serializeCoiNote(this.file, this.app, newMessages, linkedNotes);
       await renameNote(this.file, this.app, newTitle);
     } catch (error) {
       throw new Error(`Error serializing CoiNote: ${error}`);
@@ -65,7 +66,7 @@ export class ChatView extends ItemView {
       this.leaf.detach();
       return;
     }
-    const messages = await deserializeCoiNote(this.file, this.app);
+    const { messages, linkedNotes } = await deserializeCoiNote(this.file, this.app);
     const rootElement = this.containerEl.children[1];
     render(
       () => (
@@ -73,8 +74,9 @@ export class ChatView extends ItemView {
           app={this.app}
           plugin={this.plugin}
           file={this.file as TFile}
-          onChange={this.handleChatChange}
+          onChange={(newMessages, newTitle) => this.handleChatChange(newMessages, newTitle, linkedNotes)}
           initialMessages={messages}
+          initialLinkedNotes={linkedNotes}
         />
       ),
       rootElement,

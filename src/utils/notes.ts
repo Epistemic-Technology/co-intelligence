@@ -41,6 +41,7 @@ export interface CoiNoteFrontmatter {
   "is-coi-chat": boolean;
   "coi-chat-view": boolean;
   "note-renamed": boolean;
+  "linked-notes"?: string[]; // Array of paths to linked notes
   tags: string[];
 }
 
@@ -116,6 +117,7 @@ export async function serializeCoiNote(
   note: TFile,
   app: App,
   messages: CoreMessage[],
+  linkedNotes?: TFile[],
 ) {
   const currentNoteContent = await app.vault.cachedRead(note);
 
@@ -126,9 +128,17 @@ export async function serializeCoiNote(
     return;
   }
 
+  // Process messages and replace wikilinks with properly formatted links
   const serializedMessages = messages
     .map(({ role, content }) => {
-      return `## ${role}:\n\n${content}`;
+      // Convert [[NoteName]] patterns to proper wikilinks
+      const processedContent = (content as string).replace(
+        /\[\[(.*?)\]\]/g,
+        (match, noteName) => {
+          return `[[${noteName}]]`;
+        },
+      );
+      return `## ${role}:\n\n${processedContent}`;
     })
     .join("\n\n");
 
@@ -144,19 +154,26 @@ export async function serializeCoiNote(
   if (newNoteContent !== currentNoteContent) {
     await app.vault.modify(note, newNoteContent);
   }
+
+  // Update frontmatter with linked notes if provided
+  if (linkedNotes && linkedNotes.length > 0) {
+    await app.fileManager.processFrontMatter(note, (frontmatter) => {
+      frontmatter["linked-notes"] = linkedNotes.map((file) => file.path);
+    });
+  }
 }
 
 export async function deserializeCoiNote(
   note: TFile,
   app: App,
-): Promise<CoreMessage[]> {
+): Promise<{ messages: CoreMessage[]; linkedNotes: TFile[] }> {
   const currentNoteContent = await app.vault.cachedRead(note);
   if (!pattern.test(currentNoteContent)) {
-    return [];
+    return { messages: [], linkedNotes: [] };
   }
   const serializedMessages = currentNoteContent.match(pattern);
   if (!serializedMessages) {
-    return [];
+    return { messages: [], linkedNotes: [] };
   }
 
   const messages: CoreMessage[] = [];
@@ -189,5 +206,41 @@ export async function deserializeCoiNote(
     }
   }
   flushContent();
-  return messages;
+
+  // Extract linked notes from frontmatter
+  const linkedNotes: TFile[] = [];
+  const metadata = app.metadataCache.getFileCache(note);
+  const linkedNotePaths = metadata?.frontmatter?.["linked-notes"] || [];
+
+  // Convert paths to TFile objects
+  for (const path of linkedNotePaths) {
+    const file = app.vault.getAbstractFileByPath(path);
+    if (file instanceof TFile) {
+      linkedNotes.push(file);
+    }
+  }
+
+  // Also extract wikilinks from content
+  const wikiLinkRegex = /\[\[(.*?)\]\]/g;
+  for (const message of messages) {
+    let match;
+    while ((match = wikiLinkRegex.exec(message.content as string)) !== null) {
+      const linkText = match[1];
+      // Handle any aliases in the link (e.g., [[Note|Alias]])
+      const noteName = linkText.split("|")[0];
+
+      // Find the note by name
+      const files = app.vault.getMarkdownFiles();
+      const linkedFile = files.find((file) => file.basename === noteName);
+
+      if (
+        linkedFile &&
+        !linkedNotes.some((note) => note.path === linkedFile.path)
+      ) {
+        linkedNotes.push(linkedFile);
+      }
+    }
+  }
+
+  return { messages, linkedNotes };
 }

@@ -9,14 +9,15 @@ export const PluginContext = createContext<CoIntelligencePlugin>();
 export const AppContext = createContext<App>();
 export const FileContext = createContext<TFile>();
 export const ChangeCallbackContext =
-  createContext<(messages: CoreMessage[], title: string) => void>();
+  createContext<(messages: CoreMessage[], title: string, linkedNotes?: TFile[]) => void>();
 
 export interface AppProps {
   app: App;
   file: TFile;
   plugin: CoIntelligencePlugin;
-  onChange: (messages: CoreMessage[], title: string) => void;
+  onChange: (messages: CoreMessage[], title: string, linkedNotes?: TFile[]) => void;
   initialMessages: CoreMessage[];
+  initialLinkedNotes?: TFile[];
 }
 
 export const CoiChatApp: Component<AppProps> = ({
@@ -25,6 +26,7 @@ export const CoiChatApp: Component<AppProps> = ({
   plugin,
   onChange,
   initialMessages,
+  initialLinkedNotes = [],
 }) => {
   return (
     <div class="coi-app">
@@ -32,7 +34,7 @@ export const CoiChatApp: Component<AppProps> = ({
         <FileContext.Provider value={file}>
           <PluginContext.Provider value={plugin}>
             <ChangeCallbackContext.Provider value={onChange}>
-              <ChatInterface initialMessages={initialMessages} />
+              <ChatInterface initialMessages={initialMessages} initialLinkedNotes={initialLinkedNotes} />
             </ChangeCallbackContext.Provider>
           </PluginContext.Provider>
         </FileContext.Provider>

@@ -21,7 +21,14 @@
     overflow-y: auto;
 }
 
+.coi-message-container {
+    width: 100%;
+}
+
 .coi-bot-message {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
 }
 
 .coi-user-message {
@@ -58,4 +65,74 @@
     max-width: 90%;
     height: auto;
     min-height: 50px;
+}
+
+/* WikiLink styles */
+.coi-note-suggestion-container {
+    border-radius: 4px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    z-index: 1000;
+}
+
+.coi-note-suggestion-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.coi-note-suggestion-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.coi-note-suggestion-item:hover,
+.coi-note-suggestion-item.coi-selected {
+    background-color: var(--background-modifier-hover);
+}
+
+.coi-linked-notes {
+    margin: 1rem 0;
+    padding: 0.5rem;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    background-color: var(--background-secondary);
+}
+
+.coi-linked-notes h4 {
+    margin-top: 0;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.coi-linked-notes ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.coi-linked-notes li {
+    display: flex;
+    align-items: center;
+    padding: 0.3rem 0;
+}
+
+.coi-remove-link {
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0 0.3rem;
+    margin-left: 0.5rem;
+}
+
+.coi-remove-link:hover {
+    color: var(--text-error);
+}
+
+/* Make textarea wikilinks look like Obsidian's */
+.coi-user-input textarea {
+    font-family: var(--font-text);
 }

@@ -1,6 +1,11 @@
 import { streamText, generateText, GenerateTextResult, CoreMessage } from "ai";
 import { ModelRegistry, ModelId } from "./model-registry";
 
+export interface ContextNote {
+  title: string;
+  content: string;
+}
+
 /**
  * Interface for chat request parameters.
  */
@@ -8,6 +13,7 @@ export interface ChatRequest {
   modelId: ModelId; // e.g., 'openai:gpt-4-turbo'
   messages: CoreMessage[];
   systemPrompt?: string;
+  contextNotes?: ContextNote[];
 }
 
 /**
@@ -24,10 +30,28 @@ export async function generateChatResponse(
 ): Promise<AsyncIterable<string>> {
   const model = registry.getLanguageModel(request.modelId);
 
+  // Prepare context from linked notes if any
+  let systemPrompt = request.systemPrompt || "";
+
+  if (request.contextNotes && request.contextNotes.length > 0) {
+    const notesContext = request.contextNotes
+      .map((note) => `--- Note: ${note.title} ---\n${note.content}\n---`)
+      .join("\n\n");
+
+    const contextPreamble =
+      "The following notes provide additional context for answering the user's question:\n\n";
+
+    if (systemPrompt) {
+      systemPrompt += "\n\n" + contextPreamble + notesContext;
+    } else {
+      systemPrompt = contextPreamble + notesContext;
+    }
+  }
+
   const config = {
     model,
     messages: request.messages,
-    ...(request.systemPrompt && { system: request.systemPrompt }),
+    ...(systemPrompt && { system: systemPrompt }),
   };
 
   const result = streamText(config);
