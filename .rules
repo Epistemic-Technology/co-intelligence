@@ -3,3 +3,6 @@
 - The stack for the project is TypeScript and SolidJS.
 - UI components in tsx files are *not* React components, they are SolidJS components. In particular, they use the 'class' attribute instead of 'className' and lists do not need explicit keys.
 - Use '@' imports rather than relative imports. The '@' specifies the src directory.
+- Avoid inline styles. Use CSS classes and styles.css instead.
+- Use Obsidian CSS variables for styling whenever possible.
+- Use comments very sparingly, except for function and class documentation.
