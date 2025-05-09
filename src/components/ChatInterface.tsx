@@ -8,11 +8,13 @@ import {
   ContextNote,
   ChatRequest,
   generateChatTitle,
+  Source,
 } from "@/services/model-service";
 import { PluginContext, ChangeCallbackContext, AppContext } from "@/CoiChatApp";
 import { ChatHistory } from "@/components/ChatHistory";
 import { UserInput } from "@/components/UserInput";
 import { LinkedNotes } from "@/components/LinkedNotes";
+import { SourceList } from "@/components/SourceList";
 
 export interface ChatInterfaceProps {
   initialMessages: CoreMessage[];
@@ -50,6 +52,8 @@ export const ChatInterface = ({
   const [messages, setMessages] = createSignal<CoreMessage[]>(initialMessages);
   const [linkedNotes, setLinkedNotes] =
     createSignal<TFile[]>(initialLinkedNotes);
+  const [sources, setSources] = createSignal<Source[]>([]);
+
   const app = useContext(AppContext);
 
   const handleLinkNote = (file: TFile) => {
@@ -102,7 +106,7 @@ export const ChatInterface = ({
     const responseStream = await generateChatResponse(request, registry);
     let accumulatedContent = "";
 
-    for await (const chunk of responseStream) {
+    for await (const chunk of responseStream.textStream) {
       accumulatedContent += chunk;
       const responseMessage: CoreMessage = {
         role: "assistant",
@@ -114,6 +118,7 @@ export const ChatInterface = ({
         return updatedMessages;
       });
     }
+    setSources(await responseStream.sources);
     const newTitle = await generateChatTitle(model().id, messages(), registry);
     if (onChange) {
       onChange(messages(), newTitle, linkedNotes());
@@ -123,6 +128,7 @@ export const ChatInterface = ({
   return (
     <div>
       <ChatHistory messages={messages} />
+      {sources().length > 0 && <SourceList sources={sources()} />}
       {linkedNotes().length > 0 && (
         <LinkedNotes
           notes={linkedNotes()}

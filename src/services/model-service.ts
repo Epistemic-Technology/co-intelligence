@@ -1,4 +1,11 @@
-import { streamText, generateText, GenerateTextResult, CoreMessage } from "ai";
+import {
+  streamText,
+  generateText,
+  GenerateTextResult,
+  CoreMessage,
+  StreamTextResult,
+  ToolSet,
+} from "ai";
 import { ModelRegistry, ModelId } from "./model-registry";
 
 export interface ContextNote {
@@ -16,6 +23,12 @@ export interface ChatRequest {
   contextNotes?: ContextNote[];
 }
 
+export interface Source {
+  id: string;
+  url: string;
+  title?: string;
+}
+
 /**
  * Generates a chat response based on the provided request.
  *
@@ -27,7 +40,7 @@ export interface ChatRequest {
 export async function generateChatResponse(
   request: ChatRequest,
   registry: ModelRegistry,
-): Promise<AsyncIterable<string>> {
+): Promise<StreamTextResult<ToolSet, never>> {
   const model = registry.getLanguageModel(request.modelId);
 
   // Prepare context from linked notes if any
@@ -55,7 +68,7 @@ export async function generateChatResponse(
   };
 
   const result = streamText(config);
-  return result.textStream;
+  return result;
 }
 
 export async function generateChatTitle(
