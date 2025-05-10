@@ -1,20 +1,25 @@
-import { Component, JSX, useContext } from "solid-js";
-import { AppContext, PluginContext } from "@/CoiChatApp";
-import { className } from "solid-js/web";
+import { Component, useContext } from "solid-js";
+import { CoreMessage } from "ai";
 
-export interface MessageContainerProps {
-  children: JSX.Element;
-  class?: string;
+import { MarkdownView } from "@/components/MarkdownView";
+import { FileContext, AppContext } from "@/CoiChatApp";
+
+export interface ChatMessageProps {
+  message: CoreMessage;
+  className?: string;
 }
 
-export const MessageContainer: Component<MessageContainerProps> = (props) => {
+export const ChatMessage: Component<ChatMessageProps> = ({
+  message,
+  className,
+}) => {
+  const file = useContext(FileContext);
+  const filePath = file?.path ?? "";
   const app = useContext(AppContext);
-  const plugin = useContext(PluginContext);
 
   const handleClick = (event: MouseEvent) => {
     const target = event.target as HTMLElement;
 
-    // Check if the clicked element is an anchor
     if (target.tagName === "A") {
       event.preventDefault();
 
@@ -37,13 +42,12 @@ export const MessageContainer: Component<MessageContainerProps> = (props) => {
       }
     }
   };
-
   return (
-    <div
-      class={`coi-message-container ${props.class || ""}`}
-      onClick={handleClick}
-    >
-      {props.children}
+    <div onClick={handleClick} class={className}>
+      <MarkdownView
+        markdown={message.content as string}
+        sourcePath={filePath}
+      />
     </div>
   );
 };
