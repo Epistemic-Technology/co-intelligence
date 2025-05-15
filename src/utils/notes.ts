@@ -172,7 +172,8 @@ export async function serializeCoiNote(
         .replace(/\[(\d+)\]/g, (match, referenceID) => {
           return ` [[#Sources|${referenceID}]]`;
         })
-        .replace(/^##/gm, "###"); // Move headers one level down so that they are within the chat section
+        .replace(/^##/gm, "###") // Move headers one level down so that they are within the chat section
+        .trim(); // Trim any leading/trailing whitespace
       return `## ${role}:\n\n${processedContent}`;
     })
     .join("\n\n");
@@ -183,6 +184,7 @@ export async function serializeCoiNote(
     sources.forEach((source, index) => {
       serializedSources += `${index + 1}. [${source.title || source.url}](${source.url})\n`;
     });
+    serializedSources = serializedSources.trim();
   }
 
   const startIndex = currentNoteContent.indexOf(CHAT_START);
@@ -191,7 +193,11 @@ export async function serializeCoiNote(
   const beforeChat = currentNoteContent.substring(0, startIndex);
   const afterChat = currentNoteContent.substring(endIndex);
 
-  const newChatSection = `${CHAT_START}\n${serializedMessages}\n\n${serializedSources}${CHAT_END}`;
+  // Maintain consistent formatting with exactly one newline after CHAT_START and 
+  // one newline before CHAT_END, and exactly one blank line between sections
+  const newChatSection = sources && sources.length > 0
+    ? `${CHAT_START}\n${serializedMessages}\n\n${serializedSources}\n${CHAT_END}`
+    : `${CHAT_START}\n${serializedMessages}\n${CHAT_END}`;
   const newNoteContent = beforeChat + newChatSection + afterChat;
 
   if (newNoteContent !== currentNoteContent) {
@@ -242,19 +248,18 @@ export async function deserializeCoiNoteContent(
     if (currentMode == "user" || currentMode == "assistant") {
       messages.push({
         role: currentMode,
-        content: contentBuffer.join("\n"),
+        // Remove any excess leading/trailing whitespace from joined content
+        content: contentBuffer.join("\n").trim(),
       });
     } else if (currentMode == "sources") {
       const sourceRegex = /\d+\. \[(.*?)\]\((.*?)\)/;
       for (const line of contentBuffer) {
-        if (line.trim().startsWith("- ")) {
-          const match = line.match(sourceRegex);
-          if (match) {
-            sources.push({
-              title: match[1],
-              url: match[2],
-            });
-          }
+        const match = line.match(sourceRegex);
+        if (match) {
+          sources.push({
+            title: match[1],
+            url: match[2],
+          });
         }
       }
     }
