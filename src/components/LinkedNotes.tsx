@@ -1,5 +1,5 @@
 import { TFile } from "obsidian";
-
+import { For } from "solid-js";
 import { NoteLink } from "@/components/NoteLink";
 
 export const LinkedNotes = ({
@@ -10,20 +10,22 @@ export const LinkedNotes = ({
   handleRemoveLink: (note: TFile) => void;
 }) => {
   return (
-    <div class="coi-linked-notes">
+    <div class="coi-linked-notes coi-context-box">
       <h4>Linked Notes:</h4>
       <ul>
-        {notes.map((note) => (
-          <li>
-            <NoteLink href="#">{note.basename}</NoteLink>
-            <button
-              class="coi-remove-link"
-              onClick={() => handleRemoveLink(note)}
-            >
-              &times;
-            </button>
-          </li>
-        ))}
+        <For each={notes}>
+          {(note) => (
+            <li>
+              <NoteLink href="#">{note.basename}</NoteLink>
+              <button
+                class="coi-remove-link"
+                onClick={() => handleRemoveLink(note)}
+              >
+                &times;
+              </button>
+            </li>
+          )}
+        </For>
       </ul>
     </div>
   );
