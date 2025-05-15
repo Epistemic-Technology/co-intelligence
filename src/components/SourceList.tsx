@@ -3,6 +3,7 @@ import { Source } from "@/services/model-service";
 export const SourceList = ({ sources }: { sources: Source[] }) => {
   return (
     <div>
+      <h3>Sources</h3>
       <ol>
         {sources.map((source) => (
           <li>

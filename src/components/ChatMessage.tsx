@@ -32,11 +32,9 @@ export const ChatMessage: Component<ChatMessageProps> = ({
           href.startsWith("obsidian://") ||
           anchor.classList.contains("internal-link")
         ) {
-          // Use Obsidian's API to handle internal links
           const newLeaf = event.ctrlKey || event.metaKey;
           app.workspace.openLinkText(href, "", newLeaf);
         } else {
-          // For external links, open in the default browser
           window.open(href, "_blank");
         }
       }

@@ -19,11 +19,13 @@ import { SourceList } from "@/components/SourceList";
 export interface ChatInterfaceProps {
   initialMessages: CoreMessage[];
   initialLinkedNotes?: TFile[];
+  initialSources?: Source[];
 }
 
 export const ChatInterface = ({
   initialMessages,
   initialLinkedNotes = [],
+  initialSources = [],
 }: ChatInterfaceProps) => {
   const plugin = useContext(PluginContext);
   const onChange = useContext(ChangeCallbackContext);
@@ -39,20 +41,12 @@ export const ChatInterface = ({
   } else {
     currentModel = registry.getDefaultModel();
   }
-  if (!currentModel) {
-    return (
-      <div class="coi-error">
-        No available model found. Please configure model providers in the
-        settings.
-      </div>
-    );
-  }
 
-  const [model, setModel] = createSignal<Model>(currentModel);
+  const [model, setModel] = createSignal<Model | null>(currentModel);
   const [messages, setMessages] = createSignal<CoreMessage[]>(initialMessages);
   const [linkedNotes, setLinkedNotes] =
     createSignal<TFile[]>(initialLinkedNotes);
-  const [sources, setSources] = createSignal<Source[]>([]);
+  const [sources, setSources] = createSignal<Source[]>(initialSources);
 
   const app = useContext(AppContext);
 
@@ -69,6 +63,10 @@ export const ChatInterface = ({
   const handleSendMessage = async (message: string) => {
     if (!message.trim()) {
       console.warn("Message is empty");
+      return;
+    }
+    if (!model()) {
+      console.warn("No model selected");
       return;
     }
     const newMessage: CoreMessage = { role: "user", content: message };
@@ -92,7 +90,7 @@ export const ChatInterface = ({
     const validContextNotes = contextNotes.filter((note) => note !== null);
 
     const request: ChatRequest = {
-      modelId: model().id,
+      modelId: (model() as Model).id,
       messages: messages(),
       contextNotes: validContextNotes,
     };
@@ -119,9 +117,13 @@ export const ChatInterface = ({
       });
     }
     setSources(await responseStream.sources);
-    const newTitle = await generateChatTitle(model().id, messages(), registry);
+    const newTitle = await generateChatTitle(
+      model()?.id || null,
+      messages(),
+      registry,
+    );
     if (onChange) {
-      onChange(messages(), newTitle, linkedNotes());
+      onChange(messages(), newTitle, linkedNotes(), sources());
     }
   };
 

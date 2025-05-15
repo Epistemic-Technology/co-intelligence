@@ -1,5 +1,14 @@
-import { Plugin, App, PluginManifest, WorkspaceLeaf, TFile } from "obsidian";
+import {
+  Plugin,
+  App,
+  PluginManifest,
+  WorkspaceLeaf,
+  TFile,
+  ViewState,
+} from "obsidian";
 import { render } from "solid-js/web";
+import { around } from "monkey-around";
+
 import "./styles.css";
 
 import {
@@ -13,7 +22,7 @@ import { ToggleChatViewCommand } from "@/commands/toggle-chat-view";
 import { ChatView, VIEW_TYPE_COI_CHAT } from "@/ChatView";
 import { ModelRegistry } from "@/services/model-registry";
 
-import { openCOINote } from "./utils/notes";
+import { isCoiNote, openCOINote, isPathActiveCoiNote } from "./utils/notes";
 
 export class CoIntelligencePlugin extends Plugin {
   settings: CoIntelligenceSettings;
@@ -38,10 +47,19 @@ export class CoIntelligencePlugin extends Plugin {
     this.registerEvent(
       this.app.workspace.on("file-open" as any, this.handleFileOpen.bind(this)),
     );
+
+    console.log("CoIntelligencePlugin loaded");
+
+    this.app.workspace.onLayoutReady(this.onloadOnLayoutReady.bind(this));
+  }
+
+  async onloadOnLayoutReady() {
+    console.log("Layout ready");
+    this.registerMonkeyPatches();
   }
 
   private async handleFileOpen(file: TFile) {
-    await openCOINote(file, this.app, this.registry);
+    //await openCOINote(file, this.app, this.registry);
   }
 
   async activateView() {}
@@ -52,6 +70,55 @@ export class CoIntelligencePlugin extends Plugin {
 
   async saveSettings() {
     await this.saveData(this.settings);
+  }
+
+  /**
+   * Registers monkey patches to alter core Obsidian functionality not exposed
+   * through the public API.
+   *
+   * Specifically, this alters setViewState to check if the opened file is a COI
+   * note and if so, opens the chat view.
+   *
+   * @see https://github.com/zsviczian/obsidian-excalidraw-plugin/blob/master/src/core/main.ts
+   */
+  // registerMonkeyPatches() {
+  //   this.register(
+  //     around(WorkspaceLeaf.prototype, {
+  //       setViewState(next): Function {
+  //         return function (state: ViewState, ...rest: any[]) {
+  //           console.log("Monkey patching setViewState");
+  //           return next.apply(this, [state, ...rest]);
+  //         };
+  //       },
+  //     }),
+  //   );
+  // }
+
+  private registerMonkeyPatches() {
+    const key =
+      "https://github.com/zsviczian/obsidian-excalidraw-plugin/issues";
+    // Monkey patch WorkspaceLeaf to open Excalidraw drawings with ExcalidrawView by default
+    this.register(
+      around(WorkspaceLeaf.prototype, {
+        setViewState(next) {
+          return function (this: any, state: ViewState, eState?: any) {
+            console.log("Monkey patching setViewState");
+            const newState = {
+              ...state,
+            };
+            if (state.type === "markdown") {
+              console.log("This is a markdown file");
+              const path = (state.state?.file as string) ?? "";
+              if (isPathActiveCoiNote(path, this.app as App)) {
+                console.log("This is a COI note");
+                newState.type = VIEW_TYPE_COI_CHAT;
+              }
+            }
+            return next.call(this, newState, eState);
+          };
+        },
+      }),
+    );
   }
 }
 

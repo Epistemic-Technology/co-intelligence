@@ -27,7 +27,6 @@ export class ModelRegistry {
 
   private static instance: ModelRegistry | null = null;
 
-  // Singleton pattern to ensure only one instance exists
   public static getInstance(
     pluginInstance: CoIntelligencePlugin | null = null,
   ): ModelRegistry {
@@ -47,13 +46,11 @@ export class ModelRegistry {
     this.initializeProviders();
   }
 
-  // Initialize the model registry with the plugin instance
   public initialize(pluginInstance: CoIntelligencePlugin): void {
     this.plugin = pluginInstance;
     this.initializeProviders();
   }
 
-  // Initialize providers based on available API keys
   private initializeProviders(): void {
     if (!this.plugin) {
       throw new Error("Plugin instance not initialized");
@@ -83,14 +80,11 @@ export class ModelRegistry {
       });
     }
 
-    // Initialize provider registry with available providers
     this.providerRegistry = createProviderRegistry(providers);
 
-    // Update available models based on initialized providers
     this.updateAvailableModels(Object.keys(providers));
   }
 
-  // Update the list of available models based on initialized providers
   private updateAvailableModels(initializedProviders: string[]): void {
     const allModels: Model[] = [
       // {
@@ -145,7 +139,6 @@ export class ModelRegistry {
       },
     ];
 
-    // Filter models to only include those with initialized providers
     this.availableModels = allModels.filter((model) =>
       initializedProviders.includes(model.provider),
     );
@@ -159,9 +152,7 @@ export class ModelRegistry {
     return model;
   }
 
-  // Get a specific model by ID
   public getLanguageModel(modelId: ModelId): LanguageModel {
-    // Ensure the provider registry is initialized
     if (!this.providerRegistry) {
       throw new Error(
         "Provider registry not initialized. Make sure API keys are configured.",
@@ -174,13 +165,11 @@ export class ModelRegistry {
     if (!languageModel) {
       throw new Error(`Model not found: ${modelId}`);
     }
-    // Ensure that the provider name conforms to our Provider type
     const provider = languageModel.provider as Provider;
     return languageModel;
   }
 
   public getDefaultModel(): Model | null {
-    // Ensure the provider registry is initialized
     if (!this.providerRegistry) {
       throw new Error(
         "Provider registry not initialized. Make sure API keys are configured.",
@@ -193,12 +182,10 @@ export class ModelRegistry {
     return firstAvailableModel;
   }
 
-  // Check if any providers are initialized
   public hasInitializedProviders(): boolean {
     return this.availableModels.length > 0;
   }
 
-  // Reinitialize providers (useful after settings change)
   public reinitialize(): void {
     if (this.plugin) {
       this.initializeProviders();

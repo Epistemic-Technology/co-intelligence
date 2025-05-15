@@ -24,7 +24,6 @@ export interface ChatRequest {
 }
 
 export interface Source {
-  id: string;
   url: string;
   title?: string;
 }
@@ -43,7 +42,6 @@ export async function generateChatResponse(
 ): Promise<StreamTextResult<ToolSet, never>> {
   const model = registry.getLanguageModel(request.modelId);
 
-  // Prepare context from linked notes if any
   let systemPrompt = request.systemPrompt || "";
 
   if (request.contextNotes && request.contextNotes.length > 0) {
@@ -72,10 +70,13 @@ export async function generateChatResponse(
 }
 
 export async function generateChatTitle(
-  modelId: ModelId,
+  modelId: ModelId | null,
   messages: CoreMessage[],
   registry: ModelRegistry,
 ): Promise<string> {
+  if (!modelId) {
+    return "";
+  }
   const model = registry.getLanguageModel(modelId);
   const params = {
     model,
@@ -83,6 +84,14 @@ export async function generateChatTitle(
     system:
       "Summarize this conversation into a short title of six words or less. Use the normal rules for sentence capitalization rather than title case. There should not be a period at the end of the summary. The title must not contain the characters /, \\, or :",
   };
-  const summary = (await generateText(params)).text.replaceAll(/[/\\:]/g, "-");
-  return `${summary} (Chat)`;
+  try {
+    const summary = (await generateText(params)).text.replaceAll(
+      /[/\\:]/g,
+      "-",
+    );
+    return `${summary} (Chat)`;
+  } catch (error) {
+    console.error("Error generating chat title:", error);
+    return "";
+  }
 }

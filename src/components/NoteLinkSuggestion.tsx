@@ -1,4 +1,10 @@
-import { Component, createSignal, createEffect, onCleanup, Show } from "solid-js";
+import {
+  Component,
+  createSignal,
+  createEffect,
+  onCleanup,
+  Show,
+} from "solid-js";
 import { App, TFile } from "obsidian";
 import { createStore } from "solid-js/store";
 
@@ -11,11 +17,12 @@ export interface NoteLinkSuggestionProps {
   isOpen: boolean;
 }
 
-export const NoteLinkSuggestion: Component<NoteLinkSuggestionProps> = (props) => {
+export const NoteLinkSuggestion: Component<NoteLinkSuggestionProps> = (
+  props,
+) => {
   const [notes, setNotes] = createStore<TFile[]>([]);
   const [selectedIndex, setSelectedIndex] = createSignal(0);
 
-  // When query changes, update the notes
   createEffect(() => {
     if (!props.isOpen || !props.query) {
       setNotes([]);
@@ -23,26 +30,27 @@ export const NoteLinkSuggestion: Component<NoteLinkSuggestionProps> = (props) =>
     }
 
     const files = props.app.vault.getMarkdownFiles();
-    const filteredNotes = files.filter(file => 
-      file.basename.toLowerCase().includes(props.query.toLowerCase())
-    ).slice(0, 10); // Limit to 10 results
-    
+    const filteredNotes = files
+      .filter((file) =>
+        file.basename.toLowerCase().includes(props.query.toLowerCase()),
+      )
+      .slice(0, 10); // Limit to 10 results
+
     setNotes(filteredNotes);
     setSelectedIndex(0);
   });
 
-  // Handle keyboard navigation
   const handleKeyDown = (e: KeyboardEvent) => {
     if (!props.isOpen) return;
-    
+
     switch (e.key) {
       case "ArrowDown":
         e.preventDefault();
-        setSelectedIndex(prev => (prev + 1) % notes.length);
+        setSelectedIndex((prev) => (prev + 1) % notes.length);
         break;
       case "ArrowUp":
         e.preventDefault();
-        setSelectedIndex(prev => (prev - 1 + notes.length) % notes.length);
+        setSelectedIndex((prev) => (prev - 1 + notes.length) % notes.length);
         break;
       case "Enter":
         e.preventDefault();
@@ -57,7 +65,6 @@ export const NoteLinkSuggestion: Component<NoteLinkSuggestionProps> = (props) =>
     }
   };
 
-  // Add and remove keyboard listener
   createEffect(() => {
     if (props.isOpen) {
       document.addEventListener("keydown", handleKeyDown);
@@ -72,7 +79,7 @@ export const NoteLinkSuggestion: Component<NoteLinkSuggestionProps> = (props) =>
 
   return (
     <Show when={props.isOpen && notes.length > 0}>
-      <div 
+      <div
         class="coi-note-suggestion-container"
         style={{
           position: "absolute",
@@ -85,18 +92,24 @@ export const NoteLinkSuggestion: Component<NoteLinkSuggestionProps> = (props) =>
           "box-shadow": "0 2px 8px var(--background-modifier-box-shadow)",
           width: "300px",
           "max-height": "200px",
-          overflow: "auto"
+          overflow: "auto",
         }}
       >
-        <ul class="coi-note-suggestion-list" style={{ "list-style": "none", padding: "0.5rem", margin: 0 }}>
+        <ul
+          class="coi-note-suggestion-list"
+          style={{ "list-style": "none", padding: "0.5rem", margin: 0 }}
+        >
           {notes.map((note, index) => (
-            <li 
+            <li
               class="coi-note-suggestion-item"
               classList={{ "coi-selected": index === selectedIndex() }}
-              style={{ 
-                padding: "0.5rem", 
+              style={{
+                padding: "0.5rem",
                 cursor: "pointer",
-                "background-color": index === selectedIndex() ? "var(--background-modifier-hover)" : "transparent"
+                "background-color":
+                  index === selectedIndex()
+                    ? "var(--background-modifier-hover)"
+                    : "transparent",
               }}
               onClick={() => props.onSelect(note)}
             >

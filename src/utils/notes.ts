@@ -1,9 +1,10 @@
-import { TFile, App, normalizePath, TFolder } from "obsidian";
+import { TFile, App, normalizePath, TFolder, CachedMetadata } from "obsidian";
 import { CoreMessage } from "ai";
 
 import { ModelRegistry } from "@/services/model-registry";
 import { VIEW_TYPE_COI_CHAT } from "@/ChatView";
 import CoIntelligencePlugin from "@/CoIntelligencePlugin";
+import { Source } from "@/services/model-service";
 
 const CHAT_START = "<!-- CHAT-THREAD-START -->";
 const CHAT_END = "<!-- CHAT-THREAD-END -->";
@@ -19,6 +20,35 @@ const pattern = new RegExp(`${CHAT_START}[\\s\\S]*?${CHAT_END}`, "m");
 export function isCoiNote(note: TFile, app: App): boolean {
   const metadata = app.metadataCache.getFileCache(note);
   return metadata?.frontmatter?.["is-coi-chat"] === true;
+}
+
+/**
+ * Checks if the note at path is a COI note.
+ *
+ * @param path - The path of the note to check.
+ * @param app - The Obsidian app instance.
+ * @returns True if the note is a COI note, false otherwise.
+ */
+export function isPathCoiNote(path: string, app: App): boolean {
+  if (!path) return false;
+  const cache = app.metadataCache.getCache(path);
+  return cache?.frontmatter?.["is-coi-chat"] === true;
+}
+
+/**
+ * Checks if the note at path is an active COI note.
+ *
+ * @param path - The path of the note to check.
+ * @param app - The Obsidian app instance.
+ * @returns True if the note is an active COI note, false otherwise.
+ */
+export function isPathActiveCoiNote(path: string, app: App): boolean {
+  if (!path) return false;
+  const cache = app.metadataCache.getCache(path);
+  return (
+    cache?.frontmatter?.["is-coi-chat"] === true &&
+    cache?.frontmatter?.["coi-chat-view"] === true
+  );
 }
 
 /**
@@ -76,6 +106,9 @@ export async function renameNote(
   app: App,
   newName: string,
 ): Promise<TFile> {
+  if (!note || !newName) {
+    return note;
+  }
   const metadata = app.metadataCache.getFileCache(note);
   if (metadata?.frontmatter?.["note-renamed"]) {
     return note;
@@ -118,6 +151,7 @@ export async function serializeCoiNote(
   app: App,
   messages: CoreMessage[],
   linkedNotes?: TFile[],
+  sources?: Source[],
 ) {
   const currentNoteContent = await app.vault.cachedRead(note);
 
@@ -128,19 +162,28 @@ export async function serializeCoiNote(
     return;
   }
 
-  // Process messages and replace wikilinks with properly formatted links
   const serializedMessages = messages
     .map(({ role, content }) => {
-      // Convert [[NoteName]] patterns to proper wikilinks
-      const processedContent = (content as string).replace(
-        /\[\[(.*?)\]\]/g,
-        (match, noteName) => {
+      const processedContent = (content as string)
+        .replace(/\[\[(.*?)\]\]/g, (match, noteName) => {
           return `[[${noteName}]]`;
-        },
-      );
+        })
+        // Replace Perplexity style source links with wikilinks to the Sources section.
+        .replace(/\[(\d+)\]/g, (match, referenceID) => {
+          return ` [[#Sources|${referenceID}]]`;
+        })
+        .replace(/^##/gm, "###"); // Move headers one level down so that they are within the chat section
       return `## ${role}:\n\n${processedContent}`;
     })
     .join("\n\n");
+
+  let serializedSources = "";
+  if (sources && sources.length > 0) {
+    serializedSources = "## Sources\n\n";
+    sources.forEach((source, index) => {
+      serializedSources += `${index + 1}. [${source.title || source.url}](${source.url})\n`;
+    });
+  }
 
   const startIndex = currentNoteContent.indexOf(CHAT_START);
   const endIndex = currentNoteContent.lastIndexOf(CHAT_END) + CHAT_END.length;
@@ -148,14 +191,13 @@ export async function serializeCoiNote(
   const beforeChat = currentNoteContent.substring(0, startIndex);
   const afterChat = currentNoteContent.substring(endIndex);
 
-  const newChatSection = `${CHAT_START}\n${serializedMessages}\n${CHAT_END}`;
+  const newChatSection = `${CHAT_START}\n${serializedMessages}\n\n${serializedSources}${CHAT_END}`;
   const newNoteContent = beforeChat + newChatSection + afterChat;
 
   if (newNoteContent !== currentNoteContent) {
     await app.vault.modify(note, newNoteContent);
   }
 
-  // Update frontmatter with linked notes if provided
   if (linkedNotes && linkedNotes.length > 0) {
     await app.fileManager.processFrontMatter(note, (frontmatter) => {
       frontmatter["linked-notes"] = linkedNotes.map((file) => file.path);
@@ -163,43 +205,78 @@ export async function serializeCoiNote(
   }
 }
 
-export async function deserializeCoiNote(
-  note: TFile,
+export async function deserializeCoiNote(note: TFile, app: App) {
+  const metadata = app.metadataCache.getFileCache(note);
+  return deserializeCoiNoteContent(
+    await app.vault.cachedRead(note),
+    metadata,
+    app,
+  );
+}
+
+export async function deserializeCoiNoteContent(
+  content: string,
+  metadata: CachedMetadata | null,
   app: App,
-): Promise<{ messages: CoreMessage[]; linkedNotes: TFile[] }> {
-  const currentNoteContent = await app.vault.cachedRead(note);
-  if (!pattern.test(currentNoteContent)) {
-    return { messages: [], linkedNotes: [] };
+): Promise<{
+  messages: CoreMessage[];
+  linkedNotes: TFile[];
+  sources: Source[];
+}> {
+  if (!pattern.test(content)) {
+    return { messages: [], linkedNotes: [], sources: [] };
   }
-  const serializedMessages = currentNoteContent.match(pattern);
-  if (!serializedMessages) {
-    return { messages: [], linkedNotes: [] };
+  const serializedContent = content.match(pattern);
+  if (!serializedContent) {
+    return { messages: [], linkedNotes: [], sources: [] };
   }
 
   const messages: CoreMessage[] = [];
-  const lines = serializedMessages[0].split("\n");
+  const sources: Source[] = [];
+  const lines = serializedContent[0].split("\n");
 
-  let currentRole: "user" | "assistant" | "" = "";
+  let currentMode: "user" | "assistant" | "sources" | "" = "";
   let contentBuffer: string[] = [];
 
   const flushContent = () => {
-    if (currentRole) {
+    if (currentMode == "user" || currentMode == "assistant") {
       messages.push({
-        role: currentRole,
+        role: currentMode,
         content: contentBuffer.join("\n"),
       });
+    } else if (currentMode == "sources") {
+      const sourceRegex = /\d+\. \[(.*?)\]\((.*?)\)/;
+      for (const line of contentBuffer) {
+        if (line.trim().startsWith("- ")) {
+          const match = line.match(sourceRegex);
+          if (match) {
+            sources.push({
+              title: match[1],
+              url: match[2],
+            });
+          }
+        }
+      }
     }
   };
 
   for (const line of lines) {
     if (line.startsWith("## ")) {
       flushContent();
-      const candidateRole = line.replace(/^## /, "").replace(/\:/, "").trim();
-      if (candidateRole !== "user" && candidateRole !== "assistant") {
-        console.error(`Invalid role: ${candidateRole}`);
-        break;
+      const candidateMode = line
+        .replace(/^## /, "")
+        .replace(/\:/, "")
+        .trim()
+        .toLowerCase();
+      if (
+        candidateMode !== "user" &&
+        candidateMode !== "assistant" &&
+        candidateMode !== "sources"
+      ) {
+        console.error(`Invalid mode: ${candidateMode}`);
+        continue;
       }
-      currentRole = candidateRole;
+      currentMode = candidateMode;
       contentBuffer = [];
     } else if (!line.contains(CHAT_END) && !line.contains(CHAT_START)) {
       contentBuffer.push(line);
@@ -207,12 +284,9 @@ export async function deserializeCoiNote(
   }
   flushContent();
 
-  // Extract linked notes from frontmatter
   const linkedNotes: TFile[] = [];
-  const metadata = app.metadataCache.getFileCache(note);
   const linkedNotePaths = metadata?.frontmatter?.["linked-notes"] || [];
 
-  // Convert paths to TFile objects
   for (const path of linkedNotePaths) {
     const file = app.vault.getAbstractFileByPath(path);
     if (file instanceof TFile) {
@@ -220,7 +294,6 @@ export async function deserializeCoiNote(
     }
   }
 
-  // Also extract wikilinks from content
   const wikiLinkRegex = /\[\[(.*?)\]\]/g;
   for (const message of messages) {
     let match;
@@ -229,7 +302,6 @@ export async function deserializeCoiNote(
       // Handle any aliases in the link (e.g., [[Note|Alias]])
       const noteName = linkText.split("|")[0];
 
-      // Find the note by name
       const files = app.vault.getMarkdownFiles();
       const linkedFile = files.find((file) => file.basename === noteName);
 
@@ -242,5 +314,5 @@ export async function deserializeCoiNote(
     }
   }
 
-  return { messages, linkedNotes };
+  return { messages, linkedNotes, sources };
 }

@@ -14,19 +14,26 @@ export const MarkdownView = ({
   let containerRef: HTMLDivElement | undefined;
   const app = useContext(AppContext);
   const plugin = useContext(PluginContext);
+  if (!app) {
+    console.error("AppContext is not available");
+    return null;
+  }
+  if (!plugin) {
+    console.error("PluginContext is not available");
+    return null;
+  }
+
   const renderMarkdown = async () => {
     if (containerRef && app && plugin) {
-      // Clear any existing content
       containerRef.innerHTML = "";
 
       try {
-        // Use the static render method to convert markdown to HTML
         await MarkdownRenderer.render(
           app,
           markdown,
           containerRef,
           sourcePath,
-          plugin as unknown as Component,
+          plugin,
         );
       } catch (error) {
         console.error("Failed to render markdown:", error);
@@ -35,7 +42,6 @@ export const MarkdownView = ({
     }
   };
 
-  // Re-render when markdown content changes
   createEffect(() => {
     if (markdown) {
       renderMarkdown();

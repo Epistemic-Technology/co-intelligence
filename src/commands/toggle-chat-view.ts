@@ -1,4 +1,4 @@
-import { App, Command, TFile } from "obsidian";
+import { App, Command, TFile, ViewState } from "obsidian";
 
 import CoIntelligencePlugin from "@/CoIntelligencePlugin";
 import { VIEW_TYPE_COI_CHAT } from "@/ChatView";
@@ -28,9 +28,14 @@ export class ToggleChatViewCommand implements Command {
 
     const isCurrentlyActive = isActiveCoiNote(currentFile, this.app);
 
-    await this.app.fileManager.processFrontMatter(currentFile, (frontmatter) => {
-      frontmatter["coi-chat-view"] = !isCurrentlyActive;
-    });
+    await this.app.fileManager.processFrontMatter(
+      currentFile,
+      (frontmatter) => {
+        frontmatter["coi-chat-view"] = !isCurrentlyActive;
+      },
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 200));
 
     if (isCurrentlyActive) {
       await this.openInDefaultEditor(currentFile);
@@ -40,20 +45,40 @@ export class ToggleChatViewCommand implements Command {
   };
 
   private async openInDefaultEditor(file: TFile) {
-    const leaf = this.app.workspace.getLeaf();
-    
-    await leaf.openFile(file, { active: true });
+    const leaf = this.app.workspace.getMostRecentLeaf();
+    if (!leaf) {
+      console.error("No leaf found");
+      return;
+    }
+
+    const state = leaf.view.getState();
+
+    await leaf.setViewState(
+      {
+        type: "markdown",
+        state,
+        popstate: true,
+      } as ViewState,
+      { focus: true },
+    );
   }
 
   private async openInChatView(file: TFile) {
-    const leaf = this.app.workspace.getLeaf();
-    
-    await leaf.openFile(file, { active: true });
-    
-    await leaf.setViewState({
-      type: VIEW_TYPE_COI_CHAT,
-      state: { file: file.path },
-      active: true,
-    });
+    const leaf = this.app.workspace.getMostRecentLeaf();
+    if (!leaf) {
+      console.error("No leaf found");
+      return;
+    }
+
+    const state = leaf.view.getState();
+
+    await leaf.setViewState(
+      {
+        type: VIEW_TYPE_COI_CHAT,
+        state,
+        popstate: true,
+      } as ViewState,
+      { focus: true },
+    );
   }
 }

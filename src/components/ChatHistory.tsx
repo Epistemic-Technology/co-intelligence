@@ -10,7 +10,7 @@ export interface ChatHistoryProps {
 
 export const ChatHistory: Component<ChatHistoryProps> = ({ messages }) => {
   let chatContainerRef: HTMLDivElement | undefined;
-  
+
   const scrollToBottom = () => {
     if (chatContainerRef) {
       chatContainerRef.scrollTop = chatContainerRef.scrollHeight;
@@ -19,13 +19,10 @@ export const ChatHistory: Component<ChatHistoryProps> = ({ messages }) => {
 
   // Scroll to bottom whenever messages change
   createEffect(() => {
-    // Access messages to create dependency
     messages();
-    // Use setTimeout to ensure DOM has updated before scrolling
     setTimeout(scrollToBottom, 0);
   });
 
-  // Initial scroll on mount
   onMount(scrollToBottom);
 
   return (

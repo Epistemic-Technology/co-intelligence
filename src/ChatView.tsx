@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf, App, TFile } from "obsidian";
+import { ItemView, WorkspaceLeaf, App, TFile, TextFileView } from "obsidian";
 import { render } from "solid-js/web";
 import { CoreMessage } from "ai";
 
@@ -9,14 +9,21 @@ import {
   deserializeCoiNote,
   renameNote,
   isActiveCoiNote,
+  deserializeCoiNoteContent,
 } from "@/utils/notes";
+import { Source } from "@/services/model-service";
 
 export const VIEW_TYPE_COI_CHAT = "coi-chat-view";
 
-export class ChatView extends ItemView {
+export class ChatView extends TextFileView {
   public plugin: CoIntelligencePlugin;
   public app: App;
   public file: TFile | null;
+  public messages: CoreMessage[] = [];
+  public linkedNotes: TFile[] = [];
+  public sources: Source[] = [];
+  public rootElement: Element | null = null;
+  public dispose: any;
 
   private updating = false;
 
@@ -33,13 +40,72 @@ export class ChatView extends ItemView {
   }
 
   getDisplayText(): string {
-    return this.file?.path || "Co-Intelligence Chat";
+    return this.file?.basename || "Co-Intelligence Chat";
+  }
+
+  getViewData() {
+    return this.data;
+  }
+
+  async setViewData(data: string, clear: boolean) {
+    console.log("Setting view");
+    console.log("Clearning?", clear);
+    this.data = data;
+    if (!this.file) {
+      console.error("File is null while trying to set view data");
+      return;
+    }
+    if (clear) {
+      this.clear();
+    }
+    const metadata = this.app.metadataCache.getFileCache(this.file);
+    const { messages, linkedNotes, sources } = await deserializeCoiNoteContent(
+      data,
+      metadata,
+      this.app,
+    );
+    this.messages = messages;
+    this.linkedNotes = linkedNotes;
+    this.sources = sources;
+  }
+
+  clear(): void {
+    console.log("Clearing view data");
+    this.messages = [];
+    this.linkedNotes = [];
+    this.sources = [];
+    if (this.dispose) {
+      this.dispose();
+    }
+  }
+
+  async render() {
+    this.rootElement = this.rootElement || this.containerEl.children[1];
+    if (!this.rootElement) {
+      console.error("Root element is null");
+      return;
+    }
+    this.dispose = render(
+      () => (
+        <CoiChatApp
+          app={this.app}
+          plugin={this.plugin}
+          file={this.file as TFile}
+          onChange={this.handleChatChange}
+          initialMessages={this.messages}
+          initialLinkedNotes={this.linkedNotes}
+          initialSources={this.sources}
+        />
+      ),
+      this.rootElement,
+    );
   }
 
   async handleChatChange(
     newMessages: CoreMessage[],
     newTitle: string,
     linkedNotes?: TFile[],
+    sources?: Source[],
   ): Promise<void> {
     if (this.updating) return;
     this.updating = true;
@@ -47,7 +113,13 @@ export class ChatView extends ItemView {
       throw new Error("File is null while trying to handle chat change");
     }
     try {
-      await serializeCoiNote(this.file, this.app, newMessages, linkedNotes);
+      await serializeCoiNote(
+        this.file,
+        this.app,
+        newMessages,
+        linkedNotes,
+        sources,
+      );
       await renameNote(this.file, this.app, newTitle);
     } catch (error) {
       throw new Error(`Error serializing CoiNote: ${error}`);
@@ -56,35 +128,40 @@ export class ChatView extends ItemView {
     }
   }
 
+  async onLoadFile(file: TFile): Promise<void> {
+    console.log("onLoadFile");
+    this.file = file;
+    const { messages, linkedNotes, sources } = await deserializeCoiNote(
+      file,
+      this.app,
+    );
+    this.messages = messages;
+    this.linkedNotes = linkedNotes;
+    this.sources = sources;
+    await this.render();
+  }
+
+  async onUnloadFile(file: TFile): Promise<void> {
+    console.log("onUnloadFile");
+    this.clear();
+  }
+
   async onOpen(): Promise<void> {
+    console.log("onOpen");
     if (!this.file) {
       console.error("No file provided for chat view");
-      this.leaf.detach();
       return;
     }
     if (!isActiveCoiNote(this.file, this.app)) {
-      this.leaf.detach();
       return;
     }
-    const { messages, linkedNotes } = await deserializeCoiNote(
+    const { messages, linkedNotes, sources } = await deserializeCoiNote(
       this.file,
       this.app,
     );
-    const rootElement = this.containerEl.children[1];
-    render(
-      () => (
-        <CoiChatApp
-          app={this.app}
-          plugin={this.plugin}
-          file={this.file as TFile}
-          onChange={(newMessages, newTitle) =>
-            this.handleChatChange(newMessages, newTitle, linkedNotes)
-          }
-          initialMessages={messages}
-          initialLinkedNotes={linkedNotes}
-        />
-      ),
-      rootElement,
-    );
+    this.messages = messages;
+    this.linkedNotes = linkedNotes;
+    this.sources = sources;
+    await this.render();
   }
 }
