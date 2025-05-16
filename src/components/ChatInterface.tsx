@@ -47,6 +47,8 @@ export const ChatInterface = ({
   const [linkedNotes, setLinkedNotes] =
     createSignal<TFile[]>(initialLinkedNotes);
   const [sources, setSources] = createSignal<Source[]>(initialSources);
+  const [lastSourceLinkNumber, setLastSourceLinkNumber] =
+    createSignal<number>(0);
 
   const app = useContext(AppContext);
 
@@ -113,7 +115,24 @@ export const ChatInterface = ({
       });
     }
     const newSources = await responseStream.sources;
-    setSources([...sources(), ...newSources]);
+    if (newSources.length > 0) {
+      const lastMessage = messages()[messages().length - 1];
+      // Replace source reference numbers [n] with [n+offset]
+      if (lastSourceLinkNumber() > 0) {
+        const offset = lastSourceLinkNumber();
+        lastMessage.content = (lastMessage.content as string).replace(
+          /\[(\d+)\]/g,
+          (match, num) => `[${parseInt(num) + offset}]`,
+        );
+        setMessages((prevMessages) => {
+          const updatedMessages = [...prevMessages];
+          updatedMessages[updatedMessages.length - 1] = lastMessage;
+          return updatedMessages;
+        });
+      }
+      setSources([...sources(), ...newSources]);
+      setLastSourceLinkNumber(lastSourceLinkNumber() + newSources.length);
+    }
     const newTitle = await generateChatTitle(
       model()?.id || null,
       messages(),
