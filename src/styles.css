@@ -132,7 +132,6 @@
     color: var(--text-error);
 }
 
-/* Make textarea wikilinks look like Obsidian's */
 .coi-user-input textarea {
     font-family: var(--font-text);
 }
