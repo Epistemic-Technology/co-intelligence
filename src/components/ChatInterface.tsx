@@ -150,7 +150,7 @@ export const ChatInterface = ({
     <div>
       <ChatHistory messages={messages} />
       {sources().length > 0 && <SourceList sources={sources} />}
-      {linkedNotes().length > 0 && <LinkedNotes notes={linkedNotes()} />}
+      {linkedNotes().length > 0 && <LinkedNotes notes={linkedNotes} />}
       <UserInput
         onSubmit={handleSendMessage}
         currentModel={model}

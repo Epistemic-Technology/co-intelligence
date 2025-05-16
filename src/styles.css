@@ -68,19 +68,6 @@
 }
 
 /* WikiLink styles */
-.coi-note-suggestion-container {
-    border-radius: 4px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-    overflow: hidden;
-    z-index: 1000;
-}
-
-.coi-note-suggestion-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-}
-
 .coi-note-suggestion-item {
     padding: 8px 12px;
     cursor: pointer;
@@ -88,7 +75,7 @@
 }
 
 .coi-note-suggestion-item:hover,
-.coi-note-suggestion-item.coi-selected {
+.suggestion-item.is-selected .coi-note-suggestion-item {
     background-color: var(--background-modifier-hover);
 }
 

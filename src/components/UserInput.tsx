@@ -7,7 +7,7 @@ import {
 } from "solid-js";
 import { ModelSelector, ModelSelectorProps } from "./ModelSelector";
 import { Model, ModelRegistry } from "@/services/model-registry";
-import { NoteLinkSuggestion } from "./NoteLinkSuggestion";
+import { NoteLinkSuggestionModal } from "./NoteLinkSuggestionModal";
 import { AppContext, PluginContext } from "@/CoiChatApp";
 import { TFile } from "obsidian";
 
@@ -37,89 +37,133 @@ export const UserInput: Component<UserInputProps> = ({
     }
   });
 
-  const [isWikilinkOpen, setIsWikilinkOpen] = createSignal(false);
-  const [wikilinkQuery, setWikilinkQuery] = createSignal("");
-  const [cursorPosition, setCursorPosition] = createSignal({ x: 0, y: 0 });
-  const [caretPosition, setCaretPosition] = createSignal(0);
+  /**
+   * Tracks whether a wikilink suggestion modal is currently open
+   * Prevents multiple modals from opening simultaneously
+   */
+  const [isModalOpen, setIsModalOpen] = createSignal(false);
 
-  // Check for [[ as user types
+  /**
+   * Handles input in the textarea, detecting wiki links and showing suggestions
+   * - Adds closing brackets when [[ is typed
+   * - Shows suggestion modal when inside a wikilink
+   */
   const handleInput = () => {
-    if (!textareaRef) return;
+    if (!textareaRef || !app || isModalOpen()) return;
 
     const value = textareaRef.value;
     const caretPos = textareaRef.selectionStart;
-    setCaretPosition(caretPos);
 
-    // Look for [[ before the cursor
+    // Detect if user just typed [[ to auto-complete with closing brackets
     if (caretPos >= 2 && value.substring(caretPos - 2, caretPos) === "[[") {
-      const textBeforeCaret = value.substring(0, caretPos);
-      const lines = textBeforeCaret.split("\n");
-      const currentLine = lines[lines.length - 1];
-
-      const rect = textareaRef.getBoundingClientRect();
-      const lineHeight =
-        parseInt(getComputedStyle(textareaRef).lineHeight) || 20;
-
-      const x = rect.left + 5 + currentLine.length * 8; // Approximate character width
-      const y = rect.top + lines.length * lineHeight;
-
-      setCursorPosition({ x, y });
-      setIsWikilinkOpen(true);
-      setWikilinkQuery("");
+      // Add closing ]] brackets automatically to save the user typing
+      const newValue = value.substring(0, caretPos) + "]]" + value.substring(caretPos);
+      textareaRef.value = newValue;
+      
+      // Keep cursor position between brackets
+      textareaRef.setSelectionRange(caretPos, caretPos);
+      
+      // Open suggestion modal
+      setIsModalOpen(true);
+      const modal = new NoteLinkSuggestionModal(
+        app,
+        "",
+        (file) => {
+          handleNoteSelect(file);
+          setIsModalOpen(false);
+        }
+      );
+      modal.open();
+      
+      // Handle modal closing without selection
+      modal.onClose = () => {
+        setIsModalOpen(false);
+      };
     }
-    // User is typing inside a wikilink
-    else if (isWikilinkOpen()) {
-      const textBeforeCaret = value.substring(0, caretPos);
-      const lastOpenBracket = textBeforeCaret.lastIndexOf("[[");
-      const lastCloseBracket = textBeforeCaret.lastIndexOf("]]");
-
-      if (lastOpenBracket > lastCloseBracket) {
-        const query = textBeforeCaret.substring(lastOpenBracket + 2);
-        setWikilinkQuery(query);
-      } else {
-        setIsWikilinkOpen(false);
-      }
+    
+    // Check if cursor is inside a wikilink
+    const textBeforeCaret = value.substring(0, caretPos);
+    const lastOpenBracket = textBeforeCaret.lastIndexOf("[[");
+    const textAfterCaret = value.substring(caretPos);
+    const nextCloseBracket = textAfterCaret.indexOf("]]");
+    
+    // If we're inside a wikilink and not already showing the modal
+    if (lastOpenBracket !== -1 && nextCloseBracket !== -1 && 
+        lastOpenBracket + 2 <= caretPos && // Cursor after [[
+        caretPos <= textBeforeCaret.length + nextCloseBracket && // Cursor before ]]
+        !isModalOpen()) {
+      
+      const query = textBeforeCaret.substring(lastOpenBracket + 2);
+      setIsModalOpen(true);
+      const modal = new NoteLinkSuggestionModal(
+        app,
+        query,
+        (file) => {
+          handleNoteSelect(file);
+          setIsModalOpen(false);
+        }
+      );
+      modal.open();
+      
+      // Handle modal closing without selection
+      modal.onClose = () => {
+        setIsModalOpen(false);
+      };
     }
   };
 
+  /**
+   * Handles keyboard events in the textarea
+   * - Submit on Enter (unless Shift is held or modal is open)
+   */
   const handleKeyDown = (event: KeyboardEvent) => {
     if (
       event.key === "Enter" &&
       !event.shiftKey &&
       textareaRef &&
-      !isWikilinkOpen()
+      !isModalOpen()
     ) {
       event.preventDefault();
       onSubmit(textareaRef.value);
       textareaRef.value = "";
-    } else if (event.key === "Escape" && isWikilinkOpen()) {
-      event.preventDefault();
-      setIsWikilinkOpen(false);
     }
   };
 
+  /**
+   * Handles when a note is selected from the suggestion modal
+   * - Inserts the note title as a wikilink at the cursor position
+   * - Replaces any existing text between [[ and ]]
+   * - Positions cursor after the wikilink
+   * - Calls onLinkNote callback if provided
+   */
   const handleNoteSelect = (file: TFile) => {
     if (!textareaRef) return;
 
     const value = textareaRef.value;
-    const caretPos = caretPosition();
+    const caretPos = textareaRef.selectionStart;
 
     const textBeforeCaret = value.substring(0, caretPos);
     const lastOpenBracket = textBeforeCaret.lastIndexOf("[[");
-
+    
+    const textAfterCaret = value.substring(caretPos);
+    const nextCloseBracket = textAfterCaret.indexOf("]]");
+    
+    // Replace the content between [[ and ]]
     const newValue =
-      value.substring(0, lastOpenBracket) +
-      "[[" +
+      value.substring(0, lastOpenBracket + 2) +
       file.basename +
-      "]]" +
-      value.substring(caretPos);
+      (nextCloseBracket !== -1 
+        ? value.substring(caretPos + nextCloseBracket)
+        : "]]" + value.substring(caretPos));
 
     textareaRef.value = newValue;
 
+    // Position cursor after the inserted wikilink
     const newCursorPos = lastOpenBracket + file.basename.length + 4; // 4 for [[ and ]]
     textareaRef.setSelectionRange(newCursorPos, newCursorPos);
 
-    setIsWikilinkOpen(false);
+    // Focus back on textarea
+    textareaRef.focus();
 
     if (onLinkNote) {
       onLinkNote(file);
@@ -136,16 +180,7 @@ export const UserInput: Component<UserInputProps> = ({
         disabled={!hasModels()}
         placeholder={hasModels() ? "Type your message..." : "No models available"}
       />
-      {app && (
-        <NoteLinkSuggestion
-          app={app}
-          query={wikilinkQuery()}
-          position={cursorPosition()}
-          onSelect={handleNoteSelect}
-          onClose={() => setIsWikilinkOpen(false)}
-          isOpen={isWikilinkOpen()}
-        />
-      )}
+
       <div class="coi-user-input-options">
         <ModelSelector
           selectedModel={currentModel}
