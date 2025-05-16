@@ -5,6 +5,7 @@ import {
   WorkspaceLeaf,
   TFile,
   ViewState,
+  Menu,
 } from "obsidian";
 import { render } from "solid-js/web";
 import { around } from "monkey-around";
@@ -22,7 +23,13 @@ import { ToggleChatViewCommand } from "@/commands/toggle-chat-view";
 import { ChatView, VIEW_TYPE_COI_CHAT } from "@/ChatView";
 import { ModelRegistry } from "@/services/model-registry";
 
-import { isCoiNote, openCOINote, isPathActiveCoiNote } from "./utils/notes";
+import {
+  isCoiNote,
+  openCOINote,
+  isPathActiveCoiNote,
+  createCOINote,
+  isActiveCoiNote,
+} from "./utils/notes";
 
 export class CoIntelligencePlugin extends Plugin {
   settings: CoIntelligenceSettings;
@@ -44,8 +51,17 @@ export class CoIntelligencePlugin extends Plugin {
       (leaf: WorkspaceLeaf) => new ChatView(leaf, this, this.app),
     );
 
+    this.addRibbonIcon("bot-message-square", "New COI Chat", () => {
+      createCOINote(this.app, this);
+    });
     this.registerEvent(
       this.app.workspace.on("file-open" as any, this.handleFileOpen.bind(this)),
+    );
+    this.registerEvent(
+      this.app.workspace.on(
+        "file-menu" as any,
+        this.onFileMenuHandler.bind(this) as any,
+      ),
     );
 
     console.log("CoIntelligencePlugin loaded");
@@ -60,6 +76,25 @@ export class CoIntelligencePlugin extends Plugin {
 
   private async handleFileOpen(file: TFile) {
     //await openCOINote(file, this.app, this.registry);
+  }
+
+  private onFileMenuHandler(
+    menu: Menu,
+    file: TFile,
+    source: string,
+    leaf: WorkspaceLeaf,
+  ) {
+    if (!isCoiNote(file, this.app) || isActiveCoiNote(file, this.app)) {
+      return;
+    }
+    menu.addItem((item) => {
+      item.setTitle("View as Chat");
+      item.onClick(async () => {
+        (this.app as any).commands.executeCommandById(
+          "co-intelligence:toggle-chat-view",
+        );
+      });
+    });
   }
 
   async activateView() {}

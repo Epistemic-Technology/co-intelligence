@@ -1,4 +1,11 @@
-import { ItemView, WorkspaceLeaf, App, TFile, TextFileView } from "obsidian";
+import {
+  ItemView,
+  WorkspaceLeaf,
+  App,
+  TFile,
+  TextFileView,
+  Menu,
+} from "obsidian";
 import { render } from "solid-js/web";
 import { CoreMessage } from "ai";
 
@@ -163,5 +170,19 @@ export class ChatView extends TextFileView {
     this.linkedNotes = linkedNotes;
     this.sources = sources;
     await this.render();
+  }
+
+  onPaneMenu(menu: Menu, source: "more-options" | "tab-header" | string): void {
+    menu.addItem((item) => {
+      item
+        .setTitle("View as Markdown")
+        .setIcon("bot-message-square")
+        .onClick(() => {
+          (this.app as any).commands.executeCommandById(
+            "co-intelligence:toggle-chat-view",
+          );
+        });
+    });
+    super.onPaneMenu(menu, source);
   }
 }
