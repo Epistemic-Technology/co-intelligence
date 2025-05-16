@@ -47,8 +47,9 @@ export const ChatInterface = ({
   const [linkedNotes, setLinkedNotes] =
     createSignal<TFile[]>(initialLinkedNotes);
   const [sources, setSources] = createSignal<Source[]>(initialSources);
-  const [lastSourceLinkNumber, setLastSourceLinkNumber] =
-    createSignal<number>(0);
+  const [lastSourceLinkNumber, setLastSourceLinkNumber] = createSignal<number>(
+    initialSources.length,
+  );
 
   const app = useContext(AppContext);
 
@@ -118,18 +119,20 @@ export const ChatInterface = ({
     if (newSources.length > 0) {
       const lastMessage = messages()[messages().length - 1];
       // Replace source reference numbers [n] with [n+offset]
-      if (lastSourceLinkNumber() > 0) {
-        const offset = lastSourceLinkNumber();
-        lastMessage.content = (lastMessage.content as string).replace(
-          /\[(\d+)\]/g,
-          (match, num) => `[${parseInt(num) + offset}]`,
-        );
-        setMessages((prevMessages) => {
-          const updatedMessages = [...prevMessages];
-          updatedMessages[updatedMessages.length - 1] = lastMessage;
-          return updatedMessages;
-        });
-      }
+      const offset = lastSourceLinkNumber();
+      lastMessage.content = (lastMessage.content as string).replace(
+        /\[(\d+)\]/g,
+        (match, num) => {
+          const source = newSources[parseInt(num) - 1];
+          if (!source) return match;
+          return ` [${parseInt(num) + offset}](${source.url})`;
+        },
+      );
+      setMessages((prevMessages) => {
+        const updatedMessages = [...prevMessages];
+        updatedMessages[updatedMessages.length - 1] = lastMessage;
+        return updatedMessages;
+      });
       setSources([...sources(), ...newSources]);
       setLastSourceLinkNumber(lastSourceLinkNumber() + newSources.length);
     }

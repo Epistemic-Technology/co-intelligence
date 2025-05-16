@@ -168,10 +168,6 @@ export async function serializeCoiNote(
         .replace(/\[\[(.*?)\]\]/g, (match, noteName) => {
           return `[[${noteName}]]`;
         })
-        // Replace Perplexity style source links with wikilinks to the Sources section.
-        .replace(/\[(\d+)\]/g, (match, referenceID) => {
-          return ` [[#Sources|${referenceID}]]`;
-        })
         .replace(/^##/gm, "###") // Move headers one level down so that they are within the chat section
         .trim(); // Trim any leading/trailing whitespace
       return `## ${role}:\n\n${processedContent}`;
@@ -193,11 +189,12 @@ export async function serializeCoiNote(
   const beforeChat = currentNoteContent.substring(0, startIndex);
   const afterChat = currentNoteContent.substring(endIndex);
 
-  // Maintain consistent formatting with exactly one newline after CHAT_START and 
+  // Maintain consistent formatting with exactly one newline after CHAT_START and
   // one newline before CHAT_END, and exactly one blank line between sections
-  const newChatSection = sources && sources.length > 0
-    ? `${CHAT_START}\n${serializedMessages}\n\n${serializedSources}\n${CHAT_END}`
-    : `${CHAT_START}\n${serializedMessages}\n${CHAT_END}`;
+  const newChatSection =
+    sources && sources.length > 0
+      ? `${CHAT_START}\n${serializedMessages}\n\n${serializedSources}\n${CHAT_END}`
+      : `${CHAT_START}\n${serializedMessages}\n${CHAT_END}`;
   const newNoteContent = beforeChat + newChatSection + afterChat;
 
   if (newNoteContent !== currentNoteContent) {
