@@ -116,7 +116,8 @@ export const ChatInterface = ({
         return updatedMessages;
       });
     }
-    setSources(await responseStream.sources);
+    const newSources = await responseStream.sources;
+    setSources([...sources(), ...newSources]);
     const newTitle = await generateChatTitle(
       model()?.id || null,
       messages(),
@@ -130,7 +131,7 @@ export const ChatInterface = ({
   return (
     <div>
       <ChatHistory messages={messages} />
-      {sources().length > 0 && <SourceList sources={sources()} />}
+      {sources().length > 0 && <SourceList sources={sources} />}
       {linkedNotes().length > 0 && (
         <LinkedNotes
           notes={linkedNotes()}

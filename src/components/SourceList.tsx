@@ -1,12 +1,12 @@
+import { For, Accessor } from "solid-js";
 import { Source } from "@/services/model-service";
-import { For } from "solid-js";
 
-export const SourceList = ({ sources }: { sources: Source[] }) => {
+export const SourceList = ({ sources }: { sources: Accessor<Source[]> }) => {
   return (
     <div class="coi-source-list coi-context-box">
       <h4>Sources</h4>
       <ol>
-        <For each={sources}>
+        <For each={sources()}>
           {(source) => (
             <li>
               <a href={source.url} target="_blank" rel="noopener noreferrer">
