@@ -296,25 +296,5 @@ export async function deserializeCoiNoteContent(
     }
   }
 
-  const wikiLinkRegex = /\[\[(.*?)\]\]/g;
-  for (const message of messages) {
-    let match;
-    while ((match = wikiLinkRegex.exec(message.content as string)) !== null) {
-      const linkText = match[1];
-      // Handle any aliases in the link (e.g., [[Note|Alias]])
-      const noteName = linkText.split("|")[0];
-
-      const files = app.vault.getMarkdownFiles();
-      const linkedFile = files.find((file) => file.basename === noteName);
-
-      if (
-        linkedFile &&
-        !linkedNotes.some((note) => note.path === linkedFile.path)
-      ) {
-        linkedNotes.push(linkedFile);
-      }
-    }
-  }
-
   return { messages, linkedNotes, sources };
 }

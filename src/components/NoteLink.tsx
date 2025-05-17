@@ -12,6 +12,10 @@ export const NoteLink: Component<LinkProps> = (props) => {
   const c = children(() => local.children);
   const app = useContext(AppContext);
   const file = useContext(FileContext);
+  if (!file) {
+    console.error("NoteLink called with no file context");
+    return null;
+  }
 
   const handleClick: JSX.EventHandlerUnion<HTMLAnchorElement, MouseEvent> = (
     e,
