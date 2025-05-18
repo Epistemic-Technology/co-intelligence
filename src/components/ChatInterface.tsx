@@ -2,14 +2,19 @@ import { createSignal, useContext } from "solid-js";
 import { CoreMessage } from "ai";
 import { TFile } from "obsidian";
 
-import { ModelRegistry, Model, ModelId } from "@/services/model-registry";
+import { ModelRegistry } from "@/services/model-registry";
 import {
   generateChatResponse,
+  generateChatTitle,
+} from "@/services/model-service";
+import {
   ContextNote,
   ChatRequest,
-  generateChatTitle,
   Source,
-} from "@/services/model-service";
+  CoiNoteFrontmatter,
+  Model,
+  ModelId,
+} from "@/types";
 import { PluginContext, ChangeCallbackContext, AppContext } from "@/CoiChatApp";
 import { ChatHistory } from "@/components/ChatHistory";
 import { UserInput } from "@/components/UserInput";

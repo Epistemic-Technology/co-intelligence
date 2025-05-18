@@ -8,26 +8,6 @@ import {
 } from "ai";
 import { ModelRegistry, ModelId } from "./model-registry";
 
-export interface ContextNote {
-  title: string;
-  content: string;
-}
-
-/**
- * Interface for chat request parameters.
- */
-export interface ChatRequest {
-  modelId: ModelId; // e.g., 'openai:gpt-4-turbo'
-  messages: CoreMessage[];
-  systemPrompt?: string;
-  contextNotes?: ContextNote[];
-}
-
-export interface Source {
-  url: string;
-  title?: string;
-}
-
 /**
  * Generates a chat response based on the provided request.
  *

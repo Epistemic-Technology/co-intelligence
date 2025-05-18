@@ -12,6 +12,7 @@ export const LinkedNotes = ({ notes }: { notes: Accessor<TFile[]> }) => {
             {(note) => (
               <li>
                 <NoteLink href="#">{note.basename}</NoteLink>
+                <button>X</button>
               </li>
             )}
           </For>

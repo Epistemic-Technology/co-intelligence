@@ -3,21 +3,8 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createPerplexity } from "@ai-sdk/perplexity";
+import { Model, ModelId, Provider } from "@/types";
 import type { CoIntelligencePlugin } from "@/CoIntelligencePlugin";
-
-export type ModelId =
-  | `openai:${string}`
-  | `anthropic:${string}`
-  | `google:${string}`
-  | `perplexity:${string}`;
-
-export type Provider = "openai" | "anthropic" | "google" | "perplexity";
-
-export type Model = {
-  id: ModelId;
-  provider: Provider;
-  name: string;
-};
 
 export class ModelRegistry {
   private plugin: CoIntelligencePlugin | null = null;

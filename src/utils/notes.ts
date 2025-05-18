@@ -4,8 +4,7 @@ import { CoreMessage } from "ai";
 import { ModelRegistry } from "@/services/model-registry";
 import { VIEW_TYPE_COI_CHAT } from "@/ChatView";
 import CoIntelligencePlugin from "@/CoIntelligencePlugin";
-import { Source } from "@/services/model-service";
-
+import { Source, CoiNoteFrontmatter } from "@/types";
 const CHAT_START = "<!-- CHAT-THREAD-START -->";
 const CHAT_END = "<!-- CHAT-THREAD-END -->";
 const pattern = new RegExp(`${CHAT_START}[\\s\\S]*?${CHAT_END}`, "m");
@@ -65,14 +64,6 @@ export function isActiveCoiNote(note: TFile, app: App): boolean {
     metadata?.frontmatter?.["is-coi-chat"] === true &&
     metadata?.frontmatter?.["coi-chat-view"] === true
   );
-}
-
-export interface CoiNoteFrontmatter {
-  "is-coi-chat": boolean;
-  "coi-chat-view": boolean;
-  "note-renamed": boolean;
-  "linked-notes"?: string[]; // Array of paths to linked notes
-  tags: string[];
 }
 
 export async function createCOINote(app: App, plugin: CoIntelligencePlugin) {
