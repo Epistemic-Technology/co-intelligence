@@ -6,7 +6,8 @@ import {
   StreamTextResult,
   ToolSet,
 } from "ai";
-import { ModelRegistry, ModelId } from "./model-registry";
+import { ModelRegistry } from "./model-registry";
+import { ModelId, ContextItems, ChatRequest } from "@/types";
 
 /**
  * Generates a chat response based on the provided request.
@@ -24,13 +25,13 @@ export async function generateChatResponse(
 
   let systemPrompt = request.systemPrompt || "";
 
-  if (request.contextNotes && request.contextNotes.length > 0) {
-    const notesContext = request.contextNotes
+  if (request.context && request.context.length > 0) {
+    const notesContext = request.context
       .map((note) => `--- Note: ${note.title} ---\n${note.content}\n---`)
       .join("\n\n");
 
     const contextPreamble =
-      "The following notes provide additional context for answering the user's question:\n\n";
+      "The following documents provide additional context for answering the user's question:\n\n";
 
     if (systemPrompt) {
       systemPrompt += "\n\n" + contextPreamble + notesContext;

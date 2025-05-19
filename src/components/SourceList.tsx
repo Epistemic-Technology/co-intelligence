@@ -1,5 +1,5 @@
 import { For, Accessor } from "solid-js";
-import { Source } from "@/services/model-service";
+import { Source } from "@/types";
 
 export const SourceList = ({ sources }: { sources: Accessor<Source[]> }) => {
   return (

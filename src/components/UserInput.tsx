@@ -5,11 +5,13 @@ import {
   createEffect,
   useContext,
 } from "solid-js";
-import { ModelSelector, ModelSelectorProps } from "./ModelSelector";
-import { Model, ModelRegistry } from "@/services/model-registry";
-import { NoteLinkSuggestionModal } from "./NoteLinkSuggestionModal";
-import { AppContext, PluginContext } from "@/CoiChatApp";
 import { TFile } from "obsidian";
+
+import { ModelSelector, ModelSelectorProps } from "@/components/ModelSelector";
+import { NoteLinkSuggestionModal } from "@/components/NoteLinkSuggestionModal";
+import { AppContext, PluginContext } from "@/CoiChatApp";
+import { ModelRegistry } from "@/services/model-registry";
+import { Model } from "@/types";
 
 export interface UserInputProps {
   onSubmit: (value: string) => void;
@@ -57,54 +59,49 @@ export const UserInput: Component<UserInputProps> = ({
     // Detect if user just typed [[ to auto-complete with closing brackets
     if (caretPos >= 2 && value.substring(caretPos - 2, caretPos) === "[[") {
       // Add closing ]] brackets automatically to save the user typing
-      const newValue = value.substring(0, caretPos) + "]]" + value.substring(caretPos);
+      const newValue =
+        value.substring(0, caretPos) + "]]" + value.substring(caretPos);
       textareaRef.value = newValue;
-      
+
       // Keep cursor position between brackets
       textareaRef.setSelectionRange(caretPos, caretPos);
-      
+
       // Open suggestion modal
       setIsModalOpen(true);
-      const modal = new NoteLinkSuggestionModal(
-        app,
-        "",
-        (file) => {
-          handleNoteSelect(file);
-          setIsModalOpen(false);
-        }
-      );
+      const modal = new NoteLinkSuggestionModal(app, "", (file) => {
+        handleNoteSelect(file);
+        setIsModalOpen(false);
+      });
       modal.open();
-      
+
       // Handle modal closing without selection
       modal.onClose = () => {
         setIsModalOpen(false);
       };
     }
-    
+
     // Check if cursor is inside a wikilink
     const textBeforeCaret = value.substring(0, caretPos);
     const lastOpenBracket = textBeforeCaret.lastIndexOf("[[");
     const textAfterCaret = value.substring(caretPos);
     const nextCloseBracket = textAfterCaret.indexOf("]]");
-    
+
     // If we're inside a wikilink and not already showing the modal
-    if (lastOpenBracket !== -1 && nextCloseBracket !== -1 && 
-        lastOpenBracket + 2 <= caretPos && // Cursor after [[
-        caretPos <= textBeforeCaret.length + nextCloseBracket && // Cursor before ]]
-        !isModalOpen()) {
-      
+    if (
+      lastOpenBracket !== -1 &&
+      nextCloseBracket !== -1 &&
+      lastOpenBracket + 2 <= caretPos && // Cursor after [[
+      caretPos <= textBeforeCaret.length + nextCloseBracket && // Cursor before ]]
+      !isModalOpen()
+    ) {
       const query = textBeforeCaret.substring(lastOpenBracket + 2);
       setIsModalOpen(true);
-      const modal = new NoteLinkSuggestionModal(
-        app,
-        query,
-        (file) => {
-          handleNoteSelect(file);
-          setIsModalOpen(false);
-        }
-      );
+      const modal = new NoteLinkSuggestionModal(app, query, (file) => {
+        handleNoteSelect(file);
+        setIsModalOpen(false);
+      });
       modal.open();
-      
+
       // Handle modal closing without selection
       modal.onClose = () => {
         setIsModalOpen(false);
@@ -144,15 +141,15 @@ export const UserInput: Component<UserInputProps> = ({
 
     const textBeforeCaret = value.substring(0, caretPos);
     const lastOpenBracket = textBeforeCaret.lastIndexOf("[[");
-    
+
     const textAfterCaret = value.substring(caretPos);
     const nextCloseBracket = textAfterCaret.indexOf("]]");
-    
+
     // Replace the content between [[ and ]]
     const newValue =
       value.substring(0, lastOpenBracket + 2) +
       file.basename +
-      (nextCloseBracket !== -1 
+      (nextCloseBracket !== -1
         ? value.substring(caretPos + nextCloseBracket)
         : "]]" + value.substring(caretPos));
 
@@ -178,7 +175,9 @@ export const UserInput: Component<UserInputProps> = ({
         onInput={handleInput}
         rows={4}
         disabled={!hasModels()}
-        placeholder={hasModels() ? "Type your message..." : "No models available"}
+        placeholder={
+          hasModels() ? "Type your message..." : "No models available"
+        }
       />
 
       <div class="coi-user-input-options">

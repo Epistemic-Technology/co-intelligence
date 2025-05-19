@@ -1,6 +1,7 @@
 import { useContext, Accessor } from "solid-js";
-import { ModelRegistry, Model, ModelId } from "@/services/model-registry";
+import { ModelRegistry } from "@/services/model-registry";
 import { PluginContext } from "@/CoiChatApp";
+import { Model, ModelId } from "@/types";
 
 export interface ModelSelectorProps {
   selectedModel: Accessor<Model | null>;
@@ -14,7 +15,7 @@ export const ModelSelector = ({
   const plugin = useContext(PluginContext);
   const registry = ModelRegistry.getInstance(plugin);
   const hasModels = registry.availableModels.length > 0;
-  
+
   return (
     <select
       value={selectedModel()?.id || ""}

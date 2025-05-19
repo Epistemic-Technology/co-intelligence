@@ -4,7 +4,8 @@ import { CoreMessage } from "ai";
 import { ModelRegistry } from "@/services/model-registry";
 import { VIEW_TYPE_COI_CHAT } from "@/ChatView";
 import CoIntelligencePlugin from "@/CoIntelligencePlugin";
-import { Source, CoiNoteFrontmatter } from "@/types";
+import { Source, CoiNoteFrontmatter, ContextItems } from "@/types";
+
 const CHAT_START = "<!-- CHAT-THREAD-START -->";
 const CHAT_END = "<!-- CHAT-THREAD-END -->";
 const pattern = new RegExp(`${CHAT_START}[\\s\\S]*?${CHAT_END}`, "m");
@@ -141,7 +142,7 @@ export async function serializeCoiNote(
   note: TFile,
   app: App,
   messages: CoreMessage[],
-  linkedNotes?: TFile[],
+  contextItems: ContextItems | null,
   sources?: Source[],
 ) {
   const currentNoteContent = await app.vault.cachedRead(note);
@@ -192,9 +193,9 @@ export async function serializeCoiNote(
     await app.vault.modify(note, newNoteContent);
   }
 
-  if (linkedNotes && linkedNotes.length > 0) {
+  if (contextItems && contextItems.notes.length > 0) {
     await app.fileManager.processFrontMatter(note, (frontmatter) => {
-      frontmatter["linked-notes"] = linkedNotes.map((file) => file.path);
+      frontmatter["linked-notes"] = contextItems.notes.map((file) => file.path);
     });
   }
 }
@@ -214,15 +215,23 @@ export async function deserializeCoiNoteContent(
   app: App,
 ): Promise<{
   messages: CoreMessage[];
-  linkedNotes: TFile[];
+  contextItems: ContextItems;
   sources: Source[];
 }> {
   if (!pattern.test(content)) {
-    return { messages: [], linkedNotes: [], sources: [] };
+    return {
+      messages: [],
+      contextItems: { notes: [], tags: [], sources: [] },
+      sources: [],
+    };
   }
   const serializedContent = content.match(pattern);
   if (!serializedContent) {
-    return { messages: [], linkedNotes: [], sources: [] };
+    return {
+      messages: [],
+      contextItems: { notes: [], tags: [], sources: [] },
+      sources: [],
+    };
   }
 
   const messages: CoreMessage[] = [];
@@ -277,15 +286,56 @@ export async function deserializeCoiNoteContent(
   }
   flushContent();
 
-  const linkedNotes: TFile[] = [];
+  const contextItems: ContextItems = {
+    notes: [],
+    tags: [],
+    sources: [],
+  };
   const linkedNotePaths = metadata?.frontmatter?.["linked-notes"] || [];
 
   for (const path of linkedNotePaths) {
     const file = app.vault.getAbstractFileByPath(path);
     if (file instanceof TFile) {
-      linkedNotes.push(file);
+      contextItems.notes.push(file);
     }
   }
 
-  return { messages, linkedNotes, sources };
+  return { messages, contextItems, sources };
+}
+
+export const getFilesWithTag = (tag: string, app: App): TFile[] => {
+  const filesWithTag: TFile[] = [];
+
+  const allFiles = app.vault.getMarkdownFiles();
+  for (const file of allFiles) {
+    const cache = app.metadataCache.getCache(file.path);
+    const tags = getAllTags(cache);
+
+    if (tags?.includes(tag)) {
+      filesWithTag.push(file);
+    }
+  }
+
+  return filesWithTag;
+};
+
+function getAllTags(cache: CachedMetadata | null): string[] {
+  if (!cache) return [];
+
+  const tags: Set<string> = new Set();
+
+  // Inline tags (e.g., #mytag)
+  cache.tags?.forEach((tagObj) => tags.add(tagObj.tag));
+
+  // Frontmatter tags (array or string)
+  if (cache.frontmatter?.tags) {
+    const fmTags = cache.frontmatter.tags;
+    if (typeof fmTags === "string") {
+      tags.add(fmTags.startsWith("#") ? fmTags : `#${fmTags}`);
+    } else if (Array.isArray(fmTags)) {
+      fmTags.forEach((t) => tags.add(t.startsWith("#") ? t : `#${t}`));
+    }
+  }
+
+  return Array.from(tags);
 }

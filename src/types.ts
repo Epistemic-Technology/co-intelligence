@@ -1,6 +1,7 @@
 import { CoreMessage } from "ai";
+import { TFile } from "obsidian";
 
-export interface ContextNote {
+export interface ContextItemContent {
   title: string;
   content: string;
 }
@@ -12,7 +13,7 @@ export interface ChatRequest {
   modelId: ModelId; // e.g., 'openai:gpt-4-turbo'
   messages: CoreMessage[];
   systemPrompt?: string;
-  contextNotes?: ContextNote[];
+  context?: ContextItemContent[];
 }
 
 export interface Source {
@@ -36,8 +37,16 @@ export type ModelId =
 
 export type Provider = "openai" | "anthropic" | "google" | "perplexity";
 
-export type Model = {
+export interface Model {
   id: ModelId;
   provider: Provider;
   name: string;
-};
+}
+
+export type Tag = string;
+
+export interface ContextItems {
+  notes: TFile[];
+  tags: Tag[];
+  sources: Source[];
+}

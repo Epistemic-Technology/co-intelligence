@@ -8,28 +8,30 @@ import {
   generateChatTitle,
 } from "@/services/model-service";
 import {
-  ContextNote,
+  ContextItemContent,
   ChatRequest,
   Source,
   CoiNoteFrontmatter,
   Model,
   ModelId,
+  ContextItems,
 } from "@/types";
 import { PluginContext, ChangeCallbackContext, AppContext } from "@/CoiChatApp";
 import { ChatHistory } from "@/components/ChatHistory";
 import { UserInput } from "@/components/UserInput";
-import { LinkedNotes } from "@/components/LinkedNotes";
+import { ContextList } from "@/components/ContextList";
 import { SourceList } from "@/components/SourceList";
+import { getContext } from "@/utils/model-context";
 
 export interface ChatInterfaceProps {
   initialMessages: CoreMessage[];
-  initialLinkedNotes?: TFile[];
+  initialContext?: ContextItems | null;
   initialSources?: Source[];
 }
 
 export const ChatInterface = ({
   initialMessages,
-  initialLinkedNotes = [],
+  initialContext = null,
   initialSources = [],
 }: ChatInterfaceProps) => {
   const plugin = useContext(PluginContext);
@@ -49,8 +51,9 @@ export const ChatInterface = ({
 
   const [model, setModel] = createSignal<Model | null>(currentModel);
   const [messages, setMessages] = createSignal<CoreMessage[]>(initialMessages);
-  const [linkedNotes, setLinkedNotes] =
-    createSignal<TFile[]>(initialLinkedNotes);
+  const [contextItems, setContextItems] = createSignal<ContextItems | null>(
+    initialContext,
+  );
   const [sources, setSources] = createSignal<Source[]>(initialSources);
   const [lastSourceLinkNumber, setLastSourceLinkNumber] = createSignal<number>(
     initialSources.length,
@@ -59,8 +62,19 @@ export const ChatInterface = ({
   const app = useContext(AppContext);
 
   const handleLinkNote = (file: TFile) => {
-    if (!linkedNotes().some((note) => note.path === file.path)) {
-      setLinkedNotes([...linkedNotes(), file]);
+    const items = contextItems();
+    if (items === null) {
+      setContextItems({
+        notes: [file],
+        tags: [],
+        sources: [],
+      });
+    } else if (!items.notes.some((note) => note.path === file.path)) {
+      setContextItems({
+        notes: [...items.notes, file],
+        tags: items.tags,
+        sources: items.sources,
+      });
     }
   };
 
@@ -73,30 +87,19 @@ export const ChatInterface = ({
       console.warn("No model selected");
       return;
     }
+    if (!app) {
+      console.error("No app instance");
+      return;
+    }
     const newMessage: CoreMessage = { role: "user", content: message };
     setMessages([...messages(), newMessage]);
 
-    const contextNotes = await Promise.all(
-      linkedNotes().map(async (file) => {
-        try {
-          const content = (await app?.vault.cachedRead(file)) || "";
-          return {
-            title: file.basename,
-            content,
-          };
-        } catch (error) {
-          console.error(`Error reading linked note ${file.path}:`, error);
-          return null;
-        }
-      }),
-    );
-
-    const validContextNotes = contextNotes.filter((note) => note !== null);
+    const parsedContext = await getContext(contextItems(), app);
 
     const request: ChatRequest = {
       modelId: (model() as Model).id,
       messages: messages(),
-      contextNotes: validContextNotes,
+      context: parsedContext,
     };
 
     const assistantMessage: CoreMessage = {
@@ -147,7 +150,7 @@ export const ChatInterface = ({
       registry,
     );
     if (onChange) {
-      onChange(messages(), newTitle, linkedNotes(), sources());
+      onChange(messages(), newTitle, contextItems(), sources());
     }
   };
 
@@ -155,7 +158,7 @@ export const ChatInterface = ({
     <div>
       <ChatHistory messages={messages} />
       {sources().length > 0 && <SourceList sources={sources} />}
-      {linkedNotes().length > 0 && <LinkedNotes notes={linkedNotes} />}
+      <ContextList contextItems={contextItems} />
       <UserInput
         onSubmit={handleSendMessage}
         currentModel={model}

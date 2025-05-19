@@ -1,10 +1,10 @@
-import { Component, createContext } from "solid-js";
+import { Component, Context, createContext } from "solid-js";
 import { CoreMessage } from "ai";
 import { App, TFile } from "obsidian";
 
 import { ChatInterface } from "@/components/ChatInterface";
 import { CoIntelligencePlugin } from "@/CoIntelligencePlugin";
-import { Source } from "@/services/model-service";
+import { ContextItems, Source } from "@/types";
 
 export const PluginContext = createContext<CoIntelligencePlugin>();
 export const AppContext = createContext<App>();
@@ -14,7 +14,7 @@ export const ChangeCallbackContext =
     (
       messages: CoreMessage[],
       title: string,
-      linkedNotes?: TFile[],
+      contextItems: ContextItems | null,
       sources?: Source[],
     ) => void
   >();
@@ -26,10 +26,10 @@ export interface AppProps {
   onChange: (
     messages: CoreMessage[],
     title: string,
-    linkedNotes?: TFile[],
+    contextItems: ContextItems | null,
   ) => void;
   initialMessages: CoreMessage[];
-  initialLinkedNotes?: TFile[];
+  initialContext: ContextItems | null;
   initialSources?: Source[];
 }
 
@@ -39,7 +39,7 @@ export const CoiChatApp: Component<AppProps> = ({
   plugin,
   onChange,
   initialMessages,
-  initialLinkedNotes = [],
+  initialContext = { notes: [], tags: [], sources: [] },
   initialSources = [],
 }) => {
   console.log("CoiChatApp");
@@ -51,7 +51,7 @@ export const CoiChatApp: Component<AppProps> = ({
             <ChangeCallbackContext.Provider value={onChange}>
               <ChatInterface
                 initialMessages={initialMessages}
-                initialLinkedNotes={initialLinkedNotes}
+                initialContext={initialContext}
                 initialSources={initialSources}
               />
             </ChangeCallbackContext.Provider>

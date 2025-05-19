@@ -18,7 +18,7 @@ import {
   isActiveCoiNote,
   deserializeCoiNoteContent,
 } from "@/utils/notes";
-import { Source } from "@/services/model-service";
+import { Source, ContextItems } from "@/types";
 
 export const VIEW_TYPE_COI_CHAT = "coi-chat-view";
 
@@ -27,7 +27,7 @@ export class ChatView extends TextFileView {
   public app: App;
   public file: TFile | null;
   public messages: CoreMessage[] = [];
-  public linkedNotes: TFile[] = [];
+  public contextItems: ContextItems = { notes: [], tags: [], sources: [] };
   public sources: Source[] = [];
   public rootElement: Element | null = null;
   public dispose: any;
@@ -66,20 +66,24 @@ export class ChatView extends TextFileView {
       this.clear();
     }
     const metadata = this.app.metadataCache.getFileCache(this.file);
-    const { messages, linkedNotes, sources } = await deserializeCoiNoteContent(
+    const { messages, contextItems, sources } = await deserializeCoiNoteContent(
       data,
       metadata,
       this.app,
     );
     this.messages = messages;
-    this.linkedNotes = linkedNotes;
+    this.contextItems = contextItems;
     this.sources = sources;
   }
 
   clear(): void {
     console.log("Clearing view data");
     this.messages = [];
-    this.linkedNotes = [];
+    this.contextItems = {
+      notes: [],
+      tags: [],
+      sources: [],
+    };
     this.sources = [];
     if (this.dispose) {
       this.dispose();
@@ -100,7 +104,7 @@ export class ChatView extends TextFileView {
           file={this.file as TFile}
           onChange={this.handleChatChange}
           initialMessages={this.messages}
-          initialLinkedNotes={this.linkedNotes}
+          initialContext={this.contextItems}
           initialSources={this.sources}
         />
       ),
@@ -111,7 +115,7 @@ export class ChatView extends TextFileView {
   async handleChatChange(
     newMessages: CoreMessage[],
     newTitle: string,
-    linkedNotes?: TFile[],
+    contextItems: ContextItems | null,
     sources?: Source[],
   ): Promise<void> {
     if (this.updating) return;
@@ -124,7 +128,7 @@ export class ChatView extends TextFileView {
         this.file,
         this.app,
         newMessages,
-        linkedNotes,
+        contextItems,
         sources,
       );
       await renameNote(this.file, this.app, newTitle);
@@ -138,12 +142,12 @@ export class ChatView extends TextFileView {
   async onLoadFile(file: TFile): Promise<void> {
     console.log("onLoadFile");
     this.file = file;
-    const { messages, linkedNotes, sources } = await deserializeCoiNote(
+    const { messages, contextItems, sources } = await deserializeCoiNote(
       file,
       this.app,
     );
     this.messages = messages;
-    this.linkedNotes = linkedNotes;
+    this.contextItems = contextItems;
     this.sources = sources;
     await this.render();
   }
@@ -162,12 +166,12 @@ export class ChatView extends TextFileView {
     if (!isActiveCoiNote(this.file, this.app)) {
       return;
     }
-    const { messages, linkedNotes, sources } = await deserializeCoiNote(
+    const { messages, contextItems, sources } = await deserializeCoiNote(
       this.file,
       this.app,
     );
     this.messages = messages;
-    this.linkedNotes = linkedNotes;
+    this.contextItems = contextItems;
     this.sources = sources;
     await this.render();
   }
