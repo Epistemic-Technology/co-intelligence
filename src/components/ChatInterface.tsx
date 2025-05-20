@@ -16,26 +16,28 @@ import {
   ModelId,
   ContextItems,
 } from "@/types";
-import { PluginContext, ChangeCallbackContext, AppContext } from "@/CoiChatApp";
+import { PluginContext, AppContext } from "@/CoiChatApp";
 import { ChatHistory } from "@/components/ChatHistory";
 import { UserInput } from "@/components/UserInput";
 import { ContextList } from "@/components/ContextList";
 import { SourceList } from "@/components/SourceList";
 import { getContext } from "@/utils/model-context";
+import { HandleChatChangeProps } from "@/ChatView";
 
 export interface ChatInterfaceProps {
   initialMessages: CoreMessage[];
   initialContext?: ContextItems | null;
   initialSources?: Source[];
+  onChange?: (props: HandleChatChangeProps) => void;
 }
 
 export const ChatInterface = ({
   initialMessages,
   initialContext = null,
   initialSources = [],
+  onChange,
 }: ChatInterfaceProps) => {
   const plugin = useContext(PluginContext);
-  const onChange = useContext(ChangeCallbackContext);
 
   if (!plugin) {
     throw new Error("Plugin Context is not available");
@@ -150,7 +152,12 @@ export const ChatInterface = ({
       registry,
     );
     if (onChange) {
-      onChange(messages(), newTitle, contextItems(), sources());
+      onChange({
+        newMessages: messages(),
+        newTitle,
+        contextItems: contextItems(),
+        sources: sources()
+      });
     }
   };
 

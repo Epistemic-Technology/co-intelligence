@@ -22,6 +22,13 @@ import { Source, ContextItems } from "@/types";
 
 export const VIEW_TYPE_COI_CHAT = "coi-chat-view";
 
+export interface HandleChatChangeProps {
+  newMessages: CoreMessage[];
+  newTitle: string;
+  contextItems: ContextItems | null;
+  sources?: Source[];
+}
+
 export class ChatView extends TextFileView {
   public plugin: CoIntelligencePlugin;
   public app: App;
@@ -112,12 +119,12 @@ export class ChatView extends TextFileView {
     );
   }
 
-  async handleChatChange(
-    newMessages: CoreMessage[],
-    newTitle: string,
-    contextItems: ContextItems | null,
-    sources?: Source[],
-  ): Promise<void> {
+  async handleChatChange({
+    newMessages,
+    newTitle,
+    contextItems,
+    sources,
+  }: HandleChatChangeProps): Promise<void> {
     if (this.updating) return;
     this.updating = true;
     if (!this.file) {

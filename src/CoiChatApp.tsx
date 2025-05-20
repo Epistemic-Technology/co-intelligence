@@ -9,15 +9,6 @@ import { ContextItems, Source } from "@/types";
 export const PluginContext = createContext<CoIntelligencePlugin>();
 export const AppContext = createContext<App>();
 export const FileContext = createContext<TFile>();
-export const ChangeCallbackContext =
-  createContext<
-    (
-      messages: CoreMessage[],
-      title: string,
-      contextItems: ContextItems | null,
-      sources?: Source[],
-    ) => void
-  >();
 
 export interface AppProps {
   app: App;
@@ -27,6 +18,7 @@ export interface AppProps {
     messages: CoreMessage[],
     title: string,
     contextItems: ContextItems | null,
+    sources?: Source[],
   ) => void;
   initialMessages: CoreMessage[];
   initialContext: ContextItems | null;
@@ -48,13 +40,12 @@ export const CoiChatApp: Component<AppProps> = ({
       <AppContext.Provider value={app}>
         <FileContext.Provider value={file}>
           <PluginContext.Provider value={plugin}>
-            <ChangeCallbackContext.Provider value={onChange}>
-              <ChatInterface
-                initialMessages={initialMessages}
-                initialContext={initialContext}
-                initialSources={initialSources}
-              />
-            </ChangeCallbackContext.Provider>
+            <ChatInterface
+              initialMessages={initialMessages}
+              initialContext={initialContext}
+              initialSources={initialSources}
+              onChange={props => onChange(props.newMessages, props.newTitle, props.contextItems, props.sources)}
+            />
           </PluginContext.Provider>
         </FileContext.Provider>
       </AppContext.Provider>
