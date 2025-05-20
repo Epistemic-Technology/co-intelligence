@@ -75,7 +75,9 @@
 }
 
 .coi-note-suggestion-item:hover,
-.suggestion-item.is-selected .coi-note-suggestion-item {
+.suggestion-item.is-selected .coi-note-suggestion-item,
+.coi-tag-suggestion-item:hover,
+.suggestion-item.is-selected .coi-tag-suggestion-item {
     background-color: var(--background-modifier-hover);
 }
 
@@ -121,4 +123,13 @@
 
 .coi-user-input textarea {
     font-family: var(--font-text);
+}
+
+/* Tag Suggestion styles */
+.coi-tag-suggestion-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    color: var(--text-accent);
+    font-weight: 500;
 }

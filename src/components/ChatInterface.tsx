@@ -15,6 +15,7 @@ import {
   Model,
   ModelId,
   ContextItems,
+  Tag,
 } from "@/types";
 import { PluginContext, AppContext } from "@/CoiChatApp";
 import { ChatHistory } from "@/components/ChatHistory";
@@ -75,6 +76,23 @@ export const ChatInterface = ({
       setContextItems({
         notes: [...items.notes, file],
         tags: items.tags,
+        sources: items.sources,
+      });
+    }
+  };
+
+  const handleAddTag = (tag: Tag) => {
+    const items = contextItems();
+    if (items === null) {
+      setContextItems({
+        notes: [],
+        tags: [tag],
+        sources: [],
+      });
+    } else if (!items.tags.includes(tag)) {
+      setContextItems({
+        notes: items.notes,
+        tags: [...items.tags, tag],
         sources: items.sources,
       });
     }
@@ -156,7 +174,7 @@ export const ChatInterface = ({
         newMessages: messages(),
         newTitle,
         contextItems: contextItems(),
-        sources: sources()
+        sources: sources(),
       });
     }
   };
@@ -171,6 +189,7 @@ export const ChatInterface = ({
         currentModel={model}
         updateModel={setModel}
         onLinkNote={handleLinkNote}
+        onAddTag={handleAddTag}
       />
     </div>
   );

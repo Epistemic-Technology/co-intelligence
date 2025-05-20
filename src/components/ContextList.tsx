@@ -8,18 +8,12 @@ export interface ContextListProps {
 }
 
 export const ContextList = ({ contextItems }: ContextListProps) => {
-  const items = contextItems();
-  if (!items) return null;
-  const { notes, tags, sources } = items;
-  if (notes.length === 0 && tags.length === 0 && sources.length === 0) {
-    return null;
-  }
   return (
     <div class="coi-linked-notes coi-context-box">
       <details open>
         <summary>Context</summary>
         <ul>
-          <For each={notes}>
+          <For each={contextItems()?.notes}>
             {(note) => (
               <li>
                 <NoteLink href="#">{note.basename}</NoteLink>
@@ -27,11 +21,16 @@ export const ContextList = ({ contextItems }: ContextListProps) => {
               </li>
             )}
           </For>
-          <For each={tags}>
+          <For each={contextItems()?.tags}>
             {(tag) => (
               <li>
-                <a href="#" class="internal-link" data-href={`tag:${tag}`}>
-                  {`#${tag}`}
+                <a
+                  href={`obsidian://search?query=${encodeURIComponent(tag)}`}
+                  class="tag"
+                  target="_blank"
+                  rel="noopener nofollow"
+                >
+                  {`${tag}`}
                 </a>
                 <button>X</button>
               </li>

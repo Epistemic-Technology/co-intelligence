@@ -9,15 +9,17 @@ import { TFile } from "obsidian";
 
 import { ModelSelector, ModelSelectorProps } from "@/components/ModelSelector";
 import { NoteLinkSuggestionModal } from "@/components/NoteLinkSuggestionModal";
+import { TagSuggestionModal } from "@/components/TagSuggestionModal";
 import { AppContext, PluginContext } from "@/CoiChatApp";
 import { ModelRegistry } from "@/services/model-registry";
-import { Model } from "@/types";
+import { Model, Tag } from "@/types";
 
 export interface UserInputProps {
   onSubmit: (value: string) => void;
   currentModel: Accessor<Model | null>;
   updateModel: (model: Model | null) => void;
   onLinkNote?: (file: TFile) => void;
+  onAddTag?: (tag: Tag) => void;
 }
 
 export const UserInput: Component<UserInputProps> = ({
@@ -25,6 +27,7 @@ export const UserInput: Component<UserInputProps> = ({
   currentModel,
   updateModel,
   onLinkNote,
+  onAddTag,
 }) => {
   let textareaRef: HTMLTextAreaElement | undefined;
   const app = useContext(AppContext);
@@ -40,15 +43,15 @@ export const UserInput: Component<UserInputProps> = ({
   });
 
   /**
-   * Tracks whether a wikilink suggestion modal is currently open
+   * Tracks whether a suggestion modal (wikilink or tag) is currently open
    * Prevents multiple modals from opening simultaneously
    */
   const [isModalOpen, setIsModalOpen] = createSignal(false);
 
   /**
-   * Handles input in the textarea, detecting wiki links and showing suggestions
+   * Handles input in the textarea, detecting wiki links, tags, and showing suggestions
    * - Adds closing brackets when [[ is typed
-   * - Shows suggestion modal when inside a wikilink
+   * - Shows suggestion modals for wikilinks and tags
    */
   const handleInput = () => {
     if (!textareaRef || !app || isModalOpen()) return;
@@ -58,7 +61,7 @@ export const UserInput: Component<UserInputProps> = ({
 
     // Detect if user just typed [[ to auto-complete with closing brackets
     if (caretPos >= 2 && value.substring(caretPos - 2, caretPos) === "[[") {
-      // Add closing ]] brackets automatically to save the user typing
+      // Add closing ]] brackets automatically
       const newValue =
         value.substring(0, caretPos) + "]]" + value.substring(caretPos);
       textareaRef.value = newValue;
@@ -70,6 +73,26 @@ export const UserInput: Component<UserInputProps> = ({
       setIsModalOpen(true);
       const modal = new NoteLinkSuggestionModal(app, "", (file) => {
         handleNoteSelect(file);
+        setIsModalOpen(false);
+      });
+      modal.open();
+
+      // Handle modal closing without selection
+      modal.onClose = () => {
+        setIsModalOpen(false);
+      };
+    }
+
+    // Detect if user just typed # with nothing to the right
+    if (
+      caretPos >= 1 &&
+      value.substring(caretPos - 1, caretPos) === "#" &&
+      (caretPos === value.length || /\s/.test(value.charAt(caretPos)))
+    ) {
+      // Open tag suggestion modal
+      setIsModalOpen(true);
+      const modal = new TagSuggestionModal(app, "", (tag) => {
+        handleTagSelect(tag);
         setIsModalOpen(false);
       });
       modal.open();
@@ -106,6 +129,28 @@ export const UserInput: Component<UserInputProps> = ({
       modal.onClose = () => {
         setIsModalOpen(false);
       };
+    }
+
+    // Check if cursor is immediately after a # with no text to the right
+    if (!isModalOpen()) {
+      const lastHashBeforeCaret = textBeforeCaret.lastIndexOf("#");
+      if (
+        lastHashBeforeCaret !== -1 &&
+        lastHashBeforeCaret === caretPos - 1 &&
+        (caretPos === value.length || /\s/.test(value.charAt(caretPos)))
+      ) {
+        setIsModalOpen(true);
+        const modal = new TagSuggestionModal(app, "", (tag) => {
+          handleTagSelect(tag);
+          setIsModalOpen(false);
+        });
+        modal.open();
+
+        // Handle modal closing without selection
+        modal.onClose = () => {
+          setIsModalOpen(false);
+        };
+      }
     }
   };
 
@@ -164,6 +209,38 @@ export const UserInput: Component<UserInputProps> = ({
 
     if (onLinkNote) {
       onLinkNote(file);
+    }
+  };
+
+  /**
+   * Handles when a tag is selected from the suggestion modal
+   * - Inserts the tag at the cursor position, replacing the # if needed
+   * - Positions cursor after the inserted tag
+   */
+  const handleTagSelect = (tag: Tag) => {
+    if (!textareaRef) return;
+
+    const value = textareaRef.value;
+    const caretPos = textareaRef.selectionStart;
+
+    const textBeforeCaret = value.substring(0, caretPos);
+    const lastHashPosition = textBeforeCaret.lastIndexOf("#");
+
+    // Replace the # with the selected tag (which already includes #)
+    const newValue =
+      value.substring(0, lastHashPosition) + tag + value.substring(caretPos);
+
+    textareaRef.value = newValue;
+
+    // Position cursor after the inserted tag
+    const newCursorPos = lastHashPosition + tag.length;
+    textareaRef.setSelectionRange(newCursorPos, newCursorPos);
+
+    // Focus back on textarea
+    textareaRef.focus();
+
+    if (onAddTag) {
+      onAddTag(tag);
     }
   };
 

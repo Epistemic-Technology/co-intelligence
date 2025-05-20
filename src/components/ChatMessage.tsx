@@ -27,11 +27,10 @@ export const ChatMessage: Component<ChatMessageProps> = ({
       const href = anchor.getAttribute("href");
 
       if (href && app) {
-        if (
-          href.startsWith("#") ||
-          href.startsWith("obsidian://") ||
-          anchor.classList.contains("internal-link")
-        ) {
+        if (href.startsWith("#")) {
+          const newHref = `obsidian://search?query=${encodeURIComponent(`#${href.slice(1)}`)}`;
+          window.open(newHref);
+        } else if (anchor.classList.contains("internal-link")) {
           const newLeaf = event.ctrlKey || event.metaKey;
           app.workspace.openLinkText(href, "", newLeaf);
         } else {
