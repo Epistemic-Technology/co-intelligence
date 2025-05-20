@@ -5,6 +5,7 @@ import { App, TFile } from "obsidian";
 import { ChatInterface } from "@/components/ChatInterface";
 import { CoIntelligencePlugin } from "@/CoIntelligencePlugin";
 import { ContextItems, Source } from "@/types";
+import { HandleChatChangeProps } from "@/ChatView";
 
 export const PluginContext = createContext<CoIntelligencePlugin>();
 export const AppContext = createContext<App>();
@@ -14,12 +15,7 @@ export interface AppProps {
   app: App;
   file: TFile;
   plugin: CoIntelligencePlugin;
-  onChange: (
-    messages: CoreMessage[],
-    title: string,
-    contextItems: ContextItems | null,
-    sources?: Source[],
-  ) => void;
+  onChange: (props: HandleChatChangeProps) => void;
   initialMessages: CoreMessage[];
   initialContext: ContextItems | null;
   initialSources?: Source[];
@@ -44,7 +40,7 @@ export const CoiChatApp: Component<AppProps> = ({
               initialMessages={initialMessages}
               initialContext={initialContext}
               initialSources={initialSources}
-              onChange={props => onChange(props.newMessages, props.newTitle, props.contextItems, props.sources)}
+              onChange={onChange}
             />
           </PluginContext.Provider>
         </FileContext.Provider>
