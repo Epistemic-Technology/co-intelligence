@@ -17,6 +17,7 @@ import {
   ContextItems,
   Tag,
 } from "@/types";
+import { debounce } from "@/utils/debounce";
 import { PluginContext, AppContext } from "@/CoiChatApp";
 import { ChatHistory } from "@/components/ChatHistory";
 import { UserInput } from "@/components/UserInput";
@@ -79,6 +80,7 @@ export const ChatInterface = ({
         sources: items.sources,
       });
     }
+    triggerChange();
   };
 
   const handleAddTag = (tag: Tag) => {
@@ -96,6 +98,7 @@ export const ChatInterface = ({
         sources: items.sources,
       });
     }
+    triggerChange();
   };
 
   const handleSendMessage = async (message: string) => {
@@ -164,6 +167,11 @@ export const ChatInterface = ({
       setSources([...sources(), ...newSources]);
       setLastSourceLinkNumber(lastSourceLinkNumber() + newSources.length);
     }
+    triggerChange(true);
+  };
+
+  const triggerChange = debounce(async (regenNoteTitle: boolean = false) => {
+    console.log("Change triggered");
     const newTitle = await generateChatTitle(
       model()?.id || null,
       messages(),
@@ -177,7 +185,7 @@ export const ChatInterface = ({
         sources: sources(),
       });
     }
-  };
+  }, 750);
 
   return (
     <div>
@@ -188,6 +196,7 @@ export const ChatInterface = ({
         setContextItems={setContextItems}
       />
       <UserInput
+        triggerChange={triggerChange}
         onSubmit={handleSendMessage}
         currentModel={model}
         updateModel={setModel}

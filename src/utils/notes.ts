@@ -106,6 +106,18 @@ export async function renameNote(
     return note;
   }
 
+  if (newName.length === 0) {
+    return note;
+  }
+
+  if (newName.length > 200) {
+    newName = newName.slice(0, 200);
+  }
+
+  if (newName === note.basename) {
+    return note;
+  }
+
   try {
     const parentPath = note.parent ? note.parent.path : "";
     const newPath = normalizePath(
@@ -138,22 +150,13 @@ export async function openCOINote(
   });
 }
 
-export async function serializeCoiNote(
-  note: TFile,
+export async function serializeCoiNoteContent(
+  currentNoteContent: string,
   app: App,
   messages: CoreMessage[],
   contextItems: ContextItems | null,
   sources?: Source[],
-) {
-  const currentNoteContent = await app.vault.cachedRead(note);
-
-  if (
-    !currentNoteContent.includes(CHAT_START) ||
-    !currentNoteContent.includes(CHAT_END)
-  ) {
-    return;
-  }
-
+): Promise<string> {
   const serializedMessages = messages
     .map(({ role, content }) => {
       const processedContent = (content as string)
@@ -188,7 +191,31 @@ export async function serializeCoiNote(
       ? `${CHAT_START}\n${serializedMessages}\n\n${serializedSources}\n${CHAT_END}`
       : `${CHAT_START}\n${serializedMessages}\n${CHAT_END}`;
   const newNoteContent = beforeChat + newChatSection + afterChat;
+  return newNoteContent;
+}
 
+export async function serializeCoiNote(
+  note: TFile,
+  app: App,
+  messages: CoreMessage[],
+  contextItems: ContextItems | null,
+  sources?: Source[],
+) {
+  const currentNoteContent = await app.vault.cachedRead(note);
+
+  if (
+    !currentNoteContent.includes(CHAT_START) ||
+    !currentNoteContent.includes(CHAT_END)
+  ) {
+    return;
+  }
+
+  const newNoteContent = await serializeCoiNoteContent(
+    currentNoteContent,
+    app,
+    messages,
+    contextItems,
+  );
   if (newNoteContent !== currentNoteContent) {
     await app.vault.modify(note, newNoteContent);
   }

@@ -17,6 +17,7 @@ import {
   renameNote,
   isActiveCoiNote,
   deserializeCoiNoteContent,
+  serializeCoiNoteContent,
 } from "@/utils/notes";
 import { Source, ContextItems } from "@/types";
 
@@ -40,6 +41,7 @@ export class ChatView extends TextFileView {
   public dispose: any;
 
   private updating = false;
+  private debounceTimeout: number | null = null;
 
   constructor(leaf: WorkspaceLeaf, plugin: CoIntelligencePlugin, app: App) {
     super(leaf);
@@ -57,13 +59,43 @@ export class ChatView extends TextFileView {
     return this.file?.basename || "Co-Intelligence Chat";
   }
 
+  async debounceUpdateViewData() {
+    if (this.debounceTimeout) {
+      clearTimeout(this.debounceTimeout);
+    }
+    this.debounceTimeout = setTimeout(() => {
+      this.debounceTimeout = null;
+      this.updateViewData();
+    }, 500);
+  }
+
+  async updateViewData() {
+    console.log("Updating view data");
+    if (this.updating) {
+      return;
+    }
+    if (!this.file) {
+      return "";
+    }
+    this.updating = true;
+    const currentNoteContent = await this.app.vault.cachedRead(this.file);
+    const content = await serializeCoiNoteContent(
+      currentNoteContent,
+      this.app,
+      this.messages,
+      this.contextItems,
+    );
+    this.data = content;
+    this.requestSave();
+    this.updating = false;
+  }
+
   getViewData() {
+    console.log("Getting view data");
     return this.data;
   }
 
   async setViewData(data: string, clear: boolean) {
-    console.log("Setting view");
-    console.log("Clearning?", clear);
     this.data = data;
     if (!this.file) {
       console.error("File is null while trying to set view data");

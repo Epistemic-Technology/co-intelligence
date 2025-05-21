@@ -15,6 +15,7 @@ import { ModelRegistry } from "@/services/model-registry";
 import { Model, Tag } from "@/types";
 
 export interface UserInputProps {
+  triggerChange: () => void;
   onSubmit: (value: string) => void;
   currentModel: Accessor<Model | null>;
   updateModel: (model: Model | null) => void;
@@ -23,6 +24,7 @@ export interface UserInputProps {
 }
 
 export const UserInput: Component<UserInputProps> = ({
+  triggerChange,
   onSubmit,
   currentModel,
   updateModel,
