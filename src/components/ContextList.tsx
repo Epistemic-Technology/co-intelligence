@@ -1,13 +1,37 @@
 import { TFile } from "obsidian";
-import { For, Accessor } from "solid-js";
+import { For, Accessor, Setter } from "solid-js";
 import { NoteLink } from "@/components/NoteLink";
 import { ContextItems, Source, Tag } from "@/types";
 
 export interface ContextListProps {
   contextItems: Accessor<ContextItems | null>;
+  setContextItems: Setter<ContextItems | null>;
 }
 
-export const ContextList = ({ contextItems }: ContextListProps) => {
+export const ContextList = ({
+  contextItems,
+  setContextItems,
+}: ContextListProps) => {
+  const handleRemoveNote = (note: TFile) => {
+    setContextItems((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        notes: prev.notes.filter((n) => n.basename !== note.basename),
+      };
+    });
+  };
+
+  const handleRemoveTag = (tag: Tag) => {
+    setContextItems((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        tags: prev.tags.filter((t) => t !== tag),
+      };
+    });
+  };
+
   return (
     <div class="coi-linked-notes coi-context-box">
       <details open>
@@ -17,7 +41,12 @@ export const ContextList = ({ contextItems }: ContextListProps) => {
             {(note) => (
               <li>
                 <NoteLink href="#">{note.basename}</NoteLink>
-                <button>X</button>
+                <button
+                  class="coi-context-box-remove-button"
+                  onClick={() => handleRemoveNote(note)}
+                >
+                  x
+                </button>
               </li>
             )}
           </For>
@@ -32,7 +61,12 @@ export const ContextList = ({ contextItems }: ContextListProps) => {
                 >
                   {`${tag}`}
                 </a>
-                <button>X</button>
+                <button
+                  class="coi-context-box-remove-button"
+                  onClick={() => handleRemoveTag(tag)}
+                >
+                  x
+                </button>
               </li>
             )}
           </For>

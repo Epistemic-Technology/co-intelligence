@@ -9,7 +9,6 @@
     user-select: text;
 }
 
-/* Ensure the div containing chat history and user input takes full height */
 .coi-app > div {
     display: flex;
     flex-direction: column;
@@ -132,4 +131,19 @@
     transition: background-color 0.2s ease;
     color: var(--text-accent);
     font-weight: 500;
+}
+
+.coi-app button.coi-context-box-remove-button {
+    border: none;
+    background: none;
+    color: var(--text-accent);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0 0.3rem;
+    margin-left: 0.5rem;
+    box-shadow: none;
+}
+
+.coi-app button.coi-context-box-remove-button:hover {
+    color: var(--text-accent-hover);
 }

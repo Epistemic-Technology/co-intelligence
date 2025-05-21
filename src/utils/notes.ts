@@ -193,9 +193,10 @@ export async function serializeCoiNote(
     await app.vault.modify(note, newNoteContent);
   }
 
-  if (contextItems && contextItems.notes.length > 0) {
+  if (contextItems) {
     await app.fileManager.processFrontMatter(note, (frontmatter) => {
       frontmatter["linked-notes"] = contextItems.notes.map((file) => file.path);
+      frontmatter["linked-tags"] = contextItems.tags;
     });
   }
 }
@@ -291,13 +292,18 @@ export async function deserializeCoiNoteContent(
     tags: [],
     sources: [],
   };
-  const linkedNotePaths = metadata?.frontmatter?.["linked-notes"] || [];
 
+  const linkedNotePaths = metadata?.frontmatter?.["linked-notes"] || [];
   for (const path of linkedNotePaths) {
     const file = app.vault.getAbstractFileByPath(path);
     if (file instanceof TFile) {
       contextItems.notes.push(file);
     }
+  }
+
+  const linkedTags = metadata?.frontmatter?.["linked-tags"] || [];
+  for (const tag of linkedTags) {
+    contextItems.tags.push(tag);
   }
 
   return { messages, contextItems, sources };

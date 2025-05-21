@@ -183,7 +183,10 @@ export const ChatInterface = ({
     <div>
       <ChatHistory messages={messages} />
       {sources().length > 0 && <SourceList sources={sources} />}
-      <ContextList contextItems={contextItems} />
+      <ContextList
+        contextItems={contextItems}
+        setContextItems={setContextItems}
+      />
       <UserInput
         onSubmit={handleSendMessage}
         currentModel={model}
