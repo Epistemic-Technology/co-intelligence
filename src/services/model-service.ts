@@ -8,6 +8,8 @@ import {
 } from "ai";
 import { ModelRegistry } from "./model-registry";
 import { ModelId, ContextItems, ChatRequest } from "@/types";
+import { hexToArrayBuffer } from "obsidian";
+import CoIntelligencePlugin from "@/CoIntelligencePlugin";
 
 /**
  * Generates a chat response based on the provided request.
@@ -44,6 +46,11 @@ export async function generateChatResponse(
     model,
     messages: request.messages,
     ...(systemPrompt && { system: systemPrompt }),
+    ...(model.provider?.includes("anthropic") && {
+      headers: {
+        "anthropic-dangerous-direct-browser-access": "true",
+      },
+    }),
   };
 
   const result = streamText(config);
@@ -51,19 +58,25 @@ export async function generateChatResponse(
 }
 
 export async function generateChatTitle(
-  modelId: ModelId | null,
   messages: CoreMessage[],
-  registry: ModelRegistry,
+  plugin: CoIntelligencePlugin,
 ): Promise<string> {
-  if (!modelId) {
+  const renamingModel = plugin.settings.renamingModel;
+  if (!renamingModel) {
     return "";
   }
-  const model = registry.getLanguageModel(modelId);
+  const registry = ModelRegistry.getInstance(plugin);
+  const model = registry.getLanguageModel(renamingModel);
   const params = {
     model,
     messages: messages,
     system:
       "Summarize this conversation into a short title of six words or less. Use the normal rules for sentence capitalization rather than title case. There should not be a period at the end of the summary. The title must not contain the characters /, \\, or :",
+    ...(model.provider?.includes("anthropic") && {
+      headers: {
+        "anthropic-dangerous-direct-browser-access": "true",
+      },
+    }),
   };
   try {
     const summary = (await generateText(params)).text.replaceAll(

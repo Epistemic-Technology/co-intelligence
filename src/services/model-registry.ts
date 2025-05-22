@@ -80,49 +80,76 @@ export class ModelRegistry {
       //   name: "OpenAI O3",
       // },
       {
+        id: "openai:gpt-4o-mini",
+        provider: "openai",
+        name: "OpenAI GPT-4o Mini",
+        renaming: true,
+      },
+      {
         id: "openai:gpt-4o",
         provider: "openai",
         name: "OpenAI GPT-4o",
+        renaming: true,
+      },
+      {
+        id: "openai:gpt-4.1-nano",
+        provider: "openai",
+        name: "OpenAI GPT-4.1 Nano",
+        renaming: true,
+      },
+      {
+        id: "openai:gpt-4.1-mini",
+        provider: "openai",
+        name: "OpenAI GPT-4.1 Mini",
+        renaming: true,
       },
       {
         id: "openai:gpt-4.1",
         provider: "openai",
         name: "OpenAI GPT-4.1",
+        renaming: true,
       },
       {
         id: "anthropic:claude-3-7-sonnet-latest",
         provider: "anthropic",
         name: "Anthropic Claude 3.7 Sonnet",
+        renaming: true,
       },
       {
         id: "anthropic:claude-3-opus-latest",
         provider: "anthropic",
         name: "Anthropic Claude 3.7 Opus",
+        renaming: false,
       },
       {
-        id: "google:gemini-2.0-flash-live-001",
+        id: "google:gemini-2.0-flash",
         provider: "google",
         name: "Google Gemini 2.0 Flash",
+        renaming: true,
       },
       {
-        id: "google:gemini-2.5-pro-exp-02-05",
+        id: "google:gemini-1.5-pro",
         provider: "google",
         name: "Google Gemini 2.5 Pro Exp",
+        renaming: false,
       },
       {
         id: "perplexity:sonar",
         provider: "perplexity",
         name: "Perplexity Sonar",
+        renaming: false,
       },
       {
         id: "perplexity:sonar-deep-research",
         provider: "perplexity",
         name: "Perplexity Sonar Deep Research",
+        renaming: false,
       },
       {
         id: "perplexity:sonar-reasoning",
         provider: "perplexity",
         name: "Perplexity Sonar Reasoning",
+        renaming: false,
       },
     ];
 

@@ -41,6 +41,7 @@ export interface Model {
   id: ModelId;
   provider: Provider;
   name: string;
+  renaming: boolean;
 }
 
 export type Tag = string;

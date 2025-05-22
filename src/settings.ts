@@ -1,5 +1,6 @@
 import type CoIntelligencePlugin from "@/CoIntelligencePlugin";
 import { App, PluginSettingTab, Setting } from "obsidian";
+import { ModelId } from "@/types";
 
 export interface CoIntelligenceSettings {
   openaiApiKey: string;
@@ -7,7 +8,8 @@ export interface CoIntelligenceSettings {
   googleApiKey: string;
   perplexityApiKey: string;
   defaultFolder: string;
-  defaultModel: string;
+  defaultModel: ModelId | "";
+  renamingModel: ModelId | "";
 }
 
 export const DEFAULT_SETTINGS: CoIntelligenceSettings = {
@@ -17,6 +19,7 @@ export const DEFAULT_SETTINGS: CoIntelligenceSettings = {
   perplexityApiKey: "",
   defaultFolder: "coi",
   defaultModel: "",
+  renamingModel: "",
 };
 
 export class CoIntelligenceSettingsTab extends PluginSettingTab {
@@ -31,6 +34,11 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
     const { containerEl } = this;
 
     containerEl.empty();
+
+    const securityWarning = containerEl.createEl("div", {
+      text: "⚠️ API keys are stored unencrypted in your vault. Anyone with access to your vault can read them.",
+      cls: "coi-settings-security-warning",
+    });
 
     new Setting(containerEl)
       .setName("OpenAI API Key")
@@ -110,7 +118,7 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
       .setDesc("Enter the default model for CoIntelligence")
       .addDropdown((dropdown) => {
         const availableModels = this.plugin.registry.availableModels;
-        
+
         if (availableModels.length === 0) {
           dropdown.addOption("", "No models available - add API keys first");
         } else {
@@ -118,10 +126,34 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
             dropdown.addOption(model.id, model.name);
           }
         }
-        
+
         dropdown.setValue(this.plugin.settings.defaultModel || "");
         dropdown.onChange(async (value) => {
-          this.plugin.settings.defaultModel = value;
+          this.plugin.settings.defaultModel = value as ModelId;
+          await this.plugin.saveSettings();
+        });
+      });
+
+    new Setting(containerEl)
+      .setName("Renaming Model")
+      .setDesc("Enter the model for automatically renaming notes")
+      .addDropdown((dropdown) => {
+        const availableModels = this.plugin.registry.availableModels;
+
+        if (availableModels.length === 0) {
+          dropdown.addOption("", "No models available - add API keys first");
+        } else {
+          dropdown.addOption("", "Do not rename notes");
+          for (const model of availableModels) {
+            if (model.renaming) {
+              dropdown.addOption(model.id, model.name);
+            }
+          }
+        }
+
+        dropdown.setValue(this.plugin.settings.renamingModel || "");
+        dropdown.onChange(async (value) => {
+          this.plugin.settings.renamingModel = value as ModelId;
           await this.plugin.saveSettings();
         });
       });

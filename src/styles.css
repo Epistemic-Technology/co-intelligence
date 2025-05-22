@@ -147,3 +147,14 @@
 .coi-app button.coi-context-box-remove-button:hover {
     color: var(--text-accent-hover);
 }
+
+.coi-settings-security-warning {
+    margin: 1rem;
+    font-size: 0.8rem;
+    color: var(--text-warning);
+    border-style: solid;
+    border-width: 1px;
+    border-color: var(--background-modifier-border);
+    padding: 0.5rem;
+    border-radius: 4px;
+}

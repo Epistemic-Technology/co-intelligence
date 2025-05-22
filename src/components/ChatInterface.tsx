@@ -146,9 +146,11 @@ export const ChatInterface = ({
         return updatedMessages;
       });
     }
+    const lastMessage = messages()[messages().length - 1];
+
+    // Handle new sources. Renumber and link Perplexity-style references
     const newSources = await responseStream.sources;
     if (newSources.length > 0) {
-      const lastMessage = messages()[messages().length - 1];
       // Replace source reference numbers [n] with [n+offset]
       const offset = lastSourceLinkNumber();
       lastMessage.content = (lastMessage.content as string).replace(
@@ -167,16 +169,24 @@ export const ChatInterface = ({
       setSources([...sources(), ...newSources]);
       setLastSourceLinkNumber(lastSourceLinkNumber() + newSources.length);
     }
+
+    // Handle markdown links in response and add to sources
+    const newLinks =
+      (lastMessage.content as string).match(/\[(.*?)\]\((.*?)\)/g) || [];
+    newLinks.forEach((link) => {
+      const [text, url] = link.slice(1, -1).split("](");
+      const existingSource = sources().find((source) => source.url === url);
+      if (!existingSource) {
+        setSources([...sources(), { url, title: text }]);
+        setLastSourceLinkNumber(lastSourceLinkNumber() + 1);
+      }
+    });
     triggerChange(true);
   };
 
   const triggerChange = debounce(async (regenNoteTitle: boolean = false) => {
     console.log("Change triggered");
-    const newTitle = await generateChatTitle(
-      model()?.id || null,
-      messages(),
-      registry,
-    );
+    const newTitle = await generateChatTitle(messages(), plugin);
     if (onChange) {
       onChange({
         newMessages: messages(),
