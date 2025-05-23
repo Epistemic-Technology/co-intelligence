@@ -64,13 +64,10 @@ export class CoIntelligencePlugin extends Plugin {
       ),
     );
 
-    console.log("CoIntelligencePlugin loaded");
-
     this.app.workspace.onLayoutReady(this.onloadOnLayoutReady.bind(this));
   }
 
   async onloadOnLayoutReady() {
-    console.log("Layout ready");
     this.registerMonkeyPatches();
   }
 
@@ -137,15 +134,12 @@ export class CoIntelligencePlugin extends Plugin {
       around(WorkspaceLeaf.prototype, {
         setViewState(next) {
           return function (this: any, state: ViewState, eState?: any) {
-            console.log("Monkey patching setViewState");
             const newState = {
               ...state,
             };
             if (state.type === "markdown") {
-              console.log("This is a markdown file");
               const path = (state.state?.file as string) ?? "";
               if (isPathActiveCoiNote(path, this.app as App)) {
-                console.log("This is a COI note");
                 newState.type = VIEW_TYPE_COI_CHAT;
               }
             }

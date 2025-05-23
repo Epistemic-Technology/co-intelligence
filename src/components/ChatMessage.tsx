@@ -39,7 +39,6 @@ export const ChatMessage: Component<ChatMessageProps> = ({
       }
     }
   };
-  console.log("ChatMessage with message:", message);
   return (
     <div onClick={handleClick} class={className}>
       <MarkdownView

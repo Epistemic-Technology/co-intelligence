@@ -70,7 +70,6 @@ export class ChatView extends TextFileView {
   }
 
   async updateViewData() {
-    console.log("Updating view data");
     if (this.updating) {
       return;
     }
@@ -91,7 +90,6 @@ export class ChatView extends TextFileView {
   }
 
   getViewData() {
-    console.log("Getting view data");
     return this.data;
   }
 
@@ -116,7 +114,6 @@ export class ChatView extends TextFileView {
   }
 
   clear(): void {
-    console.log("Clearing view data");
     this.messages = [];
     this.contextItems = {
       notes: [],
@@ -183,7 +180,6 @@ export class ChatView extends TextFileView {
   }
 
   async onLoadFile(file: TFile): Promise<void> {
-    console.log("onLoadFile");
     this.file = file;
     const { messages, contextItems, sources } = await deserializeCoiNote(
       file,
@@ -196,12 +192,10 @@ export class ChatView extends TextFileView {
   }
 
   async onUnloadFile(file: TFile): Promise<void> {
-    console.log("onUnloadFile");
     this.clear();
   }
 
   async onOpen(): Promise<void> {
-    console.log("onOpen");
     if (!this.file) {
       console.error("No file provided for chat view");
       return;

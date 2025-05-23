@@ -31,9 +31,6 @@ export const BotMessage: Component<BotMessageProps> = ({
     mainContent = content;
   }
 
-  console.log("open tag index:", openTagIndex);
-  console.log("close tag index:", closeTagIndex);
-
   const newMessage = {
     ...message,
     content: mainContent,

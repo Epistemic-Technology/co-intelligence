@@ -7,11 +7,6 @@ export interface ProcessingIndicatorProps {
 export const ProcessingIndicator: Component<ProcessingIndicatorProps> = ({
   onCancel,
 }) => {
-  // Logging to confirm the component is rendering
-  createEffect(() => {
-    console.log("Processing indicator rendered");
-  });
-
   return (
     <div class="coi-processing-indicator">
       <div class="coi-processing-spinner"></div>

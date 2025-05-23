@@ -30,7 +30,6 @@ export const CoiChatApp: Component<AppProps> = ({
   initialContext = { notes: [], tags: [], sources: [] },
   initialSources = [],
 }) => {
-  console.log("CoiChatApp");
   return (
     <div class="coi-app">
       <AppContext.Provider value={app}>

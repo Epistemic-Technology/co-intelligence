@@ -124,6 +124,14 @@
     font-family: var(--font-text);
 }
 
+.coi-user-input-options {
+    display: flex;
+    flex-direction: row;
+    justify-items: flex-start;
+    align-items: center;
+    gap: 1rem;
+}
+
 /* Tag Suggestion styles */
 .coi-tag-suggestion-item {
     padding: 8px 12px;

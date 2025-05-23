@@ -4,6 +4,7 @@ import {
   createSignal,
   createEffect,
   useContext,
+  Show,
 } from "solid-js";
 import { TFile } from "obsidian";
 
@@ -13,10 +14,11 @@ import { TagSuggestionModal } from "@/components/TagSuggestionModal";
 import { AppContext, PluginContext } from "@/CoiChatApp";
 import { ModelRegistry } from "@/services/model-registry";
 import { Model, Tag } from "@/types";
+import { set } from "zod";
 
 export interface UserInputProps {
   triggerChange: () => void;
-  onSubmit: (value: string) => void;
+  onSubmit: (value: string, webSearchEnabled: boolean) => void;
   currentModel: Accessor<Model | null>;
   updateModel: (model: Model | null) => void;
   onLinkNote?: (file: TFile) => void;
@@ -49,6 +51,8 @@ export const UserInput: Component<UserInputProps> = ({
    * Prevents multiple modals from opening simultaneously
    */
   const [isModalOpen, setIsModalOpen] = createSignal(false);
+
+  const [webSearchEnabled, setWebSearchEnabled] = createSignal(false);
 
   /**
    * Handles input in the textarea, detecting wiki links, tags, and showing suggestions
@@ -168,7 +172,7 @@ export const UserInput: Component<UserInputProps> = ({
       !isModalOpen()
     ) {
       event.preventDefault();
-      onSubmit(textareaRef.value);
+      onSubmit(textareaRef.value, webSearchEnabled());
       textareaRef.value = "";
     }
   };
@@ -246,6 +250,10 @@ export const UserInput: Component<UserInputProps> = ({
     }
   };
 
+  const toggleWebSearchEnabled = () => {
+    setWebSearchEnabled(!webSearchEnabled());
+  };
+
   return (
     <div class="coi-user-input">
       <textarea
@@ -264,6 +272,17 @@ export const UserInput: Component<UserInputProps> = ({
           selectedModel={currentModel}
           onModelChange={updateModel}
         />
+        <Show when={currentModel()?.toggleWebSearch}>
+          <div>
+            <input
+              type="checkbox"
+              name="webSearchCheckbox"
+              checked={webSearchEnabled()}
+              onChange={toggleWebSearchEnabled}
+            />
+            <label for="webSearchCheckbox">Web Search</label>
+          </div>
+        </Show>
       </div>
     </div>
   );

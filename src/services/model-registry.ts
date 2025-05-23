@@ -79,78 +79,98 @@ export class ModelRegistry {
         provider: "openai",
         name: "OpenAI O1",
         renaming: false,
+        toggleWebSearch: true,
       },
       {
         id: "openai:gpt-4o-mini",
         provider: "openai",
         name: "OpenAI GPT-4o Mini",
         renaming: true,
+        toggleWebSearch: true,
       },
       {
         id: "openai:gpt-4o",
         provider: "openai",
         name: "OpenAI GPT-4o",
         renaming: true,
+        toggleWebSearch: true,
       },
       {
         id: "openai:gpt-4.1-nano",
         provider: "openai",
         name: "OpenAI GPT-4.1 Nano",
         renaming: true,
+        toggleWebSearch: true,
       },
       {
         id: "openai:gpt-4.1-mini",
         provider: "openai",
         name: "OpenAI GPT-4.1 Mini",
         renaming: true,
+        toggleWebSearch: true,
       },
       {
         id: "openai:gpt-4.1",
         provider: "openai",
         name: "OpenAI GPT-4.1",
         renaming: true,
+        toggleWebSearch: true,
       },
       {
         id: "anthropic:claude-3-7-sonnet-latest",
         provider: "anthropic",
         name: "Anthropic Claude 3.7 Sonnet",
         renaming: true,
+        toggleWebSearch: false,
       },
       {
         id: "anthropic:claude-3-opus-latest",
         provider: "anthropic",
         name: "Anthropic Claude 3.7 Opus",
         renaming: false,
+        toggleWebSearch: false,
+      },
+      {
+        id: "anthropic:claude-3",
+        provider: "anthropic",
+        name: "Anthropic Claude 3",
+        renaming: false,
+        toggleWebSearch: false,
       },
       {
         id: "google:gemini-2.0-flash",
         provider: "google",
         name: "Google Gemini 2.0 Flash",
         renaming: true,
+        toggleWebSearch: true,
       },
       {
         id: "google:gemini-1.5-pro",
         provider: "google",
         name: "Google Gemini 2.5 Pro Exp",
         renaming: false,
+        toggleWebSearch: true,
       },
       {
         id: "perplexity:sonar",
         provider: "perplexity",
         name: "Perplexity Sonar",
         renaming: false,
+        toggleWebSearch: false,
       },
       {
         id: "perplexity:sonar-deep-research",
         provider: "perplexity",
         name: "Perplexity Sonar Deep Research",
         renaming: false,
+        toggleWebSearch: false,
       },
       {
         id: "perplexity:sonar-reasoning",
         provider: "perplexity",
         name: "Perplexity Sonar Reasoning",
         renaming: false,
+        toggleWebSearch: false,
       },
     ];
 
@@ -167,11 +187,34 @@ export class ModelRegistry {
     return model;
   }
 
-  public getLanguageModel(modelId: ModelId): LanguageModel {
+  public getLanguageModel(
+    modelId: ModelId,
+    responseModel: boolean = false,
+  ): LanguageModel {
     if (!this.providerRegistry) {
       throw new Error(
         "Provider registry not initialized. Make sure API keys are configured.",
       );
+    }
+
+    const model = this.getModel(modelId);
+    //OpenAI uses a separate API for response models, which includes web searching.
+    if (model.provider == "openai" && responseModel) {
+      const openaiProvider = (this.providerRegistry as any)?.providers?.openai;
+      if (openaiProvider) {
+        // Extract the model name from the modelId, ensuring we have a valid format
+        const parts = modelId.split(":");
+        if (parts.length !== 2) {
+          throw new Error(
+            `Invalid model ID format: ${modelId}. Expected format: 'provider:model'`,
+          );
+        }
+        const openaiModelId = parts[1];
+        return openaiProvider.responses(openaiModelId);
+      } else {
+        console.error("Expected OpenAI provider to be initialized");
+        // Fall through to default behavior
+      }
     }
 
     // The modelId is in the format 'provider:model'
@@ -180,7 +223,6 @@ export class ModelRegistry {
     if (!languageModel) {
       throw new Error(`Model not found: ${modelId}`);
     }
-    const provider = languageModel.provider as Provider;
     return languageModel;
   }
 

@@ -15,6 +15,7 @@ export interface ChatRequest {
   messages: CoreMessage[];
   systemPrompt?: string;
   context?: ContextItemContent[];
+  webSearch?: boolean;
 }
 
 export interface Source {
@@ -43,6 +44,7 @@ export interface Model {
   provider: Provider;
   name: string;
   renaming: boolean;
+  toggleWebSearch: boolean;
 }
 
 export type Tag = string;

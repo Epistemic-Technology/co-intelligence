@@ -116,7 +116,10 @@ export const ChatInterface = ({
     triggerChange();
   };
 
-  const handleSendMessage = async (message: string) => {
+  const handleSendMessage = async (
+    message: string,
+    webSearchEnabled: boolean = false,
+  ) => {
     if (!message.trim()) {
       console.warn("Message is empty");
       return;
@@ -140,6 +143,7 @@ export const ChatInterface = ({
       modelId: (model() as Model).id,
       messages: [...messages()],
       context: parsedContext,
+      webSearch: webSearchEnabled,
     };
     setCurrentRequest(request);
 
@@ -243,7 +247,6 @@ export const ChatInterface = ({
   };
 
   const triggerChange = debounce(async (regenNoteTitle: boolean = false) => {
-    console.log("Change triggered");
     const newTitle = await generateChatTitle(messages(), plugin);
     if (onChange) {
       onChange({

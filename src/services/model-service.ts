@@ -5,7 +5,10 @@ import {
   CoreMessage,
   StreamTextResult,
   ToolSet,
+  LanguageModelV1,
 } from "ai";
+import { openai } from "@ai-sdk/openai";
+
 import { ModelRegistry } from "./model-registry";
 import { ModelId, ContextItems, ChatRequest } from "@/types";
 import { hexToArrayBuffer } from "obsidian";
@@ -30,7 +33,7 @@ export async function generateChatResponse(
   const abortController = new AbortController();
   abortControllers.set(request.requestID, abortController);
 
-  let systemPrompt = request.systemPrompt || "";
+  let systemPrompt = request.systemPrompt || "You are a helpful assistant.";
 
   if (request.context && request.context.length > 0) {
     const notesContext = request.context
@@ -47,16 +50,55 @@ export async function generateChatResponse(
     }
   }
 
+  switch (model.provider) {
+    case "anthropic.messages":
+      return streamTextAnthropic(
+        request,
+        registry,
+        systemPrompt,
+        abortController.signal,
+      );
+      break;
+    case "openai.chat":
+      return streamTextOpenAI(
+        request,
+        registry,
+        systemPrompt,
+        abortController.signal,
+      );
+      break;
+    default:
+      return streamTextDefault(
+        request,
+        registry,
+        systemPrompt,
+        abortController.signal,
+      );
+      break;
+  }
+}
+
+interface StreamTextFromProvider {
+  (
+    request: ChatRequest,
+    registry: ModelRegistry,
+    systemPrompt: string,
+    abortSignal: AbortSignal,
+  ): Promise<StreamTextResult<ToolSet, never>>;
+}
+
+const streamTextDefault: StreamTextFromProvider = async (
+  request,
+  registry,
+  systemPrompt,
+  abortSignal,
+) => {
+  const model = registry.getLanguageModel(request.modelId);
   const config = {
-    model,
     messages: request.messages,
-    AbortSignal: abortController.signal,
-    ...(systemPrompt && { system: systemPrompt }),
-    ...(model.provider?.includes("anthropic") && {
-      headers: {
-        "anthropic-dangerous-direct-browser-access": "true",
-      },
-    }),
+    model: model,
+    abortSignal: abortSignal,
+    system: systemPrompt,
   };
   try {
     const result = streamText(config);
@@ -65,7 +107,62 @@ export async function generateChatResponse(
     console.error(error);
     throw error;
   }
-}
+};
+
+const streamTextOpenAI: StreamTextFromProvider = async (
+  request,
+  registry,
+  systemPrompt,
+  abortSignal,
+) => {
+  const model = registry.getLanguageModel(request.modelId, request.webSearch);
+  console.log("Web search enabled?", request.webSearch);
+  const config = {
+    messages: request.messages,
+    model: model,
+    abortSignal: abortSignal,
+    system: systemPrompt,
+    tools: {},
+  } as any;
+
+  if (request.webSearch) {
+    config.tools.web_search_preview = openai.tools.webSearchPreview();
+  }
+  try {
+    const result = streamText(config);
+    return result;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+};
+
+const streamTextAnthropic: StreamTextFromProvider = async (
+  request,
+  registry,
+  systemPrompt,
+  abortSignal,
+) => {
+  const model = registry.getLanguageModel(request.modelId);
+  const config = {
+    messages: request.messages,
+    model: model,
+    abortSignal: abortSignal,
+    system: systemPrompt,
+    headers: {
+      "anthropic-dangerous-direct-browser-access": "true",
+    },
+    tools: {},
+  };
+
+  try {
+    const result = streamText(config);
+    return result;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+};
 
 export function cancelChatResponse(request: ChatRequest) {
   const abortController = abortControllers.get(request.requestID);
