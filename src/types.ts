@@ -10,6 +10,7 @@ export interface ContextItemContent {
  * Interface for chat request parameters.
  */
 export interface ChatRequest {
+  requestID: string;
   modelId: ModelId; // e.g., 'openai:gpt-4-turbo'
   messages: CoreMessage[];
   systemPrompt?: string;

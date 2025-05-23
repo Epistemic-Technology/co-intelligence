@@ -1,14 +1,28 @@
-import { Component, Accessor, createEffect, onMount } from "solid-js";
+import {
+  Component,
+  Accessor,
+  createEffect,
+  onMount,
+  Show,
+  For,
+} from "solid-js";
 import { CoreMessage } from "ai";
 
 import { BotMessage } from "@/components/BotMessage";
 import { UserMessage } from "@/components/UserMessage";
+import { ProcessingIndicator } from "@/components/ProcessingIndicator";
 
 export interface ChatHistoryProps {
   messages: Accessor<CoreMessage[]>;
+  isProcessing: Accessor<boolean>;
+  onCancelRequest?: () => void;
 }
 
-export const ChatHistory: Component<ChatHistoryProps> = ({ messages }) => {
+export const ChatHistory: Component<ChatHistoryProps> = ({
+  messages,
+  isProcessing,
+  onCancelRequest,
+}) => {
   let chatContainerRef: HTMLDivElement | undefined;
 
   const scrollToBottom = () => {
@@ -17,9 +31,12 @@ export const ChatHistory: Component<ChatHistoryProps> = ({ messages }) => {
     }
   };
 
-  // Scroll to bottom whenever messages change
+  // Scroll to bottom whenever messages change or processing state changes
   createEffect(() => {
+    // Track both messages changes and isProcessing state
     messages();
+    // Track the isProcessing signal
+    isProcessing();
     setTimeout(scrollToBottom, 0);
   });
 
@@ -27,13 +44,18 @@ export const ChatHistory: Component<ChatHistoryProps> = ({ messages }) => {
 
   return (
     <div class="coi-chat-history" ref={chatContainerRef}>
-      {messages().map((message) => {
-        if (message.role === "assistant") {
-          return <BotMessage message={message} />;
-        } else {
-          return <UserMessage message={message} />;
+      <For each={messages()}>
+        {(message) =>
+          message.role === "assistant" ? (
+            <BotMessage message={message} />
+          ) : (
+            <UserMessage message={message} />
+          )
         }
-      })}
+      </For>
+      <Show when={isProcessing()}>
+        <ProcessingIndicator onCancel={onCancelRequest} />
+      </Show>{" "}
     </div>
   );
 };

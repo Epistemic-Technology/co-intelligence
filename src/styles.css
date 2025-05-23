@@ -158,3 +158,100 @@
     padding: 0.5rem;
     border-radius: 4px;
 }
+
+.coi-processing-indicator {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background-color: var(--background-secondary);
+    border-radius: 0.5rem;
+    border: 1px solid var(--background-modifier-border);
+    max-width: 100%;
+    position: relative;
+    z-index: 10;
+}
+
+.coi-processing-spinner {
+    width: 20px;
+    height: 20px;
+    border: 3px solid var(--text-muted);
+    border-top: 3px solid var(--text-accent);
+    border-radius: 50%;
+    animation: spin 1.5s linear infinite;
+    margin-right: 12px;
+    flex-shrink: 0;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.coi-processing-text {
+    flex: 1;
+    color: var(--text-normal);
+    font-size: 0.9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.coi-cancel-button {
+    background-color: var(--interactive-normal);
+    color: var(--text-normal);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    padding: 4px 10px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    flex-shrink: 0;
+    margin-left: 8px;
+}
+
+.coi-cancel-button:hover {
+    background-color: var(--interactive-hover);
+}
+
+.coi-processing-status {
+    text-align: center;
+    padding: 8px;
+    color: var(--text-muted);
+    font-style: italic;
+    margin-bottom: 8px;
+}
+
+/* Thinking section styles */
+.coi-thinking-details {
+    margin-bottom: 0.5rem;
+    border-radius: 4px;
+    overflow: hidden;
+    border-style: solid;
+    border-width: 1px;
+    border-color: var(--background-modifier-border);
+}
+
+.coi-thinking-summary {
+    padding: 0.5rem 0.8rem;
+    cursor: pointer;
+    align-items: center;
+}
+
+.coi-thinking-section {
+    padding: 0.8rem;
+    font-size: 0.9em;
+    color: var(--text-muted);
+    border-left: 3px solid var(--text-accent);
+    margin: 0.5rem;
+    border-radius: 3px;
+}
+
+.coi-thinking-section .markdown-rendered {
+    color: var(--text-muted);
+    font-style: italic;
+}

@@ -1,9 +1,17 @@
-import { createSignal, useContext } from "solid-js";
+import {
+  createSignal,
+  useContext,
+  Show,
+  createEffect,
+  onMount,
+} from "solid-js";
 import { CoreMessage } from "ai";
 import { TFile } from "obsidian";
 
 import { ModelRegistry } from "@/services/model-registry";
 import {
+  cancelChatResponse,
+  deleteAbortControllerForRequest,
   generateChatResponse,
   generateChatTitle,
 } from "@/services/model-service";
@@ -23,8 +31,11 @@ import { ChatHistory } from "@/components/ChatHistory";
 import { UserInput } from "@/components/UserInput";
 import { ContextList } from "@/components/ContextList";
 import { SourceList } from "@/components/SourceList";
+
 import { getContext } from "@/utils/model-context";
 import { HandleChatChangeProps } from "@/ChatView";
+import { BotMessage } from "@/components/BotMessage";
+import { UserMessage } from "@/components/UserMessage";
 
 export interface ChatInterfaceProps {
   initialMessages: CoreMessage[];
@@ -61,6 +72,10 @@ export const ChatInterface = ({
   const [sources, setSources] = createSignal<Source[]>(initialSources);
   const [lastSourceLinkNumber, setLastSourceLinkNumber] = createSignal<number>(
     initialSources.length,
+  );
+  const [isProcessing, setIsProcessing] = createSignal<boolean>(false);
+  const [currentRequest, setCurrentRequest] = createSignal<ChatRequest | null>(
+    null,
   );
 
   const app = useContext(AppContext);
@@ -116,72 +131,115 @@ export const ChatInterface = ({
     }
     const newMessage: CoreMessage = { role: "user", content: message };
     setMessages([...messages(), newMessage]);
+    setIsProcessing(true);
 
     const parsedContext = await getContext(contextItems(), app);
 
     const request: ChatRequest = {
+      requestID: crypto.randomUUID(),
       modelId: (model() as Model).id,
-      messages: messages(),
+      messages: [...messages()],
       context: parsedContext,
     };
+    setCurrentRequest(request);
 
-    const assistantMessage: CoreMessage = {
-      role: "assistant",
-      content: "",
-    };
-    setMessages([...messages(), assistantMessage]);
+    try {
+      setIsProcessing(true);
 
-    const responseStream = await generateChatResponse(request, registry);
-    let accumulatedContent = "";
+      const responseStream = await generateChatResponse(request, registry);
+      let accumulatedContent = "";
+      let isFirstChunk = true;
 
-    for await (const chunk of responseStream.textStream) {
-      accumulatedContent += chunk;
-      const responseMessage: CoreMessage = {
-        role: "assistant",
-        content: accumulatedContent,
-      };
-      setMessages((prevMessages) => {
-        const updatedMessages = [...prevMessages];
-        updatedMessages[updatedMessages.length - 1] = responseMessage;
-        return updatedMessages;
-      });
-    }
-    const lastMessage = messages()[messages().length - 1];
-
-    // Handle new sources. Renumber and link Perplexity-style references
-    const newSources = await responseStream.sources;
-    if (newSources.length > 0) {
-      // Replace source reference numbers [n] with [n+offset]
-      const offset = lastSourceLinkNumber();
-      lastMessage.content = (lastMessage.content as string).replace(
-        /\[(\d+)\]/g,
-        (match, num) => {
-          const source = newSources[parseInt(num) - 1];
-          if (!source) return match;
-          return ` [${parseInt(num) + offset}](${source.url})`;
-        },
-      );
-      setMessages((prevMessages) => {
-        const updatedMessages = [...prevMessages];
-        updatedMessages[updatedMessages.length - 1] = lastMessage;
-        return updatedMessages;
-      });
-      setSources([...sources(), ...newSources]);
-      setLastSourceLinkNumber(lastSourceLinkNumber() + newSources.length);
-    }
-
-    // Handle markdown links in response and add to sources
-    const newLinks =
-      (lastMessage.content as string).match(/\[(.*?)\]\((.*?)\)/g) || [];
-    newLinks.forEach((link) => {
-      const [text, url] = link.slice(1, -1).split("](");
-      const existingSource = sources().find((source) => source.url === url);
-      if (!existingSource) {
-        setSources([...sources(), { url, title: text }]);
-        setLastSourceLinkNumber(lastSourceLinkNumber() + 1);
+      for await (const chunk of responseStream.textStream) {
+        if (isFirstChunk) {
+          const assistantMessage: CoreMessage = {
+            role: "assistant",
+            content: chunk,
+          };
+          setMessages([...messages(), assistantMessage]);
+          accumulatedContent = chunk;
+          isFirstChunk = false;
+          setIsProcessing(false);
+        } else {
+          accumulatedContent += chunk;
+          setMessages((prevMessages) => {
+            const updatedMessages = [...prevMessages];
+            updatedMessages[updatedMessages.length - 1] = {
+              role: "assistant",
+              content: accumulatedContent,
+            };
+            return updatedMessages;
+          });
+        }
       }
-    });
-    triggerChange(true);
+
+      if (isFirstChunk) {
+        setIsProcessing(false);
+        setMessages([
+          ...messages(),
+          {
+            role: "assistant",
+            content: "No response received from the model.",
+          },
+        ]);
+      }
+      const lastMessage = messages()[messages().length - 1];
+
+      // Handle new sources. Renumber and link Perplexity-style references
+      const newSources = await responseStream.sources;
+      if (newSources.length > 0) {
+        // Replace source reference numbers [n] with [n+offset]
+        const offset = lastSourceLinkNumber();
+        const updatedContent = (lastMessage.content as string).replace(
+          /\[(\d+)\]/g,
+          (match, num) => {
+            const source = newSources[parseInt(num) - 1];
+            if (!source) return match;
+            return ` [${parseInt(num) + offset}](${source.url})`;
+          },
+        );
+        setMessages((prevMessages) => {
+          const updatedMessages = [...prevMessages];
+          updatedMessages[updatedMessages.length - 1] = {
+            ...lastMessage,
+            content: updatedContent,
+          } as CoreMessage;
+          return updatedMessages;
+        });
+        setSources([...sources(), ...newSources]);
+        setLastSourceLinkNumber(lastSourceLinkNumber() + newSources.length);
+      }
+
+      // Handle markdown links in response and add to sources
+      const currentMessage = messages()[messages().length - 1];
+      const newLinks =
+        (currentMessage.content as string).match(/\[(.*?)\]\((.*?)\)/g) || [];
+      newLinks.forEach((link) => {
+        const [text, url] = link.slice(1, -1).split("](");
+        const existingSource = sources().find((source) => source.url === url);
+        if (!existingSource) {
+          setSources([...sources(), { url, title: text }]);
+          setLastSourceLinkNumber(lastSourceLinkNumber() + 1);
+        }
+      });
+      triggerChange(true);
+    } catch (error) {
+      console.error("Error generating response:", error);
+      setIsProcessing(false);
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        {
+          role: "assistant",
+          content:
+            "Sorry, there was an error generating a response. Please try again.",
+        },
+      ]);
+      triggerChange();
+    } finally {
+      setIsProcessing(false);
+      setCurrentRequest(null);
+      deleteAbortControllerForRequest(request);
+    }
   };
 
   const triggerChange = debounce(async (regenNoteTitle: boolean = false) => {
@@ -197,10 +255,31 @@ export const ChatInterface = ({
     }
   }, 750);
 
+  const handleCancelRequest = () => {
+    setIsProcessing(false);
+    const request = currentRequest();
+    if (!request) return;
+    cancelChatResponse(request);
+
+    const cancelMessage: CoreMessage = {
+      role: "assistant",
+      content: "*Request cancelled by user*",
+    };
+
+    setMessages((prevMessages) => [...prevMessages, cancelMessage]);
+    triggerChange();
+  };
+
   return (
     <div>
-      <ChatHistory messages={messages} />
-      {sources().length > 0 && <SourceList sources={sources} />}
+      <ChatHistory
+        messages={messages}
+        isProcessing={isProcessing} // Pass the isProcessing signal accessor for reactivity
+        onCancelRequest={handleCancelRequest}
+      />
+      <Show when={sources().length > 0}>
+        <SourceList sources={sources} />
+      </Show>
       <ContextList
         contextItems={contextItems}
         setContextItems={setContextItems}

@@ -1,4 +1,4 @@
-import { Component } from "solid-js";
+import { Component, Accessor } from "solid-js";
 import { CoreMessage } from "ai";
 
 import { ChatMessage } from "./ChatMessage";

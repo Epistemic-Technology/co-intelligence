@@ -1,4 +1,4 @@
-import { Component, useContext } from "solid-js";
+import { Component, useContext, Accessor } from "solid-js";
 import { CoreMessage } from "ai";
 
 import { MarkdownView } from "@/components/MarkdownView";
@@ -39,10 +39,11 @@ export const ChatMessage: Component<ChatMessageProps> = ({
       }
     }
   };
+  console.log("ChatMessage with message:", message);
   return (
     <div onClick={handleClick} class={className}>
       <MarkdownView
-        markdown={message.content as string}
+        markdown={(message.content as string) || ""}
         sourcePath={filePath}
       />
     </div>

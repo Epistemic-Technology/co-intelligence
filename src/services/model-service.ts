@@ -11,6 +11,8 @@ import { ModelId, ContextItems, ChatRequest } from "@/types";
 import { hexToArrayBuffer } from "obsidian";
 import CoIntelligencePlugin from "@/CoIntelligencePlugin";
 
+const abortControllers = new Map<string, AbortController>();
+
 /**
  * Generates a chat response based on the provided request.
  *
@@ -24,6 +26,9 @@ export async function generateChatResponse(
   registry: ModelRegistry,
 ): Promise<StreamTextResult<ToolSet, never>> {
   const model = registry.getLanguageModel(request.modelId);
+
+  const abortController = new AbortController();
+  abortControllers.set(request.requestID, abortController);
 
   let systemPrompt = request.systemPrompt || "";
 
@@ -45,6 +50,7 @@ export async function generateChatResponse(
   const config = {
     model,
     messages: request.messages,
+    AbortSignal: abortController.signal,
     ...(systemPrompt && { system: systemPrompt }),
     ...(model.provider?.includes("anthropic") && {
       headers: {
@@ -52,9 +58,28 @@ export async function generateChatResponse(
       },
     }),
   };
+  try {
+    const result = streamText(config);
+    return result;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+}
 
-  const result = streamText(config);
-  return result;
+export function cancelChatResponse(request: ChatRequest) {
+  const abortController = abortControllers.get(request.requestID);
+  if (abortController) {
+    abortController.abort();
+    abortControllers.delete(request.requestID);
+  }
+}
+
+export function deleteAbortControllerForRequest(request: ChatRequest) {
+  const abortController = abortControllers.get(request.requestID);
+  if (abortController) {
+    abortControllers.delete(request.requestID);
+  }
 }
 
 export async function generateChatTitle(

@@ -74,11 +74,12 @@ export class ModelRegistry {
 
   private updateAvailableModels(initializedProviders: string[]): void {
     const allModels: Model[] = [
-      // {
-      //   id: "openai:o3",
-      //   provider: "openai",
-      //   name: "OpenAI O3",
-      // },
+      {
+        id: "openai:o1",
+        provider: "openai",
+        name: "OpenAI O1",
+        renaming: false,
+      },
       {
         id: "openai:gpt-4o-mini",
         provider: "openai",
