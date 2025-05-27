@@ -6,8 +6,8 @@ import {
   TFile,
   ViewState,
   Menu,
+  TAbstractFile,
 } from "obsidian";
-import { render } from "solid-js/web";
 import { around } from "monkey-around";
 
 import "./styles.css";
@@ -25,10 +25,10 @@ import { ModelRegistry } from "@/services/model-registry";
 
 import {
   isCoiNote,
-  openCOINote,
   isPathActiveCoiNote,
   createCOINote,
   isActiveCoiNote,
+  waitForMetadataCache,
 } from "./utils/notes";
 
 export class CoIntelligencePlugin extends Plugin {
@@ -58,6 +58,9 @@ export class CoIntelligencePlugin extends Plugin {
       this.app.workspace.on("file-open" as any, this.handleFileOpen.bind(this)),
     );
     this.registerEvent(
+      this.app.vault.on("rename", this.handleFileRename.bind(this)),
+    );
+    this.registerEvent(
       this.app.workspace.on(
         "file-menu" as any,
         this.onFileMenuHandler.bind(this) as any,
@@ -75,13 +78,25 @@ export class CoIntelligencePlugin extends Plugin {
     //await openCOINote(file, this.app, this.registry);
   }
 
-  private onFileMenuHandler(
+  private async handleFileRename(file: TAbstractFile, oldPath: string) {
+    if (!(await isCoiNote(file as TFile, this.app))) {
+      return;
+    }
+    await this.app.fileManager.processFrontMatter(
+      file as TFile,
+      (frontmatter) => {
+        frontmatter["note-renamed"] = true;
+      },
+    );
+  }
+
+  private async onFileMenuHandler(
     menu: Menu,
     file: TFile,
     source: string,
     leaf: WorkspaceLeaf,
   ) {
-    if (!isCoiNote(file, this.app) || isActiveCoiNote(file, this.app)) {
+    if (!(await isCoiNote(file, this.app)) || isActiveCoiNote(file, this.app)) {
       return;
     }
     menu.addItem((item) => {

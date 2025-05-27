@@ -1,4 +1,11 @@
-import { TFile, App, normalizePath, TFolder, CachedMetadata } from "obsidian";
+import {
+  TFile,
+  App,
+  normalizePath,
+  TFolder,
+  CachedMetadata,
+  MetadataCache,
+} from "obsidian";
 import { CoreMessage } from "ai";
 
 import { ModelRegistry } from "@/services/model-registry";
@@ -17,8 +24,8 @@ const pattern = new RegExp(`${CHAT_START}[\\s\\S]*?${CHAT_END}`, "m");
  * @param app - The Obsidian app instance.
  * @returns True if the note is a COI note, false otherwise.
  */
-export function isCoiNote(note: TFile, app: App): boolean {
-  const metadata = app.metadataCache.getFileCache(note);
+export async function isCoiNote(note: TFile, app: App): Promise<boolean> {
+  const metadata = await waitForMetadataCache(app, note);
   return metadata?.frontmatter?.["is-coi-chat"] === true;
 }
 
@@ -101,7 +108,7 @@ export async function renameNote(
   if (!note || !newName) {
     return note;
   }
-  const metadata = app.metadataCache.getFileCache(note);
+  const metadata = await waitForMetadataCache(app, note);
   if (metadata?.frontmatter?.["note-renamed"]) {
     return note;
   }
@@ -136,7 +143,7 @@ export async function openCOINote(
   app: App,
   registry: ModelRegistry,
 ) {
-  if (!isCoiNote(file, app)) {
+  if (!(await isCoiNote(file, app))) {
     return;
   }
 
@@ -371,4 +378,21 @@ function getAllTags(cache: CachedMetadata | null): string[] {
   }
 
   return Array.from(tags);
+}
+
+/**
+ * Waits for the metadata cache to be available for a file.
+ */
+export async function waitForMetadataCache(
+  app: App,
+  file: TFile,
+  retries = 10,
+  delayMs = 200,
+): Promise<ReturnType<MetadataCache["getFileCache"]> | null> {
+  for (let i = 0; i < retries; i++) {
+    const cache = app.metadataCache.getFileCache(file);
+    if (cache) return cache;
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+  }
+  return null;
 }

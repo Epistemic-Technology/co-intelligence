@@ -22,7 +22,7 @@ export class ToggleChatViewCommand implements Command {
       return;
     }
 
-    if (!isCoiNote(currentFile, this.app)) {
+    if (!(await isCoiNote(currentFile, this.app))) {
       return;
     }
 
