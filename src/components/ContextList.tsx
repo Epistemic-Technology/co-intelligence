@@ -72,6 +72,14 @@ export const ContextList = ({
           </For>
         </ul>
       </details>
+      <button
+        aria-label="Add context"
+        title="Add context to note"
+        type="button"
+        class="coi-user-input-add-context-button"
+      >
+        +
+      </button>
     </div>
   );
 };
