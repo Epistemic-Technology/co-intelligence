@@ -125,7 +125,6 @@
 .coi-context-box-context-list {
     display: flex;
     flex-wrap: wrap;
-    gap: 1rem;
 }
 
 .coi-context-box li {
