@@ -52,6 +52,7 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
             await this.plugin.saveSettings();
             this.plugin.registry.reinitialize();
             this.display(); // Refresh the settings to update the dropdown
+            this.app.workspace.trigger("co-intelligence:settings-changed");
           }),
       );
 
@@ -67,6 +68,7 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
             await this.plugin.saveSettings();
             this.plugin.registry.reinitialize();
             this.display(); // Refresh the settings to update the dropdown
+            this.app.workspace.trigger("co-intelligence:settings-changed");
           }),
       );
 
@@ -82,6 +84,7 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
             await this.plugin.saveSettings();
             this.plugin.registry.reinitialize();
             this.display(); // Refresh the settings to update the dropdown
+            this.app.workspace.trigger("co-intelligence:settings-changed");
           }),
       );
 
@@ -97,6 +100,7 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
             await this.plugin.saveSettings();
             this.plugin.registry.reinitialize();
             this.display(); // Refresh the settings to update the dropdown
+            this.app.workspace.trigger("co-intelligence:settings-changed");
           }),
       );
 
@@ -110,6 +114,7 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
           .onChange(async (value) => {
             this.plugin.settings.defaultFolder = value;
             await this.plugin.saveSettings();
+            this.app.workspace.trigger("co-intelligence:settings-changed");
           }),
       );
 
@@ -131,6 +136,7 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
         dropdown.onChange(async (value) => {
           this.plugin.settings.defaultModel = value as ModelId;
           await this.plugin.saveSettings();
+          this.app.workspace.trigger("co-intelligence:settings-changed");
         });
       });
 
@@ -155,6 +161,7 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
         dropdown.onChange(async (value) => {
           this.plugin.settings.renamingModel = value as ModelId;
           await this.plugin.saveSettings();
+          this.app.workspace.trigger("co-intelligence:settings-changed");
         });
       });
   }

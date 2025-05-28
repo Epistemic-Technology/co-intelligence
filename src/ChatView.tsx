@@ -49,6 +49,15 @@ export class ChatView extends TextFileView {
     this.app = app;
     this.file = app.workspace.getActiveFile();
     this.handleChatChange = this.handleChatChange.bind(this);
+    this.icon = "bot-message-square";
+    this.registerEvent(
+      this.app.workspace.on(
+        "co-intelligence:settings-changed" as any,
+        async () => {
+          await this.refresh();
+        },
+      ),
+    );
   }
 
   getViewType(): string {
@@ -213,6 +222,10 @@ export class ChatView extends TextFileView {
     this.contextItems = contextItems;
     this.sources = sources;
     await this.render();
+  }
+
+  async refresh(): Promise<void> {
+    await this.onOpen();
   }
 
   onPaneMenu(menu: Menu, source: "more-options" | "tab-header" | string): void {
