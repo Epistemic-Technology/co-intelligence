@@ -25,7 +25,7 @@ const pattern = new RegExp(`${CHAT_START}[\\s\\S]*?${CHAT_END}`, "m");
  * @returns True if the note is a COI note, false otherwise.
  */
 export async function isCoiNote(note: TFile, app: App): Promise<boolean> {
-  const metadata = await waitForMetadataCache(app, note);
+  const metadata = app.metadataCache.getFileCache(note);
   return metadata?.frontmatter?.["is-coi-chat"] === true;
 }
 
@@ -143,7 +143,7 @@ export async function openCOINote(
   app: App,
   registry: ModelRegistry,
 ) {
-  if (!(await isCoiNote(file, app))) {
+  if (!isCoiNote(file, app)) {
     return;
   }
 

@@ -79,7 +79,8 @@ export class CoIntelligencePlugin extends Plugin {
   }
 
   private async handleFileRename(file: TAbstractFile, oldPath: string) {
-    if (!(await isCoiNote(file as TFile, this.app))) {
+    await waitForMetadataCache(this.app, file as TFile);
+    if (!isCoiNote(file as TFile, this.app)) {
       return;
     }
     await this.app.fileManager.processFrontMatter(
@@ -96,7 +97,7 @@ export class CoIntelligencePlugin extends Plugin {
     source: string,
     leaf: WorkspaceLeaf,
   ) {
-    if (!(await isCoiNote(file, this.app)) || isActiveCoiNote(file, this.app)) {
+    if (!isCoiNote(file, this.app) || isActiveCoiNote(file, this.app)) {
       return;
     }
     menu.addItem((item) => {
