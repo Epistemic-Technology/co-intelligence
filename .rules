@@ -1,8 +1,19 @@
 # Rules for code generation in the co-intelligence plugin
 
 - The stack for the project is TypeScript and SolidJS.
-- UI components in tsx files are *not* React components, they are SolidJS components. In particular, they use the 'class' attribute instead of 'className' and lists do not need explicit keys.
+- This is an Obsidian plugin.
+- This project uses SolidJS, not React. This is very important.
+- Use idiomatic SolidJS syntax and conventions. In particular:
+    - use the `createSignal` and `createEffect` functions for state management.
+    - use `<For>` for looping over arrays.
+    - use `<Show>` for conditional rendering.
+    - pass accessors rather than their values to child components.
+    - avoid using refs in favor of signals and effects.
+- Favor using native html elements such as using the dialog element for modals.
+- Favor using css over javascript for creating animations or other effects.
+- Try to avoid keeping unnecessary state. We prefer stateless components when possible.
+- Obsidian uses lucide icons for its UI. Use these over emoji icons.
 - Use '@' imports rather than relative imports. The '@' specifies the src directory.
 - Avoid inline styles. Use CSS classes and styles.css instead.
 - Use Obsidian CSS variables for styling whenever possible.
-- Use comments very sparingly, except for function and class documentation.
+- Use comments very sparingly, except for function and class documentation. The code should speak for itself and comments just get in the way. Only use comments when the code is complex or when it's not immediately obvious what the code is doing.
