@@ -147,7 +147,7 @@ export class ModelRegistry {
       {
         id: "google:gemini-1.5-pro",
         provider: "google",
-        name: "Google Gemini 2.5 Pro Exp",
+        name: "Google Gemini 1.5 Pro Exp",
         renaming: false,
         toggleWebSearch: true,
       },

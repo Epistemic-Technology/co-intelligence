@@ -58,7 +58,6 @@ export async function generateChatResponse(
         systemPrompt,
         abortController.signal,
       );
-      break;
     case "openai.chat":
       return streamTextOpenAI(
         request,
@@ -66,7 +65,13 @@ export async function generateChatResponse(
         systemPrompt,
         abortController.signal,
       );
-      break;
+    case "google.generative-ai":
+      return streamTextGoogle(
+        request,
+        registry,
+        systemPrompt,
+        abortController.signal,
+      );
     default:
       return streamTextDefault(
         request,
@@ -74,7 +79,6 @@ export async function generateChatResponse(
         systemPrompt,
         abortController.signal,
       );
-      break;
   }
 }
 
@@ -164,6 +168,30 @@ const streamTextAnthropic: StreamTextFromProvider = async (
   }
 };
 
+const streamTextGoogle: StreamTextFromProvider = async (
+  request,
+  registry,
+  systemPrompt,
+  abortSignal,
+) => {
+  const model = registry.getLanguageModel(request.modelId);
+  if (request.webSearch) {
+    (model as any).settings.useSearchGrounding = true;
+  }
+  const config = {
+    messages: request.messages,
+    model: model,
+    abortSignal: abortSignal,
+    system: systemPrompt,
+  };
+  try {
+    const result = streamText(config);
+    return result;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+};
 export function cancelChatResponse(request: ChatRequest) {
   const abortController = abortControllers.get(request.requestID);
   if (abortController) {
