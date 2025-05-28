@@ -1,4 +1,4 @@
-import { TFile, App } from "obsidian";
+import { TFile, App, getIcon } from "obsidian";
 import { For, Accessor, Setter } from "solid-js";
 import { NoteLink } from "@/components/NoteLink";
 import { AddContextMenu } from "@/components/AddContextMenu";
@@ -41,24 +41,27 @@ export const ContextList = ({
 
   const handleKeyDown = (
     event: KeyboardEvent,
-    type: 'note' | 'tag',
-    item: TFile | Tag
+    type: "note" | "tag",
+    item: TFile | Tag,
   ) => {
-    if (event.key === 'x' || event.key === 'Delete') {
+    if (event.key === "x" || event.key === "Delete") {
       event.preventDefault();
-      if (type === 'note') {
+      if (type === "note") {
         handleRemoveNote(item as TFile);
       } else {
         handleRemoveTag(item as Tag);
       }
-    } else if (event.key === 'Enter') {
+    } else if (event.key === "Enter") {
       event.preventDefault();
-      if (type === 'note') {
+      if (type === "note") {
         // Open the note file
         app.workspace.openLinkText((item as TFile).basename, "");
       } else {
         // Simulate clicking the tag link
-        window.open(`obsidian://search?query=${encodeURIComponent(item as Tag)}`, '_blank');
+        window.open(
+          `obsidian://search?query=${encodeURIComponent(item as Tag)}`,
+          "_blank",
+        );
       }
     }
   };
@@ -73,17 +76,17 @@ export const ContextList = ({
               <li
                 tabindex="0"
                 class="coi-context-item"
-                onKeyDown={(e) => handleKeyDown(e, 'note', note)}
+                onKeyDown={(e) => handleKeyDown(e, "note", note)}
                 aria-label={`Note: ${note.basename}. Press Enter to open, x or Delete to remove.`}
               >
-                <NoteLink href="#" tabindex="-1">{note.basename}</NoteLink>
+                <NoteLink href={note.basename}>{note.basename}</NoteLink>
                 <button
                   class="coi-context-box-remove-button"
                   onClick={() => handleRemoveNote(note)}
                   tabindex="-1"
                   aria-label="Remove note"
                 >
-                  x
+                  {getIcon("x")}
                 </button>
               </li>
             )}
@@ -93,7 +96,7 @@ export const ContextList = ({
               <li
                 tabindex="0"
                 class="coi-context-item"
-                onKeyDown={(e) => handleKeyDown(e, 'tag', tag)}
+                onKeyDown={(e) => handleKeyDown(e, "tag", tag)}
                 aria-label={`Tag: ${tag}. Press Enter to search, x or Delete to remove.`}
               >
                 <a
@@ -111,7 +114,7 @@ export const ContextList = ({
                   tabindex="-1"
                   aria-label="Remove tag"
                 >
-                  x
+                  {getIcon("x")}
                 </button>
               </li>
             )}

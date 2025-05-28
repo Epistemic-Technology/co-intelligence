@@ -251,7 +251,10 @@ export const ChatInterface = ({
   };
 
   const triggerChange = debounce(async (regenNoteTitle: boolean = false) => {
-    const newTitle = await generateChatTitle(messages(), plugin);
+    let newTitle = "";
+    if (regenNoteTitle) {
+      newTitle = await generateChatTitle(messages(), plugin);
+    }
     if (onChange) {
       onChange({
         newMessages: messages(),
@@ -261,6 +264,13 @@ export const ChatInterface = ({
       });
     }
   }, 750);
+
+  createEffect(() => {
+    contextItems();
+    sources();
+    messages();
+    triggerChange();
+  });
 
   const handleCancelRequest = () => {
     setIsProcessing(false);

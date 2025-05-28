@@ -171,7 +171,9 @@ export class ChatView extends TextFileView {
         contextItems,
         sources,
       );
-      await renameNote(this.file, this.app, newTitle);
+      if (newTitle !== "" && newTitle !== this.file.basename) {
+        await renameNote(this.file, this.app, newTitle);
+      }
     } catch (error) {
       console.error(`Error serializing CoiNote: ${error}`);
     } finally {

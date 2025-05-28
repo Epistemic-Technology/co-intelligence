@@ -169,6 +169,7 @@
 }
 
 .coi-app button.coi-context-box-remove-button {
+    display: inline-block;
     border: none;
     background: none;
     color: var(--text-accent);
@@ -176,6 +177,12 @@
     font-size: 1rem;
     padding: 0 0.3rem;
     box-shadow: none;
+}
+
+.coi-app button.coi-context-box-remove-button svg.svg-icon {
+    height: var(--icon-xs);
+    width: var(--icon-xs);
+    stroke-width: 2px;
 }
 
 .coi-app button.coi-context-box-remove-button:hover {
@@ -402,4 +409,11 @@ li button.coi-add-context-menu-option:focus-visible {
 
 .coi-context-item:hover {
     background-color: var(--background-modifier-hover);
+}
+
+/* Prevent focus outline on links within context items to avoid duplicate focus indicators */
+.coi-context-item a:focus,
+.coi-context-item a:focus-visible {
+    outline: none;
+    box-shadow: none;
 }
