@@ -80,6 +80,10 @@ export const ChatInterface = ({
 
   const app = useContext(AppContext);
 
+  if (!app) {
+    throw new Error("App Context is not available");
+  }
+
   const handleLinkNote = (file: TFile) => {
     const items = contextItems();
     if (items === null) {
@@ -284,8 +288,11 @@ export const ChatInterface = ({
         <SourceList sources={sources} />
       </Show>
       <ContextList
+        app={app}
         contextItems={contextItems}
         setContextItems={setContextItems}
+        onAddNote={handleLinkNote}
+        onAddTag={handleAddTag}
       />
       <UserInput
         triggerChange={triggerChange}

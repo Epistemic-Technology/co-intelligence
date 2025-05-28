@@ -91,11 +91,9 @@
 }
 
 .coi-user-input-add-context-button {
-    position: absolute;
-    top: 0.25rem;
-    right: 0.25rem;
-    width: 24px;
-    height: 24px;
+    position: relative;
+    width: 100%;
+    height: 100%;
     border-radius: 4px;
     border: 1px solid var(--background-modifier-border);
     background-color: var(--interactive-normal);
@@ -124,9 +122,15 @@
     padding: 0;
 }
 
+.coi-context-box-context-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
 .coi-context-box li {
     align-items: center;
-    padding: 0.3rem 0;
+    padding: 0 0.3rem;
 }
 
 .coi-remove-link {
@@ -171,7 +175,6 @@
     cursor: pointer;
     font-size: 1rem;
     padding: 0 0.3rem;
-    margin-left: 0.5rem;
     box-shadow: none;
 }
 
@@ -285,4 +288,118 @@
 .coi-thinking-section .markdown-rendered {
     color: var(--text-muted);
     font-style: italic;
+}
+
+/* AddContextMenu styles */
+.coi-add-context-wrapper {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    width: 24px;
+    height: 24px;
+}
+
+.coi-add-context-menu {
+    border: none;
+    padding: 0;
+    margin: 0;
+    background: transparent;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+}
+
+.coi-add-context-menu::backdrop {
+    background-color: transparent;
+}
+
+.coi-add-context-menu-content {
+    position: absolute;
+    background-color: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+    box-shadow: var(--shadow-s);
+    min-width: 120px;
+    z-index: 1000;
+}
+
+.coi-add-context-menu-content h3 {
+    margin: 0;
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--background-modifier-border);
+    font-weight: 500;
+}
+
+.coi-add-context-menu-options {
+    list-style: none;
+    margin: 0;
+    padding: 4px 0;
+}
+
+.coi-add-context-menu-options li {
+    padding: 0;
+}
+
+li button.coi-add-context-menu-option {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border: none;
+    background-color: var(--background-primary);
+    color: var(--text-normal);
+    cursor: pointer;
+    font-size: 0.9rem;
+    text-align: left;
+    transition: background-color 0.2s ease;
+    justify-content: normal;
+    border-radius: 0;
+}
+
+.coi-add-context-menu-option:hover {
+    background-color: var(--background-modifier-hover);
+}
+
+li button.coi-add-context-menu-option:focus,
+li button.coi-add-context-menu-option:focus-visible {
+    background-color: var(--background-modifier-hover);
+    outline: none;
+    box-shadow: none;
+}
+
+.coi-add-context-menu-icon {
+    margin-right: 8px;
+    width: 16px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+/* Context item keyboard navigation styles */
+.coi-context-item {
+    position: relative;
+    cursor: pointer;
+    border-radius: 4px;
+    transition:
+        background-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.coi-context-item:focus {
+    outline: none;
+    background-color: var(--background-modifier-hover);
+    box-shadow: 0 0 0 1px var(--text-accent);
+}
+
+.coi-context-item:focus-visible {
+    outline: none;
+    background-color: var(--background-modifier-hover);
+    box-shadow: 0 0 0 2px var(--text-accent);
+}
+
+.coi-context-item:hover {
+    background-color: var(--background-modifier-hover);
 }
