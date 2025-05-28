@@ -183,6 +183,7 @@
     height: var(--icon-xs);
     width: var(--icon-xs);
     stroke-width: 2px;
+    stroke: var(--text-muted);
 }
 
 .coi-app button.coi-context-box-remove-button:hover {
