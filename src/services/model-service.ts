@@ -50,53 +50,40 @@ export async function generateChatResponse(
     }
   }
 
-  switch (model.provider) {
-    case "anthropic.messages":
-      return streamTextAnthropic(
-        request,
-        registry,
-        systemPrompt,
-        abortController.signal,
-      );
-    case "openai.chat":
-      return streamTextOpenAI(
-        request,
-        registry,
-        systemPrompt,
-        abortController.signal,
-      );
-    case "google.generative-ai":
-      return streamTextGoogle(
-        request,
-        registry,
-        systemPrompt,
-        abortController.signal,
-      );
+  const streamTextProps: StreamTextFromProviderProps = {
+    request,
+    registry,
+    systemPrompt,
+    abortSignal: abortController.signal,
+  };
+
+  const providerPrefix = model.provider.split('.')[0];
+  
+  switch (providerPrefix) {
+    case "anthropic":
+      return streamTextAnthropic(streamTextProps);
+    case "openai":
+      return streamTextOpenAI(streamTextProps);
+    case "google":
+      return streamTextGoogle(streamTextProps);
     default:
-      return streamTextDefault(
-        request,
-        registry,
-        systemPrompt,
-        abortController.signal,
-      );
+      return streamTextDefault(streamTextProps);
   }
 }
 
-interface StreamTextFromProvider {
-  (
-    request: ChatRequest,
-    registry: ModelRegistry,
-    systemPrompt: string,
-    abortSignal: AbortSignal,
-  ): Promise<StreamTextResult<ToolSet, never>>;
+interface StreamTextFromProviderProps {
+  request: ChatRequest;
+  registry: ModelRegistry;
+  systemPrompt: string;
+  abortSignal: AbortSignal;
 }
 
-const streamTextDefault: StreamTextFromProvider = async (
+const streamTextDefault = async ({
   request,
   registry,
   systemPrompt,
   abortSignal,
-) => {
+}: StreamTextFromProviderProps) => {
   const model = registry.getLanguageModel(request.modelId);
   const config = {
     messages: request.messages,
@@ -113,14 +100,13 @@ const streamTextDefault: StreamTextFromProvider = async (
   }
 };
 
-const streamTextOpenAI: StreamTextFromProvider = async (
+const streamTextOpenAI = async ({
   request,
   registry,
   systemPrompt,
   abortSignal,
-) => {
-  const model = registry.getLanguageModel(request.modelId, request.webSearch);
-  console.log("Web search enabled?", request.webSearch);
+}: StreamTextFromProviderProps) => {
+  const model = registry.getLanguageModel(request.modelId);
   const config = {
     messages: request.messages,
     model: model,
@@ -141,12 +127,12 @@ const streamTextOpenAI: StreamTextFromProvider = async (
   }
 };
 
-const streamTextAnthropic: StreamTextFromProvider = async (
+const streamTextAnthropic = async ({
   request,
   registry,
   systemPrompt,
   abortSignal,
-) => {
+}: StreamTextFromProviderProps) => {
   const model = registry.getLanguageModel(request.modelId);
   const config = {
     messages: request.messages,
@@ -168,12 +154,12 @@ const streamTextAnthropic: StreamTextFromProvider = async (
   }
 };
 
-const streamTextGoogle: StreamTextFromProvider = async (
+const streamTextGoogle = async ({
   request,
   registry,
   systemPrompt,
   abortSignal,
-) => {
+}: StreamTextFromProviderProps) => {
   const model = registry.getLanguageModel(request.modelId);
   if (request.webSearch) {
     (model as any).settings.useSearchGrounding = true;

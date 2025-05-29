@@ -187,33 +187,25 @@ export class ModelRegistry {
     return model;
   }
 
-  public getLanguageModel(
-    modelId: ModelId,
-    responseModel: boolean = false,
-  ): LanguageModel {
+  public getLanguageModel(modelId: ModelId): LanguageModel {
     if (!this.providerRegistry) {
       throw new Error(
         "Provider registry not initialized. Make sure API keys are configured.",
       );
     }
 
+    // For openAI, we use the responses API, which requires different handling
+    // because it doesn't seem to be exposed in the same way as the completions
+    // API models by the ai sdk.
     const model = this.getModel(modelId);
-    //OpenAI uses a separate API for response models, which includes web searching.
-    if (model.provider == "openai" && responseModel) {
-      const openaiProvider = (this.providerRegistry as any)?.providers?.openai;
-      if (openaiProvider) {
-        // Extract the model name from the modelId, ensuring we have a valid format
-        const parts = modelId.split(":");
-        if (parts.length !== 2) {
-          throw new Error(
-            `Invalid model ID format: ${modelId}. Expected format: 'provider:model'`,
-          );
-        }
-        const openaiModelId = parts[1];
-        return openaiProvider.responses(openaiModelId);
-      } else {
-        console.error("Expected OpenAI provider to be initialized");
-        // Fall through to default behavior
+    const [provider, providerModelId] = model.id.split(":");
+    if (provider == "openai") {
+      try {
+        const openaiProvider = (this.providerRegistry as any).providers.openai;
+        return openaiProvider.responses(providerModelId);
+      } catch (error) {
+        console.error(`Error fetching OpenAI responses model: ${error}`);
+        //fall through to default behavior
       }
     }
 
