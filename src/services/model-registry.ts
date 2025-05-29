@@ -75,24 +75,10 @@ export class ModelRegistry {
   private updateAvailableModels(initializedProviders: string[]): void {
     const allModels: Model[] = [
       {
-        id: "openai:o1",
+        id: "openai:o3",
         provider: "openai",
-        name: "OpenAI O1",
+        name: "OpenAI O3",
         renaming: false,
-        toggleWebSearch: true,
-      },
-      {
-        id: "openai:gpt-4o-mini",
-        provider: "openai",
-        name: "OpenAI GPT-4o Mini",
-        renaming: true,
-        toggleWebSearch: true,
-      },
-      {
-        id: "openai:gpt-4o",
-        provider: "openai",
-        name: "OpenAI GPT-4o",
-        renaming: true,
         toggleWebSearch: true,
       },
       {
@@ -117,23 +103,16 @@ export class ModelRegistry {
         toggleWebSearch: true,
       },
       {
-        id: "anthropic:claude-3-7-sonnet-latest",
+        id: "anthropic:claude-4-sonnet-20250514",
         provider: "anthropic",
         name: "Anthropic Claude 3.7 Sonnet",
         renaming: true,
         toggleWebSearch: false,
       },
       {
-        id: "anthropic:claude-3-opus-latest",
+        id: "anthropic:claude-4-opus-20250514",
         provider: "anthropic",
-        name: "Anthropic Claude 3.7 Opus",
-        renaming: false,
-        toggleWebSearch: false,
-      },
-      {
-        id: "anthropic:claude-3",
-        provider: "anthropic",
-        name: "Anthropic Claude 3",
+        name: "Anthropic Claude 4 Opus",
         renaming: false,
         toggleWebSearch: false,
       },
@@ -142,13 +121,6 @@ export class ModelRegistry {
         provider: "google",
         name: "Google Gemini 2.0 Flash",
         renaming: true,
-        toggleWebSearch: true,
-      },
-      {
-        id: "google:gemini-1.5-pro",
-        provider: "google",
-        name: "Google Gemini 1.5 Pro Exp",
-        renaming: false,
         toggleWebSearch: true,
       },
       {
