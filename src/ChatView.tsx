@@ -19,7 +19,7 @@ import {
   deserializeCoiNoteContent,
   serializeCoiNoteContent,
 } from "@/utils/notes";
-import { Source, ContextItems } from "@/types";
+import { Source, ContextItems, Model } from "@/types";
 
 export const VIEW_TYPE_COI_CHAT = "coi-chat-view";
 
@@ -28,6 +28,7 @@ export interface HandleChatChangeProps {
   newTitle: string;
   contextItems: ContextItems | null;
   sources?: Source[];
+  lastModelId: string | null;
 }
 
 export class ChatView extends TextFileView {
@@ -164,6 +165,7 @@ export class ChatView extends TextFileView {
     newTitle,
     contextItems,
     sources,
+    lastModelId,
   }: HandleChatChangeProps): Promise<void> {
     if (this.updating) return;
     this.updating = true;
@@ -182,6 +184,7 @@ export class ChatView extends TextFileView {
         this.app,
         newMessages,
         contextItems,
+        lastModelId,
         sources,
       );
       if (newTitle !== "" && newTitle !== this.file.basename) {
@@ -213,8 +216,6 @@ export class ChatView extends TextFileView {
 
   async onOpen(): Promise<void> {
     if (!this.file) {
-      new Notice("Error: No file provided for chat view");
-      console.error("No file provided for chat view");
       return;
     }
     if (!isActiveCoiNote(this.file, this.app)) {

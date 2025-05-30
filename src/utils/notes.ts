@@ -16,6 +16,8 @@ import {
   CoiNoteFrontmatter,
   ContextItems,
   ContextItemContent,
+  ChatRequest,
+  Model,
 } from "@/types";
 
 const CHAT_START = "<!-- CHAT-THREAD-START -->";
@@ -211,6 +213,7 @@ export async function serializeCoiNote(
   app: App,
   messages: CoreMessage[],
   contextItems: ContextItems | null,
+  lastModelId: string | null,
   sources?: Source[],
 ) {
   const currentNoteContent = await app.vault.cachedRead(note);
@@ -236,6 +239,16 @@ export async function serializeCoiNote(
     await app.fileManager.processFrontMatter(note, (frontmatter) => {
       frontmatter["linked-notes"] = contextItems.notes.map((file) => file.path);
       frontmatter["linked-tags"] = contextItems.tags;
+    });
+  }
+  if (lastModelId && lastModelId.contains(":")) {
+    await app.fileManager.processFrontMatter(note, (frontmatter) => {
+      const tag = sanitizeForTagName(lastModelId);
+      if (!frontmatter.tags) {
+        frontmatter.tags = ["coi-chat", tag];
+      } else if (!frontmatter.tags.includes(tag)) {
+        frontmatter.tags.push(tag);
+      }
     });
   }
 }
@@ -400,4 +413,16 @@ export async function waitForMetadataCache(
     await new Promise((resolve) => setTimeout(resolve, delayMs));
   }
   return null;
+}
+
+/**
+ * Sanitize strings for tag names
+ */
+export function sanitizeForTagName(str: string): string {
+  let s = str.trim();
+  s = s.replace(/[^a-zA-Z0-9/_-]+/g, "-");
+  s = s.replace(/-+/g, "-");
+  s = s.replace(/^[-/]+|[-/]+$/g, "");
+  s = s.toLowerCase();
+  return s;
 }

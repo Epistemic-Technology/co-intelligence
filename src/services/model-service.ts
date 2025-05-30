@@ -111,6 +111,9 @@ interface ConfigGeneratorProps {
 const openAIConfig = ({ request, defaultConfig }: ConfigGeneratorProps) => {
   const config = { ...defaultConfig };
   if (request.webSearch) {
+    if (!config.tools) {
+      config.tools = {};
+    }
     config.tools.web_search_preview = openai.tools.webSearchPreview();
   }
   return config;

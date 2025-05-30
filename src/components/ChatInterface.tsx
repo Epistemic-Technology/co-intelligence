@@ -265,10 +265,12 @@ export const ChatInterface = ({
       newTitle = await generateChatTitle(messages(), plugin);
     }
     if (onChange) {
+      const currentModelId = currentRequest()?.modelId;
       onChange({
         newMessages: messages(),
         newTitle,
         contextItems: contextItems(),
+        lastModelId: currentModelId || null,
         sources: sources(),
       });
     }
