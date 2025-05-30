@@ -417,3 +417,13 @@ li button.coi-add-context-menu-option:focus-visible {
     outline: none;
     box-shadow: none;
 }
+
+/* Token estimate styles */
+.coi-token-estimate {
+    padding: 0.5rem 0 0 0;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    border-top: 1px solid var(--background-modifier-border);
+    margin-top: 0.5rem;
+    text-align: right;
+}

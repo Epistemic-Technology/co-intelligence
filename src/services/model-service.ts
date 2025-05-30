@@ -9,8 +9,9 @@ import {
 } from "ai";
 import { openai } from "@ai-sdk/openai";
 
-import { ModelRegistry } from "./model-registry";
-import { ChatRequest } from "@/types";
+import { ModelRegistry } from "@/services/model-registry";
+import { makeContext } from "@/utils/model-context";
+import { ChatRequest, ContextItemContent } from "@/types";
 import CoIntelligencePlugin from "@/CoIntelligencePlugin";
 
 const abortControllers = new Map<string, AbortController>();
@@ -35,18 +36,12 @@ export async function generateChatResponse(
   let systemPrompt = request.systemPrompt || "You are a helpful assistant.";
 
   if (request.context && request.context.length > 0) {
-    const notesContext = request.context
-      .map((note) => `--- Note: ${note.title} ---\n${note.content}\n---`)
-      .join("\n\n");
+    const notesContext = makeContext(request.context);
 
     const contextPreamble =
       "The following documents provide additional context for answering the user's question:\n\n";
 
-    if (systemPrompt) {
-      systemPrompt += "\n\n" + contextPreamble + notesContext;
-    } else {
-      systemPrompt = contextPreamble + notesContext;
-    }
+    systemPrompt += "\n\n" + contextPreamble + notesContext;
   }
 
   const errorHandler: StreamTextOnErrorCallback = (event: {

@@ -11,7 +11,12 @@ import { CoreMessage } from "ai";
 import { ModelRegistry } from "@/services/model-registry";
 import { VIEW_TYPE_COI_CHAT } from "@/ChatView";
 import CoIntelligencePlugin from "@/CoIntelligencePlugin";
-import { Source, CoiNoteFrontmatter, ContextItems } from "@/types";
+import {
+  Source,
+  CoiNoteFrontmatter,
+  ContextItems,
+  ContextItemContent,
+} from "@/types";
 
 const CHAT_START = "<!-- CHAT-THREAD-START -->";
 const CHAT_END = "<!-- CHAT-THREAD-END -->";

@@ -1,8 +1,16 @@
 import { TFile, App, getIcon } from "obsidian";
-import { For, Accessor, Setter } from "solid-js";
+import {
+  For,
+  Show,
+  Accessor,
+  Setter,
+  createSignal,
+  createEffect,
+} from "solid-js";
 import { NoteLink } from "@/components/NoteLink";
 import { AddContextMenu } from "@/components/AddContextMenu";
 import { ContextItems, Source, Tag } from "@/types";
+import { contextTokenEstimate } from "@/utils/model-context";
 
 export interface ContextListProps {
   app: App;
@@ -19,6 +27,18 @@ export const ContextList = ({
   onAddNote,
   onAddTag,
 }: ContextListProps) => {
+  const [tokenCount, setTokenCount] = createSignal<number>(0);
+
+  createEffect(async () => {
+    const items = contextItems();
+    if (items) {
+      const count = await contextTokenEstimate(items, app);
+      setTokenCount(Math.round(count));
+    } else {
+      setTokenCount(0);
+    }
+  });
+
   const handleRemoveNote = (note: TFile) => {
     setContextItems((prev) => {
       if (!prev) return prev;
@@ -120,6 +140,18 @@ export const ContextList = ({
             )}
           </For>
         </ul>
+        <Show
+          when={
+            contextItems() &&
+            (contextItems()!.notes.length > 0 ||
+              contextItems()!.tags.length > 0 ||
+              contextItems()!.sources.length > 0)
+          }
+        >
+          <div class="coi-token-estimate">
+            Estimated context tokens: {tokenCount().toLocaleString()}
+          </div>
+        </Show>
       </details>
       <AddContextMenu app={app} onAddNote={onAddNote} onAddTag={onAddTag} />
     </div>
