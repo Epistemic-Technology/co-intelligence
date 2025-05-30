@@ -1,7 +1,6 @@
 import {
   streamText,
   generateText,
-  GenerateTextResult,
   CoreMessage,
   StreamTextResult,
   StreamTextOnErrorCallback,
@@ -11,8 +10,7 @@ import {
 import { openai } from "@ai-sdk/openai";
 
 import { ModelRegistry } from "./model-registry";
-import { ModelId, ContextItems, ChatRequest } from "@/types";
-import { hexToArrayBuffer } from "obsidian";
+import { ChatRequest } from "@/types";
 import CoIntelligencePlugin from "@/CoIntelligencePlugin";
 
 const abortControllers = new Map<string, AbortController>();
@@ -68,24 +66,24 @@ export async function generateChatResponse(
     onError: errorHandler,
   };
 
-  const streamTextProps: StreamTextFromProviderProps = {
+  const providerConfigProps: ConfigGeneratorProps = {
     request,
     registry,
     defaultConfig,
   };
-  const providerPrefix = model.provider.split(".")[0];
 
+  const providerPrefix = model.provider.split(".")[0];
   let finalConfig: StreamConfig;
 
   switch (providerPrefix) {
     case "anthropic":
-      finalConfig = anthropicConfig(streamTextProps);
+      finalConfig = anthropicConfig(providerConfigProps);
       break;
     case "openai":
-      finalConfig = openAIConfig(streamTextProps);
+      finalConfig = openAIConfig(providerConfigProps);
       break;
     case "google":
-      finalConfig = googleConfig(streamTextProps);
+      finalConfig = googleConfig(providerConfigProps);
       break;
     default:
       finalConfig = defaultConfig;
@@ -109,40 +107,31 @@ interface StreamConfig {
   tools?: any;
 }
 
-interface StreamTextFromProviderProps {
+interface ConfigGeneratorProps {
   request: ChatRequest;
   registry: ModelRegistry;
   defaultConfig: StreamConfig;
 }
 
-const openAIConfig = ({
-  request,
-  defaultConfig,
-}: StreamTextFromProviderProps) => {
+const openAIConfig = ({ request, defaultConfig }: ConfigGeneratorProps) => {
   const config = { ...defaultConfig };
-
   if (request.webSearch) {
     config.tools.web_search_preview = openai.tools.webSearchPreview();
   }
-
   return config;
 };
 
-const anthropicConfig = ({ defaultConfig }: StreamTextFromProviderProps) => {
+const anthropicConfig = ({ defaultConfig }: ConfigGeneratorProps) => {
   const config = {
     ...defaultConfig,
     headers: {
       "anthropic-dangerous-direct-browser-access": "true",
     },
   };
-
   return config;
 };
 
-const googleConfig = ({
-  request,
-  defaultConfig,
-}: StreamTextFromProviderProps) => {
+const googleConfig = ({ request, defaultConfig }: ConfigGeneratorProps) => {
   const model = defaultConfig.model;
   if (request.webSearch) {
     (model as any).settings.useSearchGrounding = true;
@@ -151,7 +140,6 @@ const googleConfig = ({
     ...defaultConfig,
     model: model,
   };
-
   return config;
 };
 
