@@ -45,6 +45,7 @@ export interface Model {
   name: string;
   renaming: boolean;
   toggleWebSearch: boolean;
+  streaming: boolean;
 }
 
 export type Tag = string;

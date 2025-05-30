@@ -75,11 +75,12 @@ export class ModelRegistry {
   private updateAvailableModels(initializedProviders: string[]): void {
     const allModels: Model[] = [
       {
-        id: "openai:o3",
+        id: "openai:o1",
         provider: "openai",
-        name: "OpenAI O3",
+        name: "OpenAI O1",
         renaming: false,
-        toggleWebSearch: true,
+        toggleWebSearch: false,
+        streaming: true,
       },
       {
         id: "openai:gpt-4.1-nano",
@@ -87,6 +88,7 @@ export class ModelRegistry {
         name: "OpenAI GPT-4.1 Nano",
         renaming: true,
         toggleWebSearch: true,
+        streaming: true,
       },
       {
         id: "openai:gpt-4.1-mini",
@@ -94,6 +96,7 @@ export class ModelRegistry {
         name: "OpenAI GPT-4.1 Mini",
         renaming: true,
         toggleWebSearch: true,
+        streaming: true,
       },
       {
         id: "openai:gpt-4.1",
@@ -101,13 +104,15 @@ export class ModelRegistry {
         name: "OpenAI GPT-4.1",
         renaming: true,
         toggleWebSearch: true,
+        streaming: true,
       },
       {
         id: "anthropic:claude-4-sonnet-20250514",
         provider: "anthropic",
-        name: "Anthropic Claude 3.7 Sonnet",
+        name: "Anthropic Claude 4 Sonnet",
         renaming: true,
         toggleWebSearch: false,
+        streaming: true,
       },
       {
         id: "anthropic:claude-4-opus-20250514",
@@ -115,6 +120,7 @@ export class ModelRegistry {
         name: "Anthropic Claude 4 Opus",
         renaming: false,
         toggleWebSearch: false,
+        streaming: true,
       },
       {
         id: "google:gemini-2.0-flash",
@@ -122,6 +128,7 @@ export class ModelRegistry {
         name: "Google Gemini 2.0 Flash",
         renaming: true,
         toggleWebSearch: true,
+        streaming: true,
       },
       {
         id: "perplexity:sonar",
@@ -129,6 +136,7 @@ export class ModelRegistry {
         name: "Perplexity Sonar",
         renaming: false,
         toggleWebSearch: false,
+        streaming: true,
       },
       {
         id: "perplexity:sonar-deep-research",
@@ -136,6 +144,7 @@ export class ModelRegistry {
         name: "Perplexity Sonar Deep Research",
         renaming: false,
         toggleWebSearch: false,
+        streaming: true,
       },
       {
         id: "perplexity:sonar-reasoning",
@@ -143,6 +152,7 @@ export class ModelRegistry {
         name: "Perplexity Sonar Reasoning",
         renaming: false,
         toggleWebSearch: false,
+        streaming: true,
       },
     ];
 

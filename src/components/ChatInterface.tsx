@@ -6,7 +6,7 @@ import {
   onMount,
 } from "solid-js";
 import { CoreMessage } from "ai";
-import { TFile } from "obsidian";
+import { TFile, Notice } from "obsidian";
 
 import { ModelRegistry } from "@/services/model-registry";
 import {
@@ -153,31 +153,41 @@ export const ChatInterface = ({
 
     try {
       setIsProcessing(true);
-
       const responseStream = await generateChatResponse(request, registry);
       let accumulatedContent = "";
       let isFirstChunk = true;
+      let chunk;
 
-      for await (const chunk of responseStream.textStream) {
-        if (isFirstChunk) {
-          const assistantMessage: CoreMessage = {
-            role: "assistant",
-            content: chunk,
-          };
-          setMessages([...messages(), assistantMessage]);
-          accumulatedContent = chunk;
-          isFirstChunk = false;
-          setIsProcessing(false);
-        } else {
-          accumulatedContent += chunk;
-          setMessages((prevMessages) => {
-            const updatedMessages = [...prevMessages];
-            updatedMessages[updatedMessages.length - 1] = {
+      try {
+        for await (chunk of responseStream.textStream) {
+          if (isFirstChunk) {
+            const assistantMessage: CoreMessage = {
               role: "assistant",
-              content: accumulatedContent,
+              content: chunk,
             };
-            return updatedMessages;
-          });
+            setMessages([...messages(), assistantMessage]);
+            accumulatedContent = chunk;
+            isFirstChunk = false;
+            setIsProcessing(false);
+          } else {
+            accumulatedContent += chunk;
+            setMessages((prevMessages) => {
+              const updatedMessages = [...prevMessages];
+              updatedMessages[updatedMessages.length - 1] = {
+                role: "assistant",
+                content: accumulatedContent,
+              };
+              return updatedMessages;
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Caught error:", error);
+        if ((error as Error).message) {
+          new Notice(
+            "Error generating response: " + (error as Error).message,
+            0,
+          );
         }
       }
 

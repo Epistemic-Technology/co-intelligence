@@ -4,6 +4,7 @@ import {
   GenerateTextResult,
   CoreMessage,
   StreamTextResult,
+  StreamTextOnErrorCallback,
   ToolSet,
   LanguageModelV1,
 } from "ai";
@@ -50,134 +51,110 @@ export async function generateChatResponse(
     }
   }
 
+  const errorHandler: StreamTextOnErrorCallback = (event: {
+    error: unknown;
+  }) => {
+    console.error(
+      `Error generating chat response: ${(event.error as Error).message}`,
+    );
+    throw event.error as Error;
+  };
+
+  const defaultConfig: StreamConfig = {
+    messages: request.messages,
+    model: model,
+    abortSignal: abortController.signal,
+    system: systemPrompt,
+    onError: errorHandler,
+  };
+
   const streamTextProps: StreamTextFromProviderProps = {
     request,
     registry,
-    systemPrompt,
-    abortSignal: abortController.signal,
+    defaultConfig,
   };
+  const providerPrefix = model.provider.split(".")[0];
 
-  const providerPrefix = model.provider.split('.')[0];
-  
+  let finalConfig: StreamConfig;
+
   switch (providerPrefix) {
     case "anthropic":
-      return streamTextAnthropic(streamTextProps);
+      finalConfig = anthropicConfig(streamTextProps);
+      break;
     case "openai":
-      return streamTextOpenAI(streamTextProps);
+      finalConfig = openAIConfig(streamTextProps);
+      break;
     case "google":
-      return streamTextGoogle(streamTextProps);
+      finalConfig = googleConfig(streamTextProps);
+      break;
     default:
-      return streamTextDefault(streamTextProps);
+      finalConfig = defaultConfig;
   }
+
+  try {
+    const result = streamText(finalConfig);
+    return result;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+}
+
+interface StreamConfig {
+  messages: CoreMessage[];
+  model: LanguageModelV1;
+  abortSignal: AbortSignal;
+  system: string;
+  onError: StreamTextOnErrorCallback;
+  tools?: any;
 }
 
 interface StreamTextFromProviderProps {
   request: ChatRequest;
   registry: ModelRegistry;
-  systemPrompt: string;
-  abortSignal: AbortSignal;
+  defaultConfig: StreamConfig;
 }
 
-const streamTextDefault = async ({
+const openAIConfig = ({
   request,
-  registry,
-  systemPrompt,
-  abortSignal,
+  defaultConfig,
 }: StreamTextFromProviderProps) => {
-  const model = registry.getLanguageModel(request.modelId);
-  const config = {
-    messages: request.messages,
-    model: model,
-    abortSignal: abortSignal,
-    system: systemPrompt,
-  };
-  try {
-    const result = streamText(config);
-    return result;
-  } catch (error) {
-    console.error(error);
-    throw error;
-  }
-};
-
-const streamTextOpenAI = async ({
-  request,
-  registry,
-  systemPrompt,
-  abortSignal,
-}: StreamTextFromProviderProps) => {
-  const model = registry.getLanguageModel(request.modelId);
-  const config = {
-    messages: request.messages,
-    model: model,
-    abortSignal: abortSignal,
-    system: systemPrompt,
-    tools: {},
-  } as any;
+  const config = { ...defaultConfig };
 
   if (request.webSearch) {
     config.tools.web_search_preview = openai.tools.webSearchPreview();
   }
-  try {
-    const result = streamText(config);
-    return result;
-  } catch (error) {
-    console.error(error);
-    throw error;
-  }
+
+  return config;
 };
 
-const streamTextAnthropic = async ({
-  request,
-  registry,
-  systemPrompt,
-  abortSignal,
-}: StreamTextFromProviderProps) => {
-  const model = registry.getLanguageModel(request.modelId);
+const anthropicConfig = ({ defaultConfig }: StreamTextFromProviderProps) => {
   const config = {
-    messages: request.messages,
-    model: model,
-    abortSignal: abortSignal,
-    system: systemPrompt,
+    ...defaultConfig,
     headers: {
       "anthropic-dangerous-direct-browser-access": "true",
     },
-    tools: {},
   };
 
-  try {
-    const result = streamText(config);
-    return result;
-  } catch (error) {
-    console.error(error);
-    throw error;
-  }
+  return config;
 };
 
-const streamTextGoogle = async ({
+const googleConfig = ({
   request,
-  registry,
-  systemPrompt,
-  abortSignal,
+  defaultConfig,
 }: StreamTextFromProviderProps) => {
-  const model = registry.getLanguageModel(request.modelId);
+  const model = defaultConfig.model;
   if (request.webSearch) {
     (model as any).settings.useSearchGrounding = true;
   }
   const config = {
-    messages: request.messages,
+    ...defaultConfig,
     model: model,
-    abortSignal: abortSignal,
-    system: systemPrompt,
   };
-  try {
-    const result = streamText(config);
-    return result;
-  } catch (error) {
-    console.error(error);
-    throw error;
-  }
+
+  return config;
 };
+
 export function cancelChatResponse(request: ChatRequest) {
   const abortController = abortControllers.get(request.requestID);
   if (abortController) {
