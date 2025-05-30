@@ -1,4 +1,5 @@
 import { Component, JSX, splitProps, children, useContext } from "solid-js";
+import { Notice } from "obsidian";
 
 import { AppContext, FileContext } from "@/CoiChatApp";
 
@@ -13,6 +14,7 @@ export const NoteLink: Component<LinkProps> = (props) => {
   const app = useContext(AppContext);
   const file = useContext(FileContext);
   if (!file) {
+    new Notice("Error: No file context for NoteLink");
     console.error("NoteLink called with no file context");
     return null;
   }

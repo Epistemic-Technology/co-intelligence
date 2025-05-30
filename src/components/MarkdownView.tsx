@@ -1,4 +1,4 @@
-import { MarkdownRenderer, App, Component } from "obsidian";
+import { MarkdownRenderer, Notice } from "obsidian";
 import { createEffect, onMount, useContext } from "solid-js";
 import { AppContext, PluginContext } from "@/CoiChatApp";
 
@@ -15,10 +15,16 @@ export const MarkdownView = ({
   const app = useContext(AppContext);
   const plugin = useContext(PluginContext);
   if (!app) {
+    new Notice(
+      "Error: AppContext is not available while creating MarkdownView",
+    );
     console.error("AppContext is not available");
     return null;
   }
   if (!plugin) {
+    new Notice(
+      "Error: PluginContext is not available while creating MarkdownView",
+    );
     console.error("PluginContext is not available");
     return null;
   }
@@ -36,6 +42,7 @@ export const MarkdownView = ({
           plugin,
         );
       } catch (error) {
+        new Notice("Error: Failed to render markdown");
         console.error("Failed to render markdown:", error);
         containerRef.textContent = "Error rendering markdown";
       }

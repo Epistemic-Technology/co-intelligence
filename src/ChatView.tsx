@@ -1,10 +1,10 @@
 import {
-  ItemView,
   WorkspaceLeaf,
   App,
   TFile,
   TextFileView,
   Menu,
+  Notice,
 } from "obsidian";
 import { render } from "solid-js/web";
 import { CoreMessage } from "ai";
@@ -105,6 +105,7 @@ export class ChatView extends TextFileView {
   async setViewData(data: string, clear: boolean) {
     this.data = data;
     if (!this.file) {
+      new Notice("Error: File is null while trying to set view data");
       console.error("File is null while trying to set view data");
       return;
     }
@@ -138,6 +139,7 @@ export class ChatView extends TextFileView {
   async render() {
     this.rootElement = this.rootElement || this.containerEl.children[1];
     if (!this.rootElement) {
+      new Notice("Error: Root element is null");
       console.error("Root element is null");
       return;
     }
@@ -166,9 +168,11 @@ export class ChatView extends TextFileView {
     if (this.updating) return;
     this.updating = true;
     if (!this.file) {
+      new Notice("Error: File is null while trying to handle chat change");
       console.error("File is null while trying to handle chat change");
     }
     if (!this.file) {
+      new Notice("Error: File is null while trying to handle chat change");
       console.error("File is null while trying to handle chat change");
       return;
     }
@@ -184,6 +188,7 @@ export class ChatView extends TextFileView {
         await renameNote(this.file, this.app, newTitle);
       }
     } catch (error) {
+      new Notice(`Error serializing CoiNote: ${error}`);
       console.error(`Error serializing CoiNote: ${error}`);
     } finally {
       this.updating = false;
@@ -208,6 +213,7 @@ export class ChatView extends TextFileView {
 
   async onOpen(): Promise<void> {
     if (!this.file) {
+      new Notice("Error: No file provided for chat view");
       console.error("No file provided for chat view");
       return;
     }
@@ -225,6 +231,7 @@ export class ChatView extends TextFileView {
   }
 
   async refresh(): Promise<void> {
+    this.clear();
     await this.onOpen();
   }
 

@@ -1,10 +1,4 @@
-import {
-  createSignal,
-  useContext,
-  Show,
-  createEffect,
-  onMount,
-} from "solid-js";
+import { createSignal, useContext, Show, createEffect } from "solid-js";
 import { CoreMessage } from "ai";
 import { TFile, Notice } from "obsidian";
 
@@ -125,15 +119,18 @@ export const ChatInterface = ({
     webSearchEnabled: boolean = false,
   ) => {
     if (!message.trim()) {
+      new Notice("Warning: Sending empty user message");
       console.warn("Message is empty");
       return;
     }
     if (!model()) {
-      console.warn("No model selected");
+      new Notice("No model selected while sending message");
+      console.error("No model selected while sending message");
       return;
     }
     if (!app) {
-      console.error("No app instance");
+      new Notice("No app instance while sending message");
+      console.error("No app instance while sending message");
       return;
     }
     const newMessage: CoreMessage = { role: "user", content: message };
@@ -242,6 +239,8 @@ export const ChatInterface = ({
       });
       triggerChange(true);
     } catch (error) {
+      const message = (error as any).message || "Unknown error";
+      new Notice("Error generating response: " + message);
       console.error("Error generating response:", error);
       setIsProcessing(false);
       setMessages((prevMessages) => [

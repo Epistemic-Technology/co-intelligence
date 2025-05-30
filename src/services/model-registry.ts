@@ -5,6 +5,7 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createPerplexity } from "@ai-sdk/perplexity";
 import { Model, ModelId, Provider } from "@/types";
 import type { CoIntelligencePlugin } from "@/CoIntelligencePlugin";
+import { Notice } from "obsidian";
 
 export class ModelRegistry {
   private plugin: CoIntelligencePlugin | null = null;
@@ -186,6 +187,7 @@ export class ModelRegistry {
         const openaiProvider = (this.providerRegistry as any).providers.openai;
         return openaiProvider.responses(providerModelId);
       } catch (error) {
+        new Notice("Error fetching OpenAI responses model");
         console.error(`Error fetching OpenAI responses model: ${error}`);
         //fall through to default behavior
       }

@@ -1,4 +1,4 @@
-import { App, Command, TFile, ViewState } from "obsidian";
+import { App, Command, TFile, ViewState, Notice } from "obsidian";
 
 import CoIntelligencePlugin from "@/CoIntelligencePlugin";
 import { VIEW_TYPE_COI_CHAT } from "@/ChatView";
@@ -47,7 +47,8 @@ export class ToggleChatViewCommand implements Command {
   private async openInDefaultEditor(file: TFile) {
     const leaf = this.app.workspace.getMostRecentLeaf();
     if (!leaf) {
-      console.error("No leaf found");
+      new Notice("Error: No leaf found while opening chat in default editor");
+      console.error("No leaf found while opening chat in default editor");
       return;
     }
 
@@ -66,7 +67,8 @@ export class ToggleChatViewCommand implements Command {
   private async openInChatView(file: TFile) {
     const leaf = this.app.workspace.getMostRecentLeaf();
     if (!leaf) {
-      console.error("No leaf found");
+      new Notice("Error: No leaf found while opening chat in chat view");
+      console.error("No leaf found while opening chat in chat view");
       return;
     }
 
