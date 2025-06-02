@@ -10,6 +10,8 @@ export interface CoIntelligenceSettings {
   defaultFolder: string;
   defaultModel: ModelId | "";
   renamingModel: ModelId | "";
+  systemPromptFolder: string;
+  defaultSystemPromptNote: string;
 }
 
 export const DEFAULT_SETTINGS: CoIntelligenceSettings = {
@@ -20,14 +22,118 @@ export const DEFAULT_SETTINGS: CoIntelligenceSettings = {
   defaultFolder: "coi",
   defaultModel: "",
   renamingModel: "",
+  systemPromptFolder: "coi/prompts",
+  defaultSystemPromptNote: "",
 };
 
 export class CoIntelligenceSettingsTab extends PluginSettingTab {
   plugin: CoIntelligencePlugin;
+  private debounceTimer: number | null = null;
+  private pendingChanges: {
+    settingKey: keyof CoIntelligenceSettings;
+    value: string;
+    shouldReinitialize: boolean;
+    shouldRefreshDisplay: boolean;
+  }[] = [];
 
   constructor(app: App, plugin: CoIntelligencePlugin) {
     super(app, plugin);
     this.plugin = plugin;
+  }
+
+  private createDebouncedChangeHandler(
+    settingKey: keyof CoIntelligenceSettings,
+    shouldReinitialize = false,
+    shouldRefreshDisplay = false,
+  ) {
+    return async (value: string) => {
+      // Update pending changes
+      const existingIndex = this.pendingChanges.findIndex(
+        (change) => change.settingKey === settingKey,
+      );
+      if (existingIndex >= 0) {
+        this.pendingChanges[existingIndex] = {
+          settingKey,
+          value,
+          shouldReinitialize,
+          shouldRefreshDisplay,
+        };
+      } else {
+        this.pendingChanges.push({
+          settingKey,
+          value,
+          shouldReinitialize,
+          shouldRefreshDisplay,
+        });
+      }
+
+      // Clear existing timer
+      if (this.debounceTimer) {
+        window.clearTimeout(this.debounceTimer);
+      }
+
+      // Set new timer
+      this.debounceTimer = window.setTimeout(async () => {
+        const changes = [...this.pendingChanges];
+        this.pendingChanges = [];
+        this.debounceTimer = null;
+
+        // Apply all pending changes
+        let needsReinitialize = false;
+        let needsRefreshDisplay = false;
+
+        for (const change of changes) {
+          (this.plugin.settings as any)[change.settingKey] = change.value;
+          if (change.shouldReinitialize) needsReinitialize = true;
+          if (change.shouldRefreshDisplay) needsRefreshDisplay = true;
+        }
+
+        await this.plugin.saveSettings();
+
+        if (needsReinitialize) {
+          this.plugin.registry.reinitialize();
+        }
+
+        if (needsRefreshDisplay) {
+          this.displayWithFocusPreservation();
+        }
+
+        this.app.workspace.trigger("co-intelligence:settings-changed");
+      }, 500);
+    };
+  }
+
+  private displayWithFocusPreservation(): void {
+    // Store focus information
+    const activeElement = document.activeElement as HTMLInputElement;
+    let focusedPlaceholder: string | null = null;
+    let cursorPosition: number | null = null;
+
+    if (activeElement && activeElement.placeholder) {
+      focusedPlaceholder = activeElement.placeholder;
+      cursorPosition = activeElement.selectionStart;
+    }
+
+    // Refresh the display
+    this.display();
+
+    // Restore focus after a brief delay to allow DOM to update
+    if (focusedPlaceholder) {
+      setTimeout(() => {
+        const inputs = this.containerEl.querySelectorAll(
+          "input[placeholder]",
+        ) as NodeListOf<HTMLInputElement>;
+        for (const input of inputs) {
+          if (input.placeholder === focusedPlaceholder) {
+            input.focus();
+            if (cursorPosition !== null) {
+              input.setSelectionRange(cursorPosition, cursorPosition);
+            }
+            break;
+          }
+        }
+      }, 10);
+    }
   }
 
   display(): void {
@@ -47,13 +153,9 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
         text
           .setPlaceholder("Enter your OpenAI API key")
           .setValue(this.plugin.settings.openaiApiKey)
-          .onChange(async (value) => {
-            this.plugin.settings.openaiApiKey = value;
-            await this.plugin.saveSettings();
-            this.plugin.registry.reinitialize();
-            this.display(); // Refresh the settings to update the dropdown
-            this.app.workspace.trigger("co-intelligence:settings-changed");
-          }),
+          .onChange(
+            this.createDebouncedChangeHandler("openaiApiKey", true, true),
+          ),
       );
 
     new Setting(containerEl)
@@ -63,13 +165,9 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
         text
           .setPlaceholder("Enter your Anthropic API key")
           .setValue(this.plugin.settings.anthropicApiKey)
-          .onChange(async (value) => {
-            this.plugin.settings.anthropicApiKey = value;
-            await this.plugin.saveSettings();
-            this.plugin.registry.reinitialize();
-            this.display(); // Refresh the settings to update the dropdown
-            this.app.workspace.trigger("co-intelligence:settings-changed");
-          }),
+          .onChange(
+            this.createDebouncedChangeHandler("anthropicApiKey", true, true),
+          ),
       );
 
     new Setting(containerEl)
@@ -79,13 +177,9 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
         text
           .setPlaceholder("Enter your Google API key")
           .setValue(this.plugin.settings.googleApiKey)
-          .onChange(async (value) => {
-            this.plugin.settings.googleApiKey = value;
-            await this.plugin.saveSettings();
-            this.plugin.registry.reinitialize();
-            this.display(); // Refresh the settings to update the dropdown
-            this.app.workspace.trigger("co-intelligence:settings-changed");
-          }),
+          .onChange(
+            this.createDebouncedChangeHandler("googleApiKey", true, true),
+          ),
       );
 
     new Setting(containerEl)
@@ -95,13 +189,9 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
         text
           .setPlaceholder("Enter your Perplexity API key")
           .setValue(this.plugin.settings.perplexityApiKey)
-          .onChange(async (value) => {
-            this.plugin.settings.perplexityApiKey = value;
-            await this.plugin.saveSettings();
-            this.plugin.registry.reinitialize();
-            this.display(); // Refresh the settings to update the dropdown
-            this.app.workspace.trigger("co-intelligence:settings-changed");
-          }),
+          .onChange(
+            this.createDebouncedChangeHandler("perplexityApiKey", true, true),
+          ),
       );
 
     new Setting(containerEl)
@@ -111,11 +201,7 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
         text
           .setPlaceholder("Enter the default folder for CoIntelligence")
           .setValue(this.plugin.settings.defaultFolder)
-          .onChange(async (value) => {
-            this.plugin.settings.defaultFolder = value;
-            await this.plugin.saveSettings();
-            this.app.workspace.trigger("co-intelligence:settings-changed");
-          }),
+          .onChange(this.createDebouncedChangeHandler("defaultFolder")),
       );
 
     new Setting(containerEl)
@@ -133,11 +219,7 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
         }
 
         dropdown.setValue(this.plugin.settings.defaultModel || "");
-        dropdown.onChange(async (value) => {
-          this.plugin.settings.defaultModel = value as ModelId;
-          await this.plugin.saveSettings();
-          this.app.workspace.trigger("co-intelligence:settings-changed");
-        });
+        dropdown.onChange(this.createDebouncedChangeHandler("defaultModel"));
       });
 
     new Setting(containerEl)
@@ -158,11 +240,7 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
         }
 
         dropdown.setValue(this.plugin.settings.renamingModel || "");
-        dropdown.onChange(async (value) => {
-          this.plugin.settings.renamingModel = value as ModelId;
-          await this.plugin.saveSettings();
-          this.app.workspace.trigger("co-intelligence:settings-changed");
-        });
+        dropdown.onChange(this.createDebouncedChangeHandler("renamingModel"));
       });
   }
 }
