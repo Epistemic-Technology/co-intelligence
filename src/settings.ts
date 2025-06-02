@@ -242,5 +242,41 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
         dropdown.setValue(this.plugin.settings.renamingModel || "");
         dropdown.onChange(this.createDebouncedChangeHandler("renamingModel"));
       });
+
+    new Setting(containerEl)
+      .setName("System Prompt Folder")
+      .setDesc("Enter the folder path for custom system prompts")
+      .addText((textArea) => {
+        textArea.setPlaceholder("Enter folder for custom system prompts");
+        textArea.setValue(this.plugin.settings.systemPromptFolder || "");
+        textArea.onChange(
+          this.createDebouncedChangeHandler("systemPromptFolder", false, true),
+        );
+      });
+
+    new Setting(containerEl)
+      .setName("Default System Prompt")
+      .setDesc("Select note for default system prompt")
+      .addDropdown((dropdown) => {
+        const systemPromptFolder = this.plugin.settings.systemPromptFolder;
+        const notes = this.app.vault
+          .getMarkdownFiles()
+          .filter(
+            (file) =>
+              file.path.startsWith(systemPromptFolder + "/") ||
+              file.path === systemPromptFolder,
+          );
+
+        dropdown.addOption("", "No default system prompt");
+
+        for (const note of notes) {
+          dropdown.addOption(note.path, note.basename);
+        }
+
+        dropdown.setValue(this.plugin.settings.defaultSystemPromptNote || "");
+        dropdown.onChange(
+          this.createDebouncedChangeHandler("defaultSystemPromptNote"),
+        );
+      });
   }
 }
