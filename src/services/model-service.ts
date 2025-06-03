@@ -34,6 +34,10 @@ export async function generateChatResponse(
   abortControllers.set(request.requestID, abortController);
 
   let systemPrompt = request.systemPrompt || "You are a helpful assistant.";
+  if (request.webSearch) {
+    systemPrompt +=
+      "\n\n" + "You should search the web for current information.";
+  }
 
   if (request.context && request.context.length > 0) {
     const notesContext = makeContext(request.context);
