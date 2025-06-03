@@ -1,7 +1,17 @@
-import { Component, Accessor, createSignal, useContext, onMount, createEffect, onCleanup, Show, For } from "solid-js";
-import { App, TFile } from "obsidian";
+import {
+  Component,
+  Accessor,
+  createSignal,
+  useContext,
+  onMount,
+  createEffect,
+  onCleanup,
+  Show,
+  For,
+} from "solid-js";
 
 import { AppContext, PluginContext } from "@/CoiChatApp";
+import { LucideIcon } from "@/components/LucideIcon";
 
 export interface SystemPromptSelectorProps {
   selectedPrompt: Accessor<string>;
@@ -11,10 +21,10 @@ export interface SystemPromptSelectorProps {
 /**
  * SystemPromptSelector component allows users to select a custom system prompt
  * from notes in the configured system prompts folder.
- * 
+ *
  * Features:
  * - Loads prompt notes from the system prompts folder defined in plugin settings
- * - Displays "None" option for no custom system prompt
+ * - Displays "No prompt" option for no custom system prompt
  * - Automatically refreshes when settings change
  * - Selected prompt content is loaded and passed to chat requests
  */
@@ -24,7 +34,9 @@ export const SystemPromptSelector: Component<SystemPromptSelectorProps> = ({
 }) => {
   const app = useContext(AppContext);
   const plugin = useContext(PluginContext);
-  const [prompts, setPrompts] = createSignal<{ path: string; name: string }[]>([]);
+  const [prompts, setPrompts] = createSignal<{ path: string; name: string }[]>(
+    [],
+  );
 
   const loadPrompts = () => {
     if (!app || !plugin) return;
@@ -47,11 +59,14 @@ export const SystemPromptSelector: Component<SystemPromptSelectorProps> = ({
 
   onMount(() => {
     loadPrompts();
-    
+
     // Listen for settings changes
     if (app) {
-      const eventRef = app.workspace.on("co-intelligence:settings-changed" as any, loadPrompts);
-      
+      const eventRef = app.workspace.on(
+        "co-intelligence:settings-changed" as any,
+        loadPrompts,
+      );
+
       onCleanup(() => {
         if (eventRef) {
           app.workspace.offref(eventRef);
@@ -73,22 +88,32 @@ export const SystemPromptSelector: Component<SystemPromptSelectorProps> = ({
   };
 
   return (
-    <select 
-      value={selectedPrompt()} 
-      onChange={handlePromptChange}
-      title="Select a custom system prompt from your configured prompts folder"
-    >
-      <option value="" selected={selectedPrompt() === ""}>None</option>
-      <Show when={prompts().length === 0}>
-        <option value="" disabled>No prompts available</option>
-      </Show>
-      <For each={prompts()}>
-        {(prompt) => (
-          <option value={prompt.path} selected={selectedPrompt() === prompt.path}>
-            {prompt.name}
+    <span>
+      <LucideIcon name="message-circle-code" />
+      <select
+        value={selectedPrompt()}
+        onChange={handlePromptChange}
+        title="Select a custom system prompt from your configured prompts folder"
+      >
+        <option value="" selected={selectedPrompt() === ""}>
+          No prompt
+        </option>
+        <Show when={prompts().length === 0}>
+          <option value="" disabled>
+            No prompts available
           </option>
-        )}
-      </For>
-    </select>
+        </Show>
+        <For each={prompts()}>
+          {(prompt) => (
+            <option
+              value={prompt.path}
+              selected={selectedPrompt() === prompt.path}
+            >
+              {prompt.name}
+            </option>
+          )}
+        </For>
+      </select>
+    </span>
   );
 };

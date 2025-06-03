@@ -15,7 +15,6 @@ import { TagSuggestionModal } from "@/components/TagSuggestionModal";
 import { AppContext, PluginContext } from "@/CoiChatApp";
 import { ModelRegistry } from "@/services/model-registry";
 import { Model, Tag } from "@/types";
-import { set } from "zod";
 
 export interface UserInputProps {
   triggerChange: () => void;
