@@ -16,6 +16,9 @@ import { LucideIcon } from "@/components/LucideIcon";
 export interface SystemPromptSelectorProps {
   selectedPrompt: Accessor<string>;
   onPromptChange: (prompt: string) => void;
+  label?: string;
+  id?: string;
+  showLabel?: boolean;
 }
 
 /**
@@ -31,6 +34,9 @@ export interface SystemPromptSelectorProps {
 export const SystemPromptSelector: Component<SystemPromptSelectorProps> = ({
   selectedPrompt,
   onPromptChange,
+  label = "Select system prompt",
+  id = "system-prompt-selector",
+  showLabel = false,
 }) => {
   const app = useContext(AppContext);
   const plugin = useContext(PluginContext);
@@ -88,12 +94,27 @@ export const SystemPromptSelector: Component<SystemPromptSelectorProps> = ({
   };
 
   return (
-    <span>
-      <LucideIcon name="message-circle-code" />
+    <div class="system-prompt-selector">
+      {showLabel ? (
+        <label for={id} class="system-prompt-selector-label">
+          <LucideIcon name="message-circle-code" aria-hidden="true" />
+          {label}
+        </label>
+      ) : (
+        <>
+          <LucideIcon name="message-circle-code" aria-hidden="true" />
+          <label for={id} class="sr-only">
+            {label}
+          </label>
+        </>
+      )}
       <select
+        id={id}
         value={selectedPrompt()}
         onChange={handlePromptChange}
         title="Select a custom system prompt from your configured prompts folder"
+        aria-label={prompts().length === 0 ? "No system prompts available" : undefined}
+        aria-describedby={prompts().length === 0 ? `${id}-description` : undefined}
       >
         <option value="" selected={selectedPrompt() === ""}>
           No prompt
@@ -114,6 +135,11 @@ export const SystemPromptSelector: Component<SystemPromptSelectorProps> = ({
           )}
         </For>
       </select>
-    </span>
+      {prompts().length === 0 && (
+        <div id={`${id}-description`} class="sr-only">
+          No system prompts are available. Configure a system prompts folder in settings to add custom prompts.
+        </div>
+      )}
+    </div>
   );
 };
