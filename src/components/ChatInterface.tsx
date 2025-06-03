@@ -117,6 +117,7 @@ export const ChatInterface = ({
   const handleSendMessage = async (
     message: string,
     webSearchEnabled: boolean = false,
+    systemPromptPath?: string,
   ) => {
     if (!message.trim()) {
       new Notice("Warning: Sending empty user message");
@@ -139,12 +140,27 @@ export const ChatInterface = ({
 
     const parsedContext = await getContext(contextItems(), app);
 
+    // Load system prompt content if a path is provided
+    let systemPrompt: string | undefined;
+    if (systemPromptPath && systemPromptPath.trim() !== "") {
+      try {
+        const file = app.vault.getAbstractFileByPath(systemPromptPath);
+        if (file instanceof TFile) {
+          systemPrompt = await app.vault.read(file);
+        }
+      } catch (error) {
+        console.error("Error loading system prompt:", error);
+        new Notice("Error loading system prompt: " + (error as Error).message);
+      }
+    }
+
     const request: ChatRequest = {
       requestID: crypto.randomUUID(),
       modelId: (model() as Model).id,
       messages: [...messages()],
       context: parsedContext,
       webSearch: webSearchEnabled,
+      systemPrompt: systemPrompt,
     };
     setCurrentRequest(request);
 
@@ -322,6 +338,9 @@ export const ChatInterface = ({
         updateModel={setModel}
         onLinkNote={handleLinkNote}
         onAddTag={handleAddTag}
+        initialSystemPrompt={
+          initialMessages.length === 0 ? plugin.settings.defaultSystemPromptNote || "" : ""
+        }
       />
     </div>
   );

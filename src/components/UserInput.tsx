@@ -9,6 +9,7 @@ import {
 import { TFile } from "obsidian";
 
 import { ModelSelector, ModelSelectorProps } from "@/components/ModelSelector";
+import { SystemPromptSelector } from "@/components/SystemPromptSelector";
 import { NoteLinkSuggestionModal } from "@/components/NoteLinkSuggestionModal";
 import { TagSuggestionModal } from "@/components/TagSuggestionModal";
 import { AppContext, PluginContext } from "@/CoiChatApp";
@@ -18,11 +19,16 @@ import { set } from "zod";
 
 export interface UserInputProps {
   triggerChange: () => void;
-  onSubmit: (value: string, webSearchEnabled: boolean) => void;
+  onSubmit: (
+    value: string,
+    webSearchEnabled: boolean,
+    systemPrompt?: string,
+  ) => void;
   currentModel: Accessor<Model | null>;
   updateModel: (model: Model | null) => void;
   onLinkNote?: (file: TFile) => void;
   onAddTag?: (tag: Tag) => void;
+  initialSystemPrompt?: string;
 }
 
 export const UserInput: Component<UserInputProps> = ({
@@ -32,6 +38,7 @@ export const UserInput: Component<UserInputProps> = ({
   updateModel,
   onLinkNote,
   onAddTag,
+  initialSystemPrompt = "",
 }) => {
   let textareaRef: HTMLTextAreaElement | undefined;
   const app = useContext(AppContext);
@@ -53,6 +60,8 @@ export const UserInput: Component<UserInputProps> = ({
   const [isModalOpen, setIsModalOpen] = createSignal(false);
 
   const [webSearchEnabled, setWebSearchEnabled] = createSignal(false);
+  const [selectedSystemPrompt, setSelectedSystemPrompt] =
+    createSignal(initialSystemPrompt);
 
   /**
    * Handles input in the textarea, detecting wiki links, tags, and showing suggestions
@@ -75,7 +84,6 @@ export const UserInput: Component<UserInputProps> = ({
       // Keep cursor position between brackets
       textareaRef.setSelectionRange(caretPos, caretPos);
 
-      // Open suggestion modal
       setIsModalOpen(true);
       const modal = new NoteLinkSuggestionModal(app, "", (file) => {
         handleNoteSelect(file);
@@ -83,7 +91,6 @@ export const UserInput: Component<UserInputProps> = ({
       });
       modal.open();
 
-      // Handle modal closing without selection
       modal.onClose = () => {
         setIsModalOpen(false);
       };
@@ -95,7 +102,6 @@ export const UserInput: Component<UserInputProps> = ({
       value.substring(caretPos - 1, caretPos) === "#" &&
       (caretPos === value.length || /\s/.test(value.charAt(caretPos)))
     ) {
-      // Open tag suggestion modal
       setIsModalOpen(true);
       const modal = new TagSuggestionModal(app, "", (tag) => {
         handleTagSelect(tag);
@@ -103,7 +109,6 @@ export const UserInput: Component<UserInputProps> = ({
       });
       modal.open();
 
-      // Handle modal closing without selection
       modal.onClose = () => {
         setIsModalOpen(false);
       };
@@ -131,7 +136,6 @@ export const UserInput: Component<UserInputProps> = ({
       });
       modal.open();
 
-      // Handle modal closing without selection
       modal.onClose = () => {
         setIsModalOpen(false);
       };
@@ -152,7 +156,6 @@ export const UserInput: Component<UserInputProps> = ({
         });
         modal.open();
 
-        // Handle modal closing without selection
         modal.onClose = () => {
           setIsModalOpen(false);
         };
@@ -172,7 +175,7 @@ export const UserInput: Component<UserInputProps> = ({
       !isModalOpen()
     ) {
       event.preventDefault();
-      onSubmit(textareaRef.value, webSearchEnabled());
+      onSubmit(textareaRef.value, webSearchEnabled(), selectedSystemPrompt());
       textareaRef.value = "";
     }
   };
@@ -210,7 +213,6 @@ export const UserInput: Component<UserInputProps> = ({
     const newCursorPos = lastOpenBracket + file.basename.length + 4; // 4 for [[ and ]]
     textareaRef.setSelectionRange(newCursorPos, newCursorPos);
 
-    // Focus back on textarea
     textareaRef.focus();
 
     if (onLinkNote) {
@@ -238,11 +240,9 @@ export const UserInput: Component<UserInputProps> = ({
 
     textareaRef.value = newValue;
 
-    // Position cursor after the inserted tag
     const newCursorPos = lastHashPosition + tag.length;
     textareaRef.setSelectionRange(newCursorPos, newCursorPos);
 
-    // Focus back on textarea
     textareaRef.focus();
 
     if (onAddTag) {
@@ -266,11 +266,14 @@ export const UserInput: Component<UserInputProps> = ({
           hasModels() ? "Type your message..." : "No models available"
         }
       />
-
       <div class="coi-user-input-options">
         <ModelSelector
           selectedModel={currentModel}
           onModelChange={updateModel}
+        />
+        <SystemPromptSelector
+          selectedPrompt={selectedSystemPrompt}
+          onPromptChange={setSelectedSystemPrompt}
         />
         <Show when={currentModel()?.toggleWebSearch}>
           <div>
