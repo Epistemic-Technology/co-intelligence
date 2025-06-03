@@ -31,7 +31,7 @@ const pattern = new RegExp(`${CHAT_START}[\\s\\S]*?${CHAT_END}`, "m");
  * @param app - The Obsidian app instance.
  * @returns True if the note is a COI note, false otherwise.
  */
-export async function isCoiNote(note: TFile, app: App): Promise<boolean> {
+export function isCoiNote(note: TFile, app: App): boolean {
   const metadata = app.metadataCache.getFileCache(note);
   return metadata?.frontmatter?.["is-coi-chat"] === true;
 }
@@ -173,12 +173,38 @@ export async function serializeCoiNoteContent(
 ): Promise<string> {
   const serializedMessages = messages
     .map(({ role, content }) => {
-      const processedContent = (content as string)
-        .replace(/\[\[(.*?)\]\]/g, (match, noteName) => {
+      const contentStr = content as string;
+
+      // Find the highest level header in the content
+      const headerMatches = contentStr.match(/^#+/gm);
+      let minHeaderLevel = Infinity;
+      if (headerMatches) {
+        for (const match of headerMatches) {
+          minHeaderLevel = Math.min(minHeaderLevel, match.length);
+        }
+      }
+
+      let processedContent = contentStr.replace(
+        /\[\[(.*?)\]\]/g,
+        (match, noteName) => {
           return `[[${noteName}]]`;
-        })
-        .replace(/^##/gm, "###") // Move headers one level down so that they are within the chat section
-        .trim(); // Trim any leading/trailing whitespace
+        },
+      );
+
+      // Adjust headers based on the highest level found
+      if (minHeaderLevel === 1) {
+        processedContent = processedContent.replace(
+          /^(#+)/gm,
+          (match) => match + "##",
+        );
+      } else if (minHeaderLevel === 2) {
+        processedContent = processedContent.replace(
+          /^(#+)/gm,
+          (match) => match + "#",
+        );
+      }
+
+      processedContent = processedContent.trim(); // Trim any leading/trailing whitespace
       return `## ${role}:\n\n${processedContent}`;
     })
     .join("\n\n");
