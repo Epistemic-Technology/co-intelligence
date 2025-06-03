@@ -7,7 +7,6 @@ import {
   Notice,
 } from "obsidian";
 import { render } from "solid-js/web";
-import { CoreMessage } from "ai";
 
 import { CoiChatApp } from "@/CoiChatApp";
 import { CoIntelligencePlugin } from "@/CoIntelligencePlugin";
@@ -19,12 +18,12 @@ import {
   deserializeCoiNoteContent,
   serializeCoiNoteContent,
 } from "@/utils/notes";
-import { Source, ContextItems, Model } from "@/types";
+import { Source, ContextItems, ModelChatMessage } from "@/types";
 
 export const VIEW_TYPE_COI_CHAT = "coi-chat-view";
 
 export interface HandleChatChangeProps {
-  newMessages: CoreMessage[];
+  newMessages: ModelChatMessage[];
   newTitle: string;
   contextItems: ContextItems | null;
   sources?: Source[];
@@ -35,7 +34,7 @@ export class ChatView extends TextFileView {
   public plugin: CoIntelligencePlugin;
   public app: App;
   public file: TFile | null;
-  public messages: CoreMessage[] = [];
+  public messages: ModelChatMessage[] = [];
   public contextItems: ContextItems = { notes: [], tags: [], sources: [] };
   public sources: Source[] = [];
   public rootElement: Element | null = null;

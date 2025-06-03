@@ -1,15 +1,15 @@
 import { Component, useContext, Accessor } from "solid-js";
-import { CoreMessage } from "ai";
+import { ModelChatMessage } from "@/types";
 
 import { MarkdownView } from "@/components/MarkdownView";
 import { FileContext, AppContext } from "@/CoiChatApp";
 
-export interface ChatMessageProps {
-  message: CoreMessage;
+export interface ModelChatMessageProps {
+  message: ModelChatMessage;
   className?: string;
 }
 
-export const ChatMessage: Component<ChatMessageProps> = ({
+export const ChatMessage: Component<ModelChatMessageProps> = ({
   message,
   className,
 }) => {

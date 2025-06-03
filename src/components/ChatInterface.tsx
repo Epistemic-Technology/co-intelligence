@@ -1,5 +1,5 @@
 import { createSignal, useContext, Show, createEffect } from "solid-js";
-import { CoreMessage } from "ai";
+import { ModelChatMessage } from "@/types";
 import { TFile, Notice } from "obsidian";
 
 import { ModelRegistry } from "@/services/model-registry";
@@ -10,10 +10,8 @@ import {
   generateChatTitle,
 } from "@/services/model-service";
 import {
-  ContextItemContent,
   ChatRequest,
   Source,
-  CoiNoteFrontmatter,
   Model,
   ModelId,
   ContextItems,
@@ -28,11 +26,9 @@ import { SourceList } from "@/components/SourceList";
 
 import { getContext } from "@/utils/model-context";
 import { HandleChatChangeProps } from "@/ChatView";
-import { BotMessage } from "@/components/BotMessage";
-import { UserMessage } from "@/components/UserMessage";
 
 export interface ChatInterfaceProps {
-  initialMessages: CoreMessage[];
+  initialMessages: ModelChatMessage[];
   initialContext?: ContextItems | null;
   initialSources?: Source[];
   onChange?: (props: HandleChatChangeProps) => void;
@@ -59,7 +55,8 @@ export const ChatInterface = ({
   }
 
   const [model, setModel] = createSignal<Model | null>(currentModel);
-  const [messages, setMessages] = createSignal<CoreMessage[]>(initialMessages);
+  const [messages, setMessages] =
+    createSignal<ModelChatMessage[]>(initialMessages);
   const [contextItems, setContextItems] = createSignal<ContextItems | null>(
     initialContext,
   );
@@ -134,7 +131,7 @@ export const ChatInterface = ({
       console.error("No app instance while sending message");
       return;
     }
-    const newMessage: CoreMessage = { role: "user", content: message };
+    const newMessage: ModelChatMessage = { role: "user", content: message };
     setMessages([...messages(), newMessage]);
     setIsProcessing(true);
 
@@ -170,20 +167,32 @@ export const ChatInterface = ({
       let accumulatedContent = "";
       let isFirstChunk = true;
       let chunk;
+      let doingReasoning = false;
 
       try {
-        for await (chunk of responseStream.textStream) {
+        for await (chunk of responseStream.fullStream) {
+          if (chunk.type !== "text-delta" && chunk.type !== "reasoning") {
+            continue;
+          }
           if (isFirstChunk) {
-            const assistantMessage: CoreMessage = {
+            const assistantMessage: ModelChatMessage = {
               role: "assistant",
-              content: chunk,
+              content: chunk.textDelta,
             };
             setMessages([...messages(), assistantMessage]);
-            accumulatedContent = chunk;
+            if (chunk.type === "reasoning") {
+              accumulatedContent = "<think>";
+              doingReasoning = true;
+            }
+            accumulatedContent += chunk.textDelta;
             isFirstChunk = false;
             setIsProcessing(false);
           } else {
-            accumulatedContent += chunk;
+            if (doingReasoning && chunk.type !== "reasoning") {
+              accumulatedContent += "</think>";
+              doingReasoning = false;
+            }
+            accumulatedContent += chunk.textDelta;
             setMessages((prevMessages) => {
               const updatedMessages = [...prevMessages];
               updatedMessages[updatedMessages.length - 1] = {
@@ -234,7 +243,7 @@ export const ChatInterface = ({
           updatedMessages[updatedMessages.length - 1] = {
             ...lastMessage,
             content: updatedContent,
-          } as CoreMessage;
+          } as ModelChatMessage;
           return updatedMessages;
         });
         setSources([...sources(), ...newSources]);
@@ -305,7 +314,7 @@ export const ChatInterface = ({
     if (!request) return;
     cancelChatResponse(request);
 
-    const cancelMessage: CoreMessage = {
+    const cancelMessage: ModelChatMessage = {
       role: "assistant",
       content: "*Request cancelled by user*",
     };
@@ -338,9 +347,7 @@ export const ChatInterface = ({
         updateModel={setModel}
         onLinkNote={handleLinkNote}
         onAddTag={handleAddTag}
-        initialSystemPrompt={
-          initialMessages.length === 0 ? plugin.settings.defaultSystemPromptNote || "" : ""
-        }
+        initialSystemPrompt={plugin.settings.defaultSystemPromptNote || ""}
       />
     </div>
   );

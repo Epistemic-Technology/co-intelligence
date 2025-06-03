@@ -76,11 +76,11 @@ export class ModelRegistry {
   private updateAvailableModels(initializedProviders: string[]): void {
     const allModels: Model[] = [
       {
-        id: "openai:o1",
+        id: "openai:gpt-4.1",
         provider: "openai",
-        name: "OpenAI O1",
-        renaming: false,
-        toggleWebSearch: false,
+        name: "OpenAI GPT-4.1",
+        renaming: true,
+        toggleWebSearch: true,
         streaming: true,
       },
       {
@@ -100,11 +100,19 @@ export class ModelRegistry {
         streaming: true,
       },
       {
-        id: "openai:gpt-4.1",
+        id: "openai:o1",
         provider: "openai",
-        name: "OpenAI GPT-4.1",
-        renaming: true,
-        toggleWebSearch: true,
+        name: "OpenAI O1",
+        renaming: false,
+        toggleWebSearch: false,
+        streaming: true,
+      },
+      {
+        id: "openai:o3",
+        provider: "openai",
+        name: "OpenAI O3",
+        renaming: false,
+        toggleWebSearch: false,
         streaming: true,
       },
       {

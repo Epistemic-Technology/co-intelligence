@@ -1,12 +1,12 @@
 import { Component, useContext, Show } from "solid-js";
-import { CoreMessage } from "ai";
+import { ModelChatMessage } from "@/types";
 
 import { ChatMessage } from "@/components/ChatMessage";
 import { MarkdownView } from "@/components/MarkdownView";
 import { AppContext, FileContext, PluginContext } from "@/CoiChatApp";
 
 export interface BotMessageProps {
-  message: CoreMessage;
+  message: ModelChatMessage;
 }
 
 export const BotMessage: Component<BotMessageProps> = ({
@@ -15,6 +15,9 @@ export const BotMessage: Component<BotMessageProps> = ({
   const file = useContext(FileContext);
   const filePath = file?.path || "";
   const content = message.content as string;
+  // Perplexity models use <think> tags to indicate the reasoning section.
+  // OpenAI models use chunk types instead. These are translated into <think>
+  // tags by handleSendMessage in ChatInterface.tsx
   const openTagIndex = content.indexOf("<think>");
   const closeTagIndex = content.indexOf("</think>", openTagIndex);
 
@@ -34,7 +37,7 @@ export const BotMessage: Component<BotMessageProps> = ({
   const newMessage = {
     ...message,
     content: mainContent,
-  } as CoreMessage;
+  } as ModelChatMessage;
 
   return (
     <div class="coi-bot-message-container">

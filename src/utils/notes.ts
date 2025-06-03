@@ -6,7 +6,7 @@ import {
   CachedMetadata,
   MetadataCache,
 } from "obsidian";
-import { CoreMessage } from "ai";
+import { ModelChatMessage } from "@/types";
 
 import { ModelRegistry } from "@/services/model-registry";
 import { VIEW_TYPE_COI_CHAT } from "@/ChatView";
@@ -167,7 +167,7 @@ export async function openCOINote(
 export async function serializeCoiNoteContent(
   currentNoteContent: string,
   app: App,
-  messages: CoreMessage[],
+  messages: ModelChatMessage[],
   contextItems: ContextItems | null,
   sources?: Source[],
 ): Promise<string> {
@@ -237,7 +237,7 @@ export async function serializeCoiNoteContent(
 export async function serializeCoiNote(
   note: TFile,
   app: App,
-  messages: CoreMessage[],
+  messages: ModelChatMessage[],
   contextItems: ContextItems | null,
   lastModelId: string | null,
   sources?: Source[],
@@ -293,7 +293,7 @@ export async function deserializeCoiNoteContent(
   metadata: CachedMetadata | null,
   app: App,
 ): Promise<{
-  messages: CoreMessage[];
+  messages: ModelChatMessage[];
   contextItems: ContextItems;
   sources: Source[];
 }> {
@@ -313,7 +313,7 @@ export async function deserializeCoiNoteContent(
     };
   }
 
-  const messages: CoreMessage[] = [];
+  const messages: ModelChatMessage[] = [];
   const sources: Source[] = [];
   const lines = serializedContent[0].split("\n");
 

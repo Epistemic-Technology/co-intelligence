@@ -1,7 +1,6 @@
 import {
   streamText,
   generateText,
-  CoreMessage,
   StreamTextResult,
   StreamTextOnErrorCallback,
   ToolSet,
@@ -11,7 +10,7 @@ import { openai } from "@ai-sdk/openai";
 
 import { ModelRegistry } from "@/services/model-registry";
 import { makeContext } from "@/utils/model-context";
-import { ChatRequest, ContextItemContent } from "@/types";
+import { ChatRequest, ModelChatMessage } from "@/types";
 import CoIntelligencePlugin from "@/CoIntelligencePlugin";
 
 const abortControllers = new Map<string, AbortController>();
@@ -36,7 +35,8 @@ export async function generateChatResponse(
   let systemPrompt = request.systemPrompt || "You are a helpful assistant.";
   if (request.webSearch) {
     systemPrompt +=
-      "\n\n" + "You should search the web for current information.";
+      "\n\n" +
+      "You should search the web for current information. Provide sources for your answers whenever possible.";
   }
 
   if (request.context && request.context.length > 0) {
@@ -98,12 +98,13 @@ export async function generateChatResponse(
 }
 
 interface StreamConfig {
-  messages: CoreMessage[];
+  messages: ModelChatMessage[];
   model: LanguageModelV1;
   abortSignal: AbortSignal;
   system: string;
   onError: StreamTextOnErrorCallback;
   tools?: any;
+  providerOptions?: any;
 }
 
 interface ConfigGeneratorProps {
@@ -119,6 +120,15 @@ const openAIConfig = ({ request, defaultConfig }: ConfigGeneratorProps) => {
       config.tools = {};
     }
     config.tools.web_search_preview = openai.tools.webSearchPreview();
+  }
+  if (request.modelId.includes("o3")) {
+    if (!config.providerOptions) {
+      config.providerOptions = {};
+    }
+    if (!config.providerOptions.openai) {
+      config.providerOptions.openai = {};
+    }
+    config.providerOptions.openai.reasoningSummary = "detailed";
   }
   return config;
 };
@@ -161,7 +171,7 @@ export function deleteAbortControllerForRequest(request: ChatRequest) {
 }
 
 export async function generateChatTitle(
-  messages: CoreMessage[],
+  messages: ModelChatMessage[],
   plugin: CoIntelligencePlugin,
 ): Promise<string> {
   const renamingModel = plugin.settings.renamingModel;

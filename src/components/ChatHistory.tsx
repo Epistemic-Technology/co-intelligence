@@ -6,14 +6,14 @@ import {
   Show,
   For,
 } from "solid-js";
-import { CoreMessage } from "ai";
+import { ModelChatMessage } from "@/types";
 
 import { BotMessage } from "@/components/BotMessage";
 import { UserMessage } from "@/components/UserMessage";
 import { ProcessingIndicator } from "@/components/ProcessingIndicator";
 
 export interface ChatHistoryProps {
-  messages: Accessor<CoreMessage[]>;
+  messages: Accessor<ModelChatMessage[]>;
   isProcessing: Accessor<boolean>;
   onCancelRequest?: () => void;
 }

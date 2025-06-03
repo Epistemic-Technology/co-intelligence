@@ -12,7 +12,7 @@ export interface ContextItemContent {
 export interface ChatRequest {
   requestID: string;
   modelId: ModelId; // e.g., 'openai:gpt-4-turbo'
-  messages: CoreMessage[];
+  messages: ModelChatMessage[];
   systemPrompt?: string;
   context?: ContextItemContent[];
   webSearch?: boolean;
@@ -22,6 +22,10 @@ export interface Source {
   url: string;
   title?: string;
 }
+
+export type ModelChatMessage = CoreMessage & {
+  isReasoning?: boolean;
+};
 
 export interface CoiNoteFrontmatter {
   "is-coi-chat": boolean;

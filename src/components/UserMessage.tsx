@@ -1,10 +1,10 @@
 import { Component, Accessor } from "solid-js";
-import { CoreMessage } from "ai";
+import { ModelChatMessage } from "@/types";
 
 import { ChatMessage } from "./ChatMessage";
 
 export interface UserMessageProps {
-  message: CoreMessage;
+  message: ModelChatMessage;
 }
 
 export const UserMessage: Component<UserMessageProps> = ({ message }) => {

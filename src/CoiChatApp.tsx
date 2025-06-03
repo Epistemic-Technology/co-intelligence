@@ -1,5 +1,5 @@
 import { Component, Context, createContext } from "solid-js";
-import { CoreMessage } from "ai";
+import { ModelChatMessage } from "@/types";
 import { App, TFile } from "obsidian";
 
 import { ChatInterface } from "@/components/ChatInterface";
@@ -16,7 +16,7 @@ export interface AppProps {
   file: TFile;
   plugin: CoIntelligencePlugin;
   onChange: (props: HandleChatChangeProps) => void;
-  initialMessages: CoreMessage[];
+  initialMessages: ModelChatMessage[];
   initialContext: ContextItems | null;
   initialSources?: Source[];
 }
