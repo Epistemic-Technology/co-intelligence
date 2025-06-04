@@ -256,6 +256,7 @@ export async function serializeCoiNote(
     app,
     messages,
     contextItems,
+    sources,
   );
   if (newNoteContent !== currentNoteContent) {
     await app.vault.modify(note, newNoteContent);
