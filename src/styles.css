@@ -480,3 +480,16 @@ li button.coi-add-context-menu-option:focus-visible {
     white-space: nowrap;
     border: 0;
 }
+
+/* Enable container queries for workspace tab container */
+.workspace-tab-container {
+    container-type: inline-size;
+}
+
+/* Compact view for narrow containers */
+@container (max-width: 545px) {
+    .model-selector .coi-lucide-icon,
+    .system-prompt-selector .coi-lucide-icon {
+        display: none;
+    }
+}
