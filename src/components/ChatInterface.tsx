@@ -25,6 +25,7 @@ import { ContextList } from "@/components/ContextList";
 import { SourceList } from "@/components/SourceList";
 
 import { getContext } from "@/utils/model-context";
+import { ensureSourceTitle } from "@/utils/url";
 import { HandleChatChangeProps } from "@/ChatView";
 
 export interface ChatInterfaceProps {
@@ -171,6 +172,10 @@ export const ChatInterface = ({
 
       try {
         for await (chunk of responseStream.fullStream) {
+          if (chunk.type === "error") {
+            console.log("Error:", chunk.error);
+            new Notice("Unknown error occurred. See console log for details.");
+          }
           if (chunk.type !== "text-delta" && chunk.type !== "reasoning") {
             continue;
           }
@@ -227,13 +232,18 @@ export const ChatInterface = ({
 
       // Handle new sources. Renumber and link Perplexity-style references
       const newSources = await responseStream.sources;
+      let hasProcessedSources = false;
+      
       if (newSources.length > 0) {
+        // Ensure all sources have meaningful titles
+        const sourcesWithTitles = newSources.map(ensureSourceTitle);
+
         // Replace source reference numbers [n] with [n+offset]
         const offset = lastSourceLinkNumber();
         const updatedContent = (lastMessage.content as string).replace(
           /\[(\d+)\]/g,
           (match, num) => {
-            const source = newSources[parseInt(num) - 1];
+            const source = sourcesWithTitles[parseInt(num) - 1];
             if (!source) return match;
             return ` [${parseInt(num) + offset}](${source.url})`;
           },
@@ -246,22 +256,29 @@ export const ChatInterface = ({
           } as ModelChatMessage;
           return updatedMessages;
         });
-        setSources([...sources(), ...newSources]);
-        setLastSourceLinkNumber(lastSourceLinkNumber() + newSources.length);
+        setSources([...sources(), ...sourcesWithTitles]);
+        setLastSourceLinkNumber(
+          lastSourceLinkNumber() + sourcesWithTitles.length,
+        );
+        hasProcessedSources = true;
       }
 
       // Handle markdown links in response and add to sources
-      const currentMessage = messages()[messages().length - 1];
-      const newLinks =
-        (currentMessage.content as string).match(/\[(.*?)\]\((.*?)\)/g) || [];
-      newLinks.forEach((link) => {
-        const [text, url] = link.slice(1, -1).split("](");
-        const existingSource = sources().find((source) => source.url === url);
-        if (!existingSource) {
-          setSources([...sources(), { url, title: text }]);
-          setLastSourceLinkNumber(lastSourceLinkNumber() + 1);
-        }
-      });
+      // Only do this if we haven't already processed dedicated sources
+      if (!hasProcessedSources) {
+        const currentMessage = messages()[messages().length - 1];
+        const newLinks =
+          (currentMessage.content as string).match(/\[(.*?)\]\((.*?)\)/g) || [];
+        newLinks.forEach((link) => {
+          const [text, url] = link.slice(1, -1).split("](");
+          const existingSource = sources().find((source) => source.url === url);
+          if (!existingSource) {
+            const sourceWithTitle = ensureSourceTitle({ url, title: text });
+            setSources([...sources(), sourceWithTitle]);
+            setLastSourceLinkNumber(lastSourceLinkNumber() + 1);
+          }
+        });
+      }
       triggerChange(true);
     } catch (error) {
       const message = (error as any).message || "Unknown error";
