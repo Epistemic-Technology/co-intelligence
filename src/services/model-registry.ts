@@ -76,6 +76,14 @@ export class ModelRegistry {
   private updateAvailableModels(initializedProviders: string[]): void {
     const allModels: Model[] = [
       {
+        id: "openai:gpt-4o",
+        provider: "openai",
+        name: "OpenAI GPT-4o",
+        renaming: true,
+        toggleWebSearch: true,
+        streaming: true,
+      },
+      {
         id: "openai:gpt-4.1",
         provider: "openai",
         name: "OpenAI GPT-4.1",
@@ -137,6 +145,22 @@ export class ModelRegistry {
         name: "Google Gemini 2.0 Flash",
         renaming: true,
         toggleWebSearch: true,
+        streaming: true,
+      },
+      {
+        id: "google:gemini-2.5-flash-preview-04-17",
+        provider: "google",
+        name: "Google Gemini 2.5 Flash Preview",
+        renaming: true,
+        toggleWebSearch: true,
+        streaming: true,
+      },
+      {
+        id: "google:gemini-2.5-pro-preview-05-06",
+        provider: "google",
+        name: "Google Gemini 2.5 Pro Preview",
+        renaming: true,
+        toggleWebSearch: false,
         streaming: true,
       },
       {
