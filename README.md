@@ -104,3 +104,9 @@ Also note that the application automatically shifts Markdown heading levels so t
 I am an idependent software developer. If you find Co-Intelligence to be useful, please consider supporting my work.
 
 [<img style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi6.png?v=6' border='0' alt='Buy Me a Coffee at ko-fi.com' />](https://ko-fi.com/X8X71G7YSI)
+
+## Contributing, Feedback, and Help
+
+This is an open source project, using the [MIT License](LICENSE). Pull requests for bug fixes or small improvements are welcome. If you want to get involved in a more substantial way, please [Contact me](https://epistemic.technology/contact/).
+
+To report a bug, request a feature, provide feedback, or ask for help, please [open an issue](https://github.com/Epistemic-Technology/co-intelligence/issues).
