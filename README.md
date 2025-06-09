@@ -98,3 +98,9 @@ Co-Intelligence AI notes are regular markdown files and can be edited directly. 
   - `Sources` - The application looks for the Sources section to parse the sources panel. If this heading is not present no sources will appear in the sources panel.
 
 Also note that the application automatically shifts Markdown heading levels so that second-level headings (``##``) are the top level headings for messages. The display of messages could be corrupted if heading levels are changed.
+
+## Support
+
+I am an idependent software developer. If you find Co-Intelligence to be useful, please consider supporting my work.
+
+[<img style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi6.png?v=6' border='0' alt='Buy Me a Coffee at ko-fi.com' />](https://ko-fi.com/X8X71G7YSI)
