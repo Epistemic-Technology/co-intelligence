@@ -1,11 +1,13 @@
 {
   "id": "co-intelligence",
-  "name": "Co-Intelligence",
-  "version": "0.0.1",
+  "name": "Co-Intelligence AI",
+  "version": "1.0.0",
   "minAppVersion": "1.5.0",
   "description": "Co-Intelligence is a plugin for working with AI in Obsidian.",
-  "author": "Epistemic Technology",
+  "author": "Mike Thicke",
   "authorUrl": "https://github.com/Epistemic-Technology",
+  "fundingUrl": "https://ko-fi.com/epistemictechnology",
+  "helpUrl": "https://github.com/Epistemic-Technology/co-intelligence#readme",
   "main": "main.js",
   "css": "styles.css"
 }
