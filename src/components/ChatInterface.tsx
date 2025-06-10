@@ -233,17 +233,23 @@ export const ChatInterface = ({
       // Handle new sources. Renumber and link Perplexity-style references
       const newSources = await responseStream.sources;
       let hasProcessedSources = false;
-      
+
       if (newSources.length > 0) {
         // Ensure all sources have meaningful titles
         const sourcesWithTitles = newSources.map(ensureSourceTitle);
+
+        // Filter out duplicates within the new sources (judged by URL)
+        const uniqueNewSources = sourcesWithTitles.filter(
+          (source, index, arr) =>
+            arr.findIndex((s) => s.url === source.url) === index,
+        );
 
         // Replace source reference numbers [n] with [n+offset]
         const offset = lastSourceLinkNumber();
         const updatedContent = (lastMessage.content as string).replace(
           /\[(\d+)\]/g,
           (match, num) => {
-            const source = sourcesWithTitles[parseInt(num) - 1];
+            const source = uniqueNewSources[parseInt(num) - 1];
             if (!source) return match;
             return ` [${parseInt(num) + offset}](${source.url})`;
           },
@@ -256,9 +262,9 @@ export const ChatInterface = ({
           } as ModelChatMessage;
           return updatedMessages;
         });
-        setSources([...sources(), ...sourcesWithTitles]);
+        setSources([...sources(), ...uniqueNewSources]);
         setLastSourceLinkNumber(
-          lastSourceLinkNumber() + sourcesWithTitles.length,
+          lastSourceLinkNumber() + uniqueNewSources.length,
         );
         hasProcessedSources = true;
       }
