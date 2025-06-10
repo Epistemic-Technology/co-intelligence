@@ -9,5 +9,6 @@
   "fundingUrl": "https://ko-fi.com/epistemictechnology",
   "helpUrl": "https://github.com/Epistemic-Technology/co-intelligence#readme",
   "main": "main.js",
-  "css": "styles.css"
+  "css": "styles.css",
+  "isDesktopOnly": false
 }
