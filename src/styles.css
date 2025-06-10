@@ -489,3 +489,42 @@ li button.coi-add-context-menu-option:focus-visible {
         display: none;
     }
 }
+
+/* Settings call-to-action styles */
+.coi-settings-cta {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-evenly;
+}
+
+.coi-settings-feedback {
+    display: flex;
+    flex-direction: row;
+    height: 3rem;
+}
+
+.coi-settings-feedback a {
+    display: flex;
+    gap: 0.5rem;
+    height: 3rem;
+}
+
+.coi-settings-feedback a * {
+    align-self: center;
+}
+
+.coi-settings-donate {
+    align-self: center;
+}
+
+.coi-settings-cta img {
+    height: 2rem;
+}
+
+.coi-settings-cta svg {
+    height: 2rem;
+}
+
+.coi-settings-cta svg path {
+    fill: var(--text-normal);
+}
