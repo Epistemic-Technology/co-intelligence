@@ -110,3 +110,7 @@ I am an idependent software developer. If you find Co-Intelligence to be useful,
 This is an open source project, using the [MIT License](LICENSE). Pull requests for bug fixes or small improvements are welcome. If you want to get involved in a more substantial way, please [Contact me](https://epistemic.technology/contact/).
 
 To report a bug, request a feature, provide feedback, or ask for help, please [open an issue](https://github.com/Epistemic-Technology/co-intelligence/issues).
+
+---
+
+[![Epistemic Technology](docs/assets/nn-logo.svg)](https://epistemic.technology/)
