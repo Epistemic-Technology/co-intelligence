@@ -143,7 +143,7 @@ export class ModelRegistry {
         id: "google:gemini-2.0-flash",
         provider: "google",
         name: "Google Gemini 2.0 Flash",
-        renaming: true,
+        renaming: false,
         toggleWebSearch: true,
         streaming: true,
       },
