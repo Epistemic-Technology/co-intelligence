@@ -16,8 +16,15 @@ export class ToggleChatViewCommand implements Command {
     this.app = this.plugin.app;
   }
 
-  callback = async () => {
+  checkCallback = (checking: boolean): boolean | void => {
     const currentFile = this.app.workspace.getActiveFile();
+    if (checking) {
+      if (!currentFile) {
+        return false;
+      }
+      return isCoiNote(currentFile, this.app);
+    }
+
     if (!currentFile) {
       return;
     }
@@ -26,6 +33,11 @@ export class ToggleChatViewCommand implements Command {
       return;
     }
 
+    this.performToggle(currentFile);
+    return;
+  };
+
+  private async performToggle(currentFile: TFile) {
     const isCurrentlyActive = isActiveCoiNote(currentFile, this.app);
 
     await this.app.fileManager.processFrontMatter(
@@ -42,7 +54,7 @@ export class ToggleChatViewCommand implements Command {
     } else {
       await this.openInChatView(currentFile);
     }
-  };
+  }
 
   private async openInDefaultEditor(file: TFile) {
     const leaf = this.app.workspace.getMostRecentLeaf();
