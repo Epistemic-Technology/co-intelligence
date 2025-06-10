@@ -82,7 +82,7 @@
 
 .coi-context-box {
     margin: 1rem 0;
-    padding: 0.5rem;
+    padding: 0.5rem 0.5rem 0.75rem 0.5rem;
     border: 1px solid var(--background-modifier-border);
     border-radius: 4px;
     background-color: var(--background-secondary);
@@ -447,10 +447,6 @@ li button.coi-add-context-menu-option:focus-visible {
     color: var(--text-normal);
     cursor: pointer;
 }
-
-
-
-
 
 /* SystemPromptSelector accessibility styles */
 .system-prompt-selector {
