@@ -35,7 +35,11 @@ jobs:
             tag="${GITHUB_REF#refs/tags/}"
           fi
 
-          gh release create "$tag" \
-            --title="$tag" \
-            --draft \
-            main.js manifest.json styles.css
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release $tag already exists, skipping creation"
+          else
+            gh release create "$tag" \
+              --title="$tag" \
+              --draft \
+              dist/main.js dist/manifest.json dist/styles.css
+          fi
