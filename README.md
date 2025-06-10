@@ -113,4 +113,7 @@ To report a bug, request a feature, provide feedback, or ask for help, please [o
 
 ---
 
-[![Epistemic Technology](docs/assets/nn-logo.svg)](https://epistemic.technology/)
+<a href="https://epistemic.technology/" style="display: flex; align-items: center; text-decoration: none; color: inherit;">
+  <img src="docs/assets/nn-logo.svg" alt="Epistemic Technology" height="32" style="margin-right: 8px;">
+  <span>Epistemic Technology</span>
+</a>
