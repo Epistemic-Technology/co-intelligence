@@ -101,6 +101,8 @@ Also note that the application automatically shifts Markdown heading levels so t
 
 ## Support
 
+Obsidian Co-Intelligence is produced by [Epistemic Technology](https://epistemic.technology/).
+
 I am an idependent software developer. If you find Co-Intelligence to be useful, please consider supporting my work.
 
 [<img style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi6.png?v=6' border='0' alt='Buy Me a Coffee at ko-fi.com' />](https://ko-fi.com/X8X71G7YSI)
@@ -110,10 +112,3 @@ I am an idependent software developer. If you find Co-Intelligence to be useful,
 This is an open source project, using the [MIT License](LICENSE). Pull requests for bug fixes or small improvements are welcome. If you want to get involved in a more substantial way, please [Contact me](https://epistemic.technology/contact/).
 
 To report a bug, request a feature, provide feedback, or ask for help, please [open an issue](https://github.com/Epistemic-Technology/co-intelligence/issues).
-
----
-
-<a href="https://epistemic.technology/" style="display: flex; align-items: center; text-decoration: none; color: inherit;">
-  <img src="docs/assets/nn-logo.svg" alt="Epistemic Technology" height="32" style="margin-right: 8px;">
-  <span>Epistemic Technology</span>
-</a>
