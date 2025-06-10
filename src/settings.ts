@@ -1,5 +1,5 @@
 import type CoIntelligencePlugin from "@/CoIntelligencePlugin";
-import { App, PluginSettingTab, Setting } from "obsidian";
+import { App, normalizePath, PluginSettingTab, Setting } from "obsidian";
 import { ModelId } from "@/types";
 
 export interface CoIntelligenceSettings {
@@ -47,10 +47,12 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
     shouldRefreshDisplay = false,
   ) {
     return async (value: string) => {
-      // Update pending changes
       const existingIndex = this.pendingChanges.findIndex(
         (change) => change.settingKey === settingKey,
       );
+      if (settingKey.includes("Folder")) {
+        value = normalizePath(value);
+      }
       if (existingIndex >= 0) {
         this.pendingChanges[existingIndex] = {
           settingKey,
@@ -67,18 +69,15 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
         });
       }
 
-      // Clear existing timer
       if (this.debounceTimer) {
         window.clearTimeout(this.debounceTimer);
       }
 
-      // Set new timer
       this.debounceTimer = window.setTimeout(async () => {
         const changes = [...this.pendingChanges];
         this.pendingChanges = [];
         this.debounceTimer = null;
 
-        // Apply all pending changes
         let needsReinitialize = false;
         let needsRefreshDisplay = false;
 
@@ -147,7 +146,7 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
     });
 
     new Setting(containerEl)
-      .setName("OpenAI API Key")
+      .setName("OpenAI API key")
       .setDesc("Enter your OpenAI API key")
       .addText((text) =>
         text
@@ -159,7 +158,7 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("Anthropic API Key")
+      .setName("Anthropic API key")
       .setDesc("Enter your Anthropic API key")
       .addText((text) =>
         text
@@ -171,7 +170,7 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("Google API Key")
+      .setName("Google API key")
       .setDesc("Enter your Google API key")
       .addText((text) =>
         text
@@ -183,7 +182,7 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("Perplexity API Key")
+      .setName("Perplexity API key")
       .setDesc("Enter your Perplexity API key")
       .addText((text) =>
         text
@@ -195,7 +194,7 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("Default Folder")
+      .setName("Default folder")
       .setDesc("Enter the default folder for CoIntelligence")
       .addText((text) =>
         text
@@ -205,7 +204,7 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("Default Model")
+      .setName("Default model")
       .setDesc("Enter the default model for CoIntelligence")
       .addDropdown((dropdown) => {
         const availableModels = this.plugin.registry.availableModels;
@@ -223,7 +222,7 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName("Renaming Model")
+      .setName("Renaming model")
       .setDesc("Enter the model for automatically renaming notes")
       .addDropdown((dropdown) => {
         const availableModels = this.plugin.registry.availableModels;
@@ -244,7 +243,7 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName("System Prompt Folder")
+      .setName("System prompt folder")
       .setDesc("Enter the folder path for custom system prompts")
       .addText((textArea) => {
         textArea.setPlaceholder("Enter folder for custom system prompts");
@@ -255,7 +254,7 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName("Default System Prompt")
+      .setName("Default system prompt")
       .setDesc("Select note for default system prompt")
       .addDropdown((dropdown) => {
         const systemPromptFolder = this.plugin.settings.systemPromptFolder;

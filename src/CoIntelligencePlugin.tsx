@@ -129,22 +129,7 @@ export class CoIntelligencePlugin extends Plugin {
    *
    * @see https://github.com/zsviczian/obsidian-excalidraw-plugin/blob/master/src/core/main.ts
    */
-  // registerMonkeyPatches() {
-  //   this.register(
-  //     around(WorkspaceLeaf.prototype, {
-  //       setViewState(next): Function {
-  //         return function (state: ViewState, ...rest: any[]) {
-  //           console.log("Monkey patching setViewState");
-  //           return next.apply(this, [state, ...rest]);
-  //         };
-  //       },
-  //     }),
-  //   );
-  // }
-
   private registerMonkeyPatches() {
-    const key =
-      "https://github.com/zsviczian/obsidian-excalidraw-plugin/issues";
     // Monkey patch WorkspaceLeaf to open Excalidraw drawings with ExcalidrawView by default
     this.register(
       around(WorkspaceLeaf.prototype, {
