@@ -80,19 +80,24 @@ export class CoIntelligencePlugin extends Plugin {
   }
 
   private async handleFileRename(file: TAbstractFile, oldPath: string) {
-    await waitForMetadataCache(this.app, file as TFile);
-    if (!isCoiNote(file as TFile, this.app)) {
+    if (!(file instanceof TFile)) {
+      console.error("File is not an instance of TFile");
+      return;
+    }
+    await waitForMetadataCache(this.app, file);
+    if (!(file instanceof TFile)) {
+      console.error("File is not an instance of TFile");
+      return;
+    }
+    if (!isCoiNote(file, this.app)) {
       return;
     }
 
     // Only mark as renamed if this wasn't an automatic rename
     if (!this.isPerformingAutomaticRename) {
-      await this.app.fileManager.processFrontMatter(
-        file as TFile,
-        (frontmatter) => {
-          frontmatter["note-renamed"] = true;
-        },
-      );
+      await this.app.fileManager.processFrontMatter(file, (frontmatter) => {
+        frontmatter["note-renamed"] = true;
+      });
     } else {
       // Reset the flag after checking it
       this.isPerformingAutomaticRename = false;

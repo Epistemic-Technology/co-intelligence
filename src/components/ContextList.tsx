@@ -67,15 +67,22 @@ export const ContextList = ({
     if (event.key === "x" || event.key === "Delete") {
       event.preventDefault();
       if (type === "note") {
-        handleRemoveNote(item as TFile);
-      } else {
+        if (!(item instanceof TFile)) {
+          console.warn("Item is not a TFile");
+          return;
+        }
+        handleRemoveNote(item);
+      } else if (type === "tag") {
         handleRemoveTag(item as Tag);
       }
     } else if (event.key === "Enter") {
       event.preventDefault();
       if (type === "note") {
-        // Open the note file
-        app.workspace.openLinkText((item as TFile).basename, "");
+        if (!(item instanceof TFile)) {
+          console.warn("Item is not a TFile");
+          return;
+        }
+        app.workspace.openLinkText(item.basename, "");
       } else {
         // Simulate clicking the tag link
         window.open(

@@ -144,7 +144,12 @@ export async function renameNote(
       `${parentPath}/${newName}${note.extension ? "." + note.extension : ""}`,
     );
     await app.fileManager.renameFile(note, newPath);
-    return app.vault.getAbstractFileByPath(newPath) as TFile;
+    const newFile = app.vault.getAbstractFileByPath(newPath);
+    if (!(newFile instanceof TFile)) {
+      console.warn("Failed to rename note:", newFile);
+      return note;
+    }
+    return newFile;
   } catch (error) {
     console.error("Error renaming note:", error);
     // Reset flag on error since the rename event won't fire

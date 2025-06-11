@@ -31,7 +31,9 @@ export const MarkdownView = ({
 
   const renderMarkdown = async () => {
     if (containerRef && app && plugin) {
-      containerRef.innerHTML = "";
+      while (containerRef.firstChild) {
+        containerRef.removeChild(containerRef.firstChild);
+      }
 
       try {
         await MarkdownRenderer.render(

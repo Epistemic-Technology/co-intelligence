@@ -143,12 +143,17 @@ export class ChatView extends TextFileView {
       console.error("Root element is null");
       return;
     }
+    const file = this.file;
+    if (!(file instanceof TFile)) {
+      console.error("File is not an instance of TFile");
+      return;
+    }
     this.dispose = render(
       () => (
         <CoiChatApp
           app={this.app}
           plugin={this.plugin}
-          file={this.file as TFile}
+          file={file}
           onChange={this.handleChatChange}
           initialMessages={this.messages}
           initialContext={this.contextItems}
