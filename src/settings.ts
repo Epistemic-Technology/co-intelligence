@@ -82,7 +82,10 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
         let needsRefreshDisplay = false;
 
         for (const change of changes) {
-          (this.plugin.settings as any)[change.settingKey] = change.value;
+          // Type-safe property assignment
+          (
+            this.plugin.settings as Record<keyof CoIntelligenceSettings, string>
+          )[change.settingKey] = change.value;
           if (change.shouldReinitialize) needsReinitialize = true;
           if (change.shouldRefreshDisplay) needsRefreshDisplay = true;
         }

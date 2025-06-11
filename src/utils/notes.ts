@@ -109,8 +109,8 @@ export async function createCOINote(app: App, plugin: CoIntelligencePlugin) {
 
 export async function renameNote(
   note: TFile,
-  app: App,
   newName: string,
+  app: App,
   plugin?: CoIntelligencePlugin,
 ): Promise<TFile> {
   if (!note || !newName) {
@@ -136,7 +136,7 @@ export async function renameNote(
   try {
     // Set flag before automatic rename
     if (plugin) {
-      (plugin as any).isPerformingAutomaticRename = true;
+      plugin.isPerformingAutomaticRename = true;
     }
 
     const parentPath = note.parent ? note.parent.path : "";
@@ -154,7 +154,7 @@ export async function renameNote(
     console.error("Error renaming note:", error);
     // Reset flag on error since the rename event won't fire
     if (plugin) {
-      (plugin as any).isPerformingAutomaticRename = false;
+      plugin.isPerformingAutomaticRename = false;
     }
     return note;
   }

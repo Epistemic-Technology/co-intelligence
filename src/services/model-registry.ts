@@ -4,6 +4,7 @@ import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createPerplexity } from "@ai-sdk/perplexity";
 import { Model, ModelId, Provider } from "@/types";
+import { ProviderRegistryInternal } from "@/types-extended";
 import type { CoIntelligencePlugin } from "@/CoIntelligencePlugin";
 import { Notice } from "obsidian";
 
@@ -44,7 +45,15 @@ export class ModelRegistry {
       throw new Error("Plugin instance not initialized");
     }
     const settings = this.plugin.settings;
-    const providers: Record<string, any> = {};
+    const providers: Record<
+      string,
+      ReturnType<
+        | typeof createOpenAI
+        | typeof createAnthropic
+        | typeof createGoogleGenerativeAI
+        | typeof createPerplexity
+      >
+    > = {};
 
     if (settings.openaiApiKey) {
       providers.openai = createOpenAI({ apiKey: settings.openaiApiKey });
@@ -216,8 +225,13 @@ export class ModelRegistry {
     const [provider, providerModelId] = model.id.split(":");
     if (provider == "openai") {
       try {
-        const openaiProvider = (this.providerRegistry as any).providers.openai;
-        return openaiProvider.responses(providerModelId);
+        const providerRegistry = this
+          .providerRegistry as unknown as ProviderRegistryInternal;
+        const openaiProvider = providerRegistry.providers.openai;
+        if (openaiProvider.responses) {
+          return openaiProvider.responses(providerModelId);
+        }
+        throw new Error("OpenAI responses method not available");
       } catch (error) {
         new Notice("Error fetching OpenAI responses model");
         console.error(`Error fetching OpenAI responses model: ${error}`);

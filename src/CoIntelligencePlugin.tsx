@@ -34,7 +34,7 @@ import {
 export class CoIntelligencePlugin extends Plugin {
   settings: CoIntelligenceSettings;
   registry: ModelRegistry;
-  private isPerformingAutomaticRename: boolean = false;
+  public isPerformingAutomaticRename: boolean = false;
 
   constructor(app: App, manifest: PluginManifest) {
     super(app, manifest);

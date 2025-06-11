@@ -5,12 +5,14 @@ import {
   StreamTextOnErrorCallback,
   ToolSet,
   LanguageModelV1,
+  JSONValue,
 } from "ai";
 import { openai } from "@ai-sdk/openai";
 
 import { ModelRegistry } from "@/services/model-registry";
 import { makeContext } from "@/utils/model-context";
 import { ChatRequest, ModelChatMessage } from "@/types";
+import { ExtendedLanguageModel } from "@/types-extended";
 import CoIntelligencePlugin from "@/CoIntelligencePlugin";
 
 const abortControllers = new Map<string, AbortController>();
@@ -103,8 +105,8 @@ interface StreamConfig {
   abortSignal: AbortSignal;
   system: string;
   onError: StreamTextOnErrorCallback;
-  tools?: any;
-  providerOptions?: any;
+  tools?: ToolSet;
+  providerOptions?: Record<string, Record<string, JSONValue>>;
 }
 
 interface ConfigGeneratorProps {
@@ -144,9 +146,9 @@ const anthropicConfig = ({ defaultConfig }: ConfigGeneratorProps) => {
 };
 
 const googleConfig = ({ request, defaultConfig }: ConfigGeneratorProps) => {
-  const model = defaultConfig.model;
-  if (request.webSearch) {
-    (model as any).settings.useSearchGrounding = true;
+  const model = defaultConfig.model as ExtendedLanguageModel;
+  if (request.webSearch && model.settings) {
+    model.settings.useSearchGrounding = true;
   }
   const config = {
     ...defaultConfig,

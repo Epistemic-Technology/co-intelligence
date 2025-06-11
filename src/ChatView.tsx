@@ -188,7 +188,7 @@ export class ChatView extends TextFileView {
         sources,
       );
       if (newTitle !== "" && newTitle !== this.file.basename) {
-        await renameNote(this.file, this.app, newTitle, this.plugin);
+        await renameNote(this.file, newTitle, this.app, this.plugin);
       }
     } catch (error) {
       new Notice(`Error serializing CoiNote: ${error}`);
