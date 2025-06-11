@@ -34,6 +34,7 @@ import {
 export class CoIntelligencePlugin extends Plugin {
   settings: CoIntelligenceSettings;
   registry: ModelRegistry;
+  private isPerformingAutomaticRename: boolean = false;
 
   constructor(app: App, manifest: PluginManifest) {
     super(app, manifest);
@@ -83,12 +84,19 @@ export class CoIntelligencePlugin extends Plugin {
     if (!isCoiNote(file as TFile, this.app)) {
       return;
     }
-    await this.app.fileManager.processFrontMatter(
-      file as TFile,
-      (frontmatter) => {
-        frontmatter["note-renamed"] = true;
-      },
-    );
+
+    // Only mark as renamed if this wasn't an automatic rename
+    if (!this.isPerformingAutomaticRename) {
+      await this.app.fileManager.processFrontMatter(
+        file as TFile,
+        (frontmatter) => {
+          frontmatter["note-renamed"] = true;
+        },
+      );
+    } else {
+      // Reset the flag after checking it
+      this.isPerformingAutomaticRename = false;
+    }
   }
 
   private async onFileMenuHandler(

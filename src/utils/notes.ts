@@ -10,7 +10,7 @@ import { ModelChatMessage } from "@/types";
 
 import { ModelRegistry } from "@/services/model-registry";
 import { VIEW_TYPE_COI_CHAT } from "@/ChatView";
-import CoIntelligencePlugin from "@/CoIntelligencePlugin";
+import type CoIntelligencePlugin from "@/CoIntelligencePlugin";
 import {
   Source,
   CoiNoteFrontmatter,
@@ -111,6 +111,7 @@ export async function renameNote(
   note: TFile,
   app: App,
   newName: string,
+  plugin?: CoIntelligencePlugin,
 ): Promise<TFile> {
   if (!note || !newName) {
     return note;
@@ -133,6 +134,11 @@ export async function renameNote(
   }
 
   try {
+    // Set flag before automatic rename
+    if (plugin) {
+      (plugin as any).isPerformingAutomaticRename = true;
+    }
+
     const parentPath = note.parent ? note.parent.path : "";
     const newPath = normalizePath(
       `${parentPath}/${newName}${note.extension ? "." + note.extension : ""}`,
@@ -141,6 +147,10 @@ export async function renameNote(
     return app.vault.getAbstractFileByPath(newPath) as TFile;
   } catch (error) {
     console.error("Error renaming note:", error);
+    // Reset flag on error since the rename event won't fire
+    if (plugin) {
+      (plugin as any).isPerformingAutomaticRename = false;
+    }
     return note;
   }
 }

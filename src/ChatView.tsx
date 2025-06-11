@@ -171,10 +171,6 @@ export class ChatView extends TextFileView {
     if (!this.file) {
       new Notice("Error: File is null while trying to handle chat change");
       console.error("File is null while trying to handle chat change");
-    }
-    if (!this.file) {
-      new Notice("Error: File is null while trying to handle chat change");
-      console.error("File is null while trying to handle chat change");
       return;
     }
     try {
@@ -187,7 +183,7 @@ export class ChatView extends TextFileView {
         sources,
       );
       if (newTitle !== "" && newTitle !== this.file.basename) {
-        await renameNote(this.file, this.app, newTitle);
+        await renameNote(this.file, this.app, newTitle, this.plugin);
       }
     } catch (error) {
       new Notice(`Error serializing CoiNote: ${error}`);
