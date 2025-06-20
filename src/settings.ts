@@ -93,7 +93,7 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
         await this.plugin.saveSettings();
 
         if (needsReinitialize) {
-          this.plugin.registry.reinitialize();
+          this.plugin.registry?.reinitialize();
         }
 
         if (needsRefreshDisplay) {
@@ -271,9 +271,9 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
       .setName("Default model")
       .setDesc("Enter the default model for CoIntelligence")
       .addDropdown((dropdown) => {
-        const availableModels = this.plugin.registry.availableModels;
+        const availableModels = this.plugin.registry?.availableModels;
 
-        if (availableModels.length === 0) {
+        if (!availableModels || availableModels.length === 0) {
           dropdown.addOption("", "No models available - add API keys first");
         } else {
           for (const model of availableModels) {
@@ -289,9 +289,9 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
       .setName("Renaming model")
       .setDesc("Enter the model for automatically renaming notes")
       .addDropdown((dropdown) => {
-        const availableModels = this.plugin.registry.availableModels;
+        const availableModels = this.plugin.registry?.availableModels;
 
-        if (availableModels.length === 0) {
+        if (!availableModels || availableModels.length === 0) {
           dropdown.addOption("", "No models available - add API keys first");
         } else {
           dropdown.addOption("", "Do not rename notes");

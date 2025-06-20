@@ -33,17 +33,17 @@ import {
 
 export class CoIntelligencePlugin extends Plugin {
   settings: CoIntelligenceSettings;
-  registry: ModelRegistry;
+  registry: ModelRegistry | undefined;
   public isPerformingAutomaticRename: boolean = false;
 
   constructor(app: App, manifest: PluginManifest) {
     super(app, manifest);
     this.settings = DEFAULT_SETTINGS;
-    this.registry = ModelRegistry.getInstance(this);
   }
 
   async onload() {
     await this.loadSettings();
+    this.registry = ModelRegistry.getInstance(this);
     this.addSettingTab(new CoIntelligenceSettingsTab(this.app, this));
     this.addCommand(new NewChatCommand(this));
     this.addCommand(new ToggleChatViewCommand(this));
