@@ -2,7 +2,7 @@
   "id": "co-intelligence",
   "name": "Co-Intelligence AI",
   "version": "1.0.4",
-  "minAppVersion": "1.5.0",
+  "minAppVersion": "1.8.0",
   "description": "Co-Intelligence AI gives you a full AI chat experience in Obsidian.",
   "author": "Mike Thicke",
   "authorUrl": "https://github.com/Epistemic-Technology",
