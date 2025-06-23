@@ -44,7 +44,7 @@ export const MarkdownView = ({
           plugin,
         );
       } catch (error) {
-        new Notice("Error: Failed to render markdown");
+        new Notice("Error: failed to render markdown");
         console.error("Failed to render markdown:", error);
         containerRef.textContent = "Error rendering markdown";
       }

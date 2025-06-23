@@ -105,7 +105,7 @@ export class ChatView extends TextFileView {
   async setViewData(data: string, clear: boolean) {
     this.data = data;
     if (!this.file) {
-      new Notice("Error: File is null while trying to set view data");
+      new Notice("Error: file is null while trying to set view data");
       console.error("File is null while trying to set view data");
       return;
     }
@@ -139,7 +139,7 @@ export class ChatView extends TextFileView {
   async render() {
     this.rootElement = this.rootElement || this.containerEl.children[1];
     if (!this.rootElement) {
-      new Notice("Error: Root element is null");
+      new Notice("Error: root element is null");
       console.error("Root element is null");
       return;
     }
@@ -174,7 +174,7 @@ export class ChatView extends TextFileView {
     if (this.updating) return;
     this.updating = true;
     if (!this.file) {
-      new Notice("Error: File is null while trying to handle chat change");
+      new Notice("Error: file is null while trying to handle chat change");
       console.error("File is null while trying to handle chat change");
       return;
     }
@@ -239,7 +239,7 @@ export class ChatView extends TextFileView {
   onPaneMenu(menu: Menu, source: "more-options" | "tab-header" | string): void {
     menu.addItem((item) => {
       item
-        .setTitle("View as Markdown")
+        .setTitle("View as markdown")
         .setIcon("bot-message-square")
         .onClick(() => {
           (this.app as any).commands.executeCommandById(

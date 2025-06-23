@@ -118,7 +118,7 @@ export const ChatInterface = ({
     systemPromptPath?: string,
   ) => {
     if (!message.trim()) {
-      new Notice("Warning: Sending empty user message");
+      new Notice("Warning: sending empty user message");
       console.warn("Message is empty");
       return;
     }

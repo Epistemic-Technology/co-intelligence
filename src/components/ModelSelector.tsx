@@ -58,12 +58,13 @@ export const ModelSelector = ({
             <option value={model.id}>{model.name}</option>
           ))
         ) : (
-          <option value="">No Available Models</option>
+          <option value="">No available models</option>
         )}
       </select>
       {!hasModels && (
         <div id={`${id}-description`} class="sr-only">
-          No AI models are currently available. Please configure model providers in settings.
+          No AI models are currently available. Please configure model providers
+          in settings.
         </div>
       )}
     </div>

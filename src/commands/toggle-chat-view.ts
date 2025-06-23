@@ -9,7 +9,7 @@ export class ToggleChatViewCommand implements Command {
   private plugin: CoIntelligencePlugin;
 
   id: string = "toggle-chat-view";
-  name: string = "Toggle Chat View";
+  name: string = "Toggle chat view";
 
   constructor(plugin: CoIntelligencePlugin) {
     this.plugin = plugin;
@@ -59,7 +59,7 @@ export class ToggleChatViewCommand implements Command {
   private async openInDefaultEditor(file: TFile) {
     const leaf = this.app.workspace.getMostRecentLeaf();
     if (!leaf) {
-      new Notice("Error: No leaf found while opening chat in default editor");
+      new Notice("Error: no leaf found while opening chat in default editor");
       console.error("No leaf found while opening chat in default editor");
       return;
     }
@@ -79,7 +79,7 @@ export class ToggleChatViewCommand implements Command {
   private async openInChatView(file: TFile) {
     const leaf = this.app.workspace.getMostRecentLeaf();
     if (!leaf) {
-      new Notice("Error: No leaf found while opening chat in chat view");
+      new Notice("Error: no leaf found while opening chat in chat view");
       console.error("No leaf found while opening chat in chat view");
       return;
     }

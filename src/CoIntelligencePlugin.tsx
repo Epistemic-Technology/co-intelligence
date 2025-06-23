@@ -52,7 +52,7 @@ export class CoIntelligencePlugin extends Plugin {
       (leaf: WorkspaceLeaf) => new ChatView(leaf, this, this.app),
     );
 
-    this.addRibbonIcon("bot-message-square", "New COI Chat", () => {
+    this.addRibbonIcon("bot-message-square", "New COI chat", () => {
       createCOINote(this.app, this);
     });
     this.registerEvent(
@@ -114,7 +114,7 @@ export class CoIntelligencePlugin extends Plugin {
       return;
     }
     menu.addItem((item) => {
-      item.setTitle("View as Chat");
+      item.setTitle("View as chat");
       item.onClick(async () => {
         (this.app as any).commands.executeCommandById(
           "co-intelligence:toggle-chat-view",

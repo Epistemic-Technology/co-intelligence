@@ -8,7 +8,7 @@ export class NewChatCommand implements Command {
   private plugin: CoIntelligencePlugin;
 
   id: string = "new-chat";
-  name: string = "New Chat";
+  name: string = "New chat";
 
   constructor(plugin: CoIntelligencePlugin) {
     this.plugin = plugin;

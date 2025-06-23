@@ -113,8 +113,12 @@ export const SystemPromptSelector: Component<SystemPromptSelectorProps> = ({
         value={selectedPrompt()}
         onChange={handlePromptChange}
         title="Select a custom system prompt from your configured prompts folder"
-        aria-label={prompts().length === 0 ? "No system prompts available" : undefined}
-        aria-describedby={prompts().length === 0 ? `${id}-description` : undefined}
+        aria-label={
+          prompts().length === 0 ? "No system prompts available" : undefined
+        }
+        aria-describedby={
+          prompts().length === 0 ? `${id}-description` : undefined
+        }
       >
         <option value="" selected={selectedPrompt() === ""}>
           No prompt
@@ -137,7 +141,8 @@ export const SystemPromptSelector: Component<SystemPromptSelectorProps> = ({
       </select>
       {prompts().length === 0 && (
         <div id={`${id}-description`} class="sr-only">
-          No system prompts are available. Configure a system prompts folder in settings to add custom prompts.
+          No system prompts are available. Configure a system prompts folder in
+          settings to add custom prompts.
         </div>
       )}
     </div>

@@ -20,7 +20,7 @@ export const AddContextMenu: Component<AddContextMenuProps> = ({
   let tagIconRef: HTMLSpanElement | undefined;
   let noteButtonRef: HTMLButtonElement | undefined;
   let tagButtonRef: HTMLButtonElement | undefined;
-  
+
   const [focusedIndex, setFocusedIndex] = createSignal(0);
   const menuItems = () => [noteButtonRef, tagButtonRef];
 
@@ -38,7 +38,7 @@ export const AddContextMenu: Component<AddContextMenuProps> = ({
 
     dialogRef.showModal();
     setFocusedIndex(0);
-    
+
     // Focus the first menu item
     setTimeout(() => {
       noteButtonRef?.focus();
@@ -71,7 +71,7 @@ export const AddContextMenu: Component<AddContextMenuProps> = ({
   const handleKeyDown = (e: KeyboardEvent) => {
     const items = menuItems().filter(Boolean);
     const currentIndex = focusedIndex();
-    
+
     switch (e.key) {
       case "ArrowDown":
         e.preventDefault();
@@ -133,7 +133,7 @@ export const AddContextMenu: Component<AddContextMenuProps> = ({
         onKeyDown={handleKeyDown}
       >
         <div class="coi-add-context-menu-content">
-          <h3>Add Context</h3>
+          <h3>Add context</h3>
           <ul role="menu" class="coi-add-context-menu-options">
             <li>
               <button
@@ -147,7 +147,7 @@ export const AddContextMenu: Component<AddContextMenuProps> = ({
                   ref={noteIconRef!}
                   class="coi-add-context-menu-icon"
                 ></span>
-                Add Note
+                Add note
               </button>
             </li>
             <li>
@@ -162,7 +162,7 @@ export const AddContextMenu: Component<AddContextMenuProps> = ({
                   ref={tagIconRef!}
                   class="coi-add-context-menu-icon"
                 ></span>
-                Add Tag
+                Add tag
               </button>
             </li>
           </ul>

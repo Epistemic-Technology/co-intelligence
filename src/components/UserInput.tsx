@@ -282,7 +282,7 @@ export const UserInput: Component<UserInputProps> = ({
               checked={webSearchEnabled()}
               onChange={toggleWebSearchEnabled}
             />
-            <label for="webSearchCheckbox">Web Search</label>
+            <label for="webSearchCheckbox">Web search</label>
           </div>
         </Show>
       </div>
