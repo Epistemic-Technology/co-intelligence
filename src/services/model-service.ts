@@ -34,6 +34,10 @@ export async function generateChatResponse(
   const abortController = new AbortController();
   abortControllers.set(request.requestID, abortController);
 
+  if (!registry.getModel(request.modelId).toggleWebSearch) {
+    request.webSearch = false;
+  }
+
   let systemPrompt = request.systemPrompt || "You are a helpful assistant.";
   if (request.webSearch) {
     systemPrompt +=
