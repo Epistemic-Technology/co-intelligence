@@ -121,7 +121,7 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
 
     // Restore focus after a brief delay to allow DOM to update
     if (focusedPlaceholder) {
-      setTimeout(() => {
+      window.setTimeout(() => {
         const inputs = this.containerEl.querySelectorAll(
           "input[placeholder]",
         ) as NodeListOf<HTMLInputElement>;

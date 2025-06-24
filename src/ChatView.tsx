@@ -70,9 +70,9 @@ export class ChatView extends TextFileView {
 
   async debounceUpdateViewData() {
     if (this.debounceTimeout) {
-      clearTimeout(this.debounceTimeout);
+      window.clearTimeout(this.debounceTimeout);
     }
-    this.debounceTimeout = setTimeout(() => {
+    this.debounceTimeout = window.setTimeout(() => {
       this.debounceTimeout = null;
       this.updateViewData();
     }, 500);

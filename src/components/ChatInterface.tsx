@@ -122,7 +122,8 @@ export const ChatInterface = ({
       console.warn("Message is empty");
       return;
     }
-    if (!model()) {
+    const requestModel = model();
+    if (!requestModel) {
       new Notice("No model selected while sending message");
       console.error("No model selected while sending message");
       return;
@@ -154,7 +155,7 @@ export const ChatInterface = ({
 
     const request: ChatRequest = {
       requestID: crypto.randomUUID(),
-      modelId: (model() as Model).id,
+      modelId: requestModel.id,
       messages: [...messages()],
       context: parsedContext,
       webSearch: webSearchEnabled,

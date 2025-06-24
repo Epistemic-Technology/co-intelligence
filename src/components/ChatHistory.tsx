@@ -37,7 +37,7 @@ export const ChatHistory: Component<ChatHistoryProps> = ({
     messages();
     // Track the isProcessing signal
     isProcessing();
-    setTimeout(scrollToBottom, 0);
+    window.setTimeout(scrollToBottom, 0);
   });
 
   onMount(scrollToBottom);

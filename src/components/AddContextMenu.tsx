@@ -40,7 +40,7 @@ export const AddContextMenu: Component<AddContextMenuProps> = ({
     setFocusedIndex(0);
 
     // Focus the first menu item
-    setTimeout(() => {
+    window.setTimeout(() => {
       noteButtonRef?.focus();
     }, 0);
 

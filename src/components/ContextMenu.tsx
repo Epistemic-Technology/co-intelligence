@@ -56,7 +56,7 @@ export const ContextMenu = (props: ContextMenuProps) => {
 
   onMount(() => {
     // Add a small delay to prevent the opening click from immediately closing the menu
-    setTimeout(() => {
+    window.setTimeout(() => {
       document.addEventListener("click", handleClickOutside);
     }, 0);
     document.addEventListener("keydown", handleKeyDown);

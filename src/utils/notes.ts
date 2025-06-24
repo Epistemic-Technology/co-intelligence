@@ -102,7 +102,7 @@ export async function createCOINote(app: App, plugin: CoIntelligencePlugin) {
     Object.assign(frontmatter, newFrontmatter);
   });
   // Add a small delay to allow the frontmatter to be saved before opening the note.
-  await new Promise((resolve) => setTimeout(resolve, 100));
+  await new Promise((resolve) => window.setTimeout(resolve, 100));
   const leaf = app.workspace.getLeaf();
   await leaf.openFile(file);
 }
@@ -452,7 +452,7 @@ export async function waitForMetadataCache(
   for (let i = 0; i < retries; i++) {
     const cache = app.metadataCache.getFileCache(file);
     if (cache) return cache;
-    await new Promise((resolve) => setTimeout(resolve, delayMs));
+    await new Promise((resolve) => window.setTimeout(resolve, delayMs));
   }
   return null;
 }

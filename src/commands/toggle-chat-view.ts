@@ -47,7 +47,7 @@ export class ToggleChatViewCommand implements Command {
       },
     );
 
-    await new Promise((resolve) => setTimeout(resolve, 200));
+    await new Promise((resolve) => window.setTimeout(resolve, 200));
 
     if (isCurrentlyActive) {
       await this.openInDefaultEditor(currentFile);
