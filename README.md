@@ -112,3 +112,5 @@ I am an idependent software developer. If you find Co-Intelligence to be useful,
 This is an open source project, using the [MIT License](LICENSE). Pull requests for bug fixes or small improvements are welcome. If you want to get involved in a more substantial way, please [Contact me](https://epistemic.technology/contact/).
 
 To report a bug, request a feature, provide feedback, or ask for help, please [open an issue](https://github.com/Epistemic-Technology/co-intelligence/issues).
+
+The GitHub logo used in the settings panel is courtesy of [GitHub](https://github.com/). It was adapted from the logo used in the [Obsidian Excalidraw Plugin](https://github.com/zsviczian/obsidian-excalidraw-plugin). The Excalidraw plugin was also an important source of inspiration and design patterns for implementing the custom chat view.
