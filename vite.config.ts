@@ -11,6 +11,9 @@ export default defineConfig({
     viteStaticCopy({
       targets: [{ src: "manifest.json", dest: "." }],
     }),
+    viteStaticCopy({
+      targets: [{ src: "src/styles.css", dest: "." }],
+    }),
   ],
   resolve: {
     alias: {

@@ -10,8 +10,6 @@ import {
 } from "obsidian";
 import { around } from "monkey-around";
 
-import "./styles.css";
-
 import {
   CoIntelligenceSettings,
   CoIntelligenceSettingsTab,
