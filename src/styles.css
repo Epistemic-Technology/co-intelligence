@@ -306,20 +306,14 @@
     height: 24px;
 }
 
-.coi-add-context-menu {
-    border: none;
-    padding: 0;
-    margin: 0;
-    background: transparent;
+.coi-add-context-menu-backdrop {
     position: fixed;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
-}
-
-.coi-add-context-menu::backdrop {
-    background-color: transparent;
+    background: transparent;
+    z-index: 999;
 }
 
 .coi-add-context-menu-content {
@@ -330,6 +324,10 @@
     box-shadow: var(--shadow-s);
     min-width: 120px;
     z-index: 1000;
+    /* Position above and to the right of the button */
+    bottom: calc(100% + 4px);
+    right: 0;
+    transform-origin: bottom right;
 }
 
 .coi-add-context-menu-content h3 {

@@ -1,4 +1,4 @@
-import { Component, onMount, createSignal } from "solid-js";
+import { Component, onMount, createSignal, Show } from "solid-js";
 import { App, TFile, setIcon } from "obsidian";
 import { NoteLinkSuggestionModal } from "@/components/NoteLinkSuggestionModal";
 import { TagSuggestionModal } from "@/components/TagSuggestionModal";
@@ -15,13 +15,14 @@ export const AddContextMenu: Component<AddContextMenuProps> = ({
   onAddNote,
   onAddTag,
 }) => {
-  let dialogRef: HTMLDialogElement | undefined;
+  let menuRef: HTMLDivElement | undefined;
   let noteIconRef: HTMLSpanElement | undefined;
   let tagIconRef: HTMLSpanElement | undefined;
   let noteButtonRef: HTMLButtonElement | undefined;
   let tagButtonRef: HTMLButtonElement | undefined;
 
   const [focusedIndex, setFocusedIndex] = createSignal(0);
+  const [isOpen, setIsOpen] = createSignal(false);
   const menuItems = () => [noteButtonRef, tagButtonRef];
 
   onMount(() => {
@@ -34,38 +35,21 @@ export const AddContextMenu: Component<AddContextMenuProps> = ({
   });
 
   const openMenu = () => {
-    if (!dialogRef) return;
-
-    dialogRef.showModal();
+    setIsOpen(true);
     setFocusedIndex(0);
 
     // Focus the first menu item
     window.setTimeout(() => {
       noteButtonRef?.focus();
     }, 0);
-
-    const buttonRect =
-      dialogRef.previousElementSibling?.getBoundingClientRect();
-    if (buttonRect) {
-      const dialogContent = dialogRef.querySelector(
-        ".coi-add-context-menu-content",
-      ) as HTMLElement;
-      if (dialogContent) {
-        dialogContent.style.position = "fixed";
-        dialogContent.style.top = `${buttonRect.top - dialogContent.offsetHeight - 4}px`;
-        dialogContent.style.left = `${buttonRect.right - dialogContent.offsetWidth}px`;
-      }
-    }
   };
 
   const closeMenu = () => {
-    dialogRef?.close();
+    setIsOpen(false);
   };
 
-  const handleDialogClick = (e: MouseEvent) => {
-    if (e.target === dialogRef) {
-      closeMenu();
-    }
+  const handleBackdropClick = () => {
+    closeMenu();
   };
 
   const handleKeyDown = (e: KeyboardEvent) => {
@@ -124,17 +108,10 @@ export const AddContextMenu: Component<AddContextMenuProps> = ({
       >
         +
       </button>
-
-      <dialog
-        ref={dialogRef!}
-        class="coi-add-context-menu"
-        onClose={closeMenu}
-        onClick={handleDialogClick}
-        onKeyDown={handleKeyDown}
-      >
-        <div class="coi-add-context-menu-content">
+      <Show when={isOpen()}>
+        <div ref={menuRef!} class="coi-add-context-menu-content" role="menu">
           <h3>Add context</h3>
-          <ul role="menu" class="coi-add-context-menu-options">
+          <ul class="coi-add-context-menu-options">
             <li>
               <button
                 ref={noteButtonRef!}
@@ -167,7 +144,14 @@ export const AddContextMenu: Component<AddContextMenuProps> = ({
             </li>
           </ul>
         </div>
-      </dialog>
+      </Show>
+      <Show when={isOpen()}>
+        <div
+          class="coi-add-context-menu-backdrop"
+          onClick={handleBackdropClick}
+          onKeyDown={handleKeyDown}
+        />
+      </Show>
     </div>
   );
 };
