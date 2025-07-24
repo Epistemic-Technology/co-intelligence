@@ -15,7 +15,6 @@ export const AddContextMenu: Component<AddContextMenuProps> = ({
   onAddNote,
   onAddTag,
 }) => {
-  let menuRef: HTMLDivElement | undefined;
   let noteIconRef: HTMLSpanElement | undefined;
   let tagIconRef: HTMLSpanElement | undefined;
   let noteButtonRef: HTMLButtonElement | undefined;
@@ -106,7 +105,7 @@ export const AddContextMenu: Component<AddContextMenuProps> = ({
         +
       </button>
       <Show when={isOpen()}>
-        <div ref={menuRef!} class="coi-add-context-menu-content" role="menu">
+        <div class="coi-add-context-menu-content" role="menu">
           <h3>Add context</h3>
           <ul class="coi-add-context-menu-options">
             <li>
