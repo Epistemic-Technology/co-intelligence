@@ -86,7 +86,7 @@
     border: 1px solid var(--background-modifier-border);
     border-radius: 4px;
     background-color: var(--background-secondary);
-    overflow-y: auto;
+    overflow-y: visible;
     position: relative;
 }
 
