@@ -25,21 +25,18 @@ export const AddContextMenu: Component<AddContextMenuProps> = ({
   const [isOpen, setIsOpen] = createSignal(false);
   const menuItems = () => [noteButtonRef, tagButtonRef];
 
-  onMount(() => {
-    if (noteIconRef) {
-      setIcon(noteIconRef, "file-text");
-    }
-    if (tagIconRef) {
-      setIcon(tagIconRef, "tag");
-    }
-  });
-
   const openMenu = () => {
     setIsOpen(true);
     setFocusedIndex(0);
 
-    // Focus the first menu item
+    // Set icons and focus after the menu is rendered
     window.setTimeout(() => {
+      if (noteIconRef) {
+        setIcon(noteIconRef, "file-text");
+      }
+      if (tagIconRef) {
+        setIcon(tagIconRef, "tag");
+      }
       noteButtonRef?.focus();
     }, 0);
   };
