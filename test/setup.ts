@@ -1,4 +1,4 @@
-import { vi } from 'vitest';
+import { vi, afterEach } from "vitest";
 
 // Global test setup and configuration
 global.console = {
@@ -19,7 +19,7 @@ declare global {
 }
 
 // Polyfill for Obsidian's String.contains method
-String.prototype.contains = function(searchString: string): boolean {
+String.prototype.contains = function (searchString: string): boolean {
   return this.includes(searchString);
 };
 
