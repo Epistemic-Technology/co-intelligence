@@ -1,4 +1,5 @@
-import { vi, afterEach } from "vitest";
+import { vi, afterEach, expect } from "vitest";
+import '@testing-library/jest-dom';
 
 // Global test setup and configuration
 global.console = {
