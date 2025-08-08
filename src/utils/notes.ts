@@ -5,6 +5,7 @@ import {
   TFolder,
   CachedMetadata,
   MetadataCache,
+  getAllTags,
 } from "obsidian";
 import { ModelChatMessage } from "@/types";
 
@@ -257,7 +258,7 @@ export async function serializeCoiNote(
   lastModelId: string | null,
   sources?: Source[],
 ) {
-  const currentNoteContent = await app.vault.cachedRead(note);
+  const currentNoteContent = await app.vault.read(note);
 
   if (
     !currentNoteContent.includes(CHAT_START) ||
@@ -409,6 +410,7 @@ export const getFilesWithTag = (tag: string, app: App): TFile[] => {
   const allFiles = app.vault.getMarkdownFiles();
   for (const file of allFiles) {
     const cache = app.metadataCache.getCache(file.path);
+    if (!cache) continue;
     const tags = getAllTags(cache);
 
     if (tags?.includes(tag)) {
@@ -418,27 +420,6 @@ export const getFilesWithTag = (tag: string, app: App): TFile[] => {
 
   return filesWithTag;
 };
-
-function getAllTags(cache: CachedMetadata | null): string[] {
-  if (!cache) return [];
-
-  const tags: Set<string> = new Set();
-
-  // Inline tags (e.g., #mytag)
-  cache.tags?.forEach((tagObj) => tags.add(tagObj.tag));
-
-  // Frontmatter tags (array or string)
-  if (cache.frontmatter?.tags) {
-    const fmTags = cache.frontmatter.tags;
-    if (typeof fmTags === "string") {
-      tags.add(fmTags.startsWith("#") ? fmTags : `#${fmTags}`);
-    } else if (Array.isArray(fmTags)) {
-      fmTags.forEach((t) => tags.add(t.startsWith("#") ? t : `#${t}`));
-    }
-  }
-
-  return Array.from(tags);
-}
 
 /**
  * Waits for the metadata cache to be available for a file.
