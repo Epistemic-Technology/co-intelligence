@@ -1,4 +1,4 @@
-import { MarkdownRenderer, Notice } from "obsidian";
+import { MarkdownRenderer, MarkdownRenderChild, Notice } from "obsidian";
 import { createEffect, onMount, useContext } from "solid-js";
 import { AppContext, PluginContext } from "@/CoiChatApp";
 
@@ -36,12 +36,13 @@ export const MarkdownView = ({
       }
 
       try {
+        const renderChild = new MarkdownRenderChild(containerRef);
         await MarkdownRenderer.render(
           app,
           markdown,
           containerRef,
           sourcePath,
-          plugin,
+          renderChild,
         );
       } catch (error) {
         new Notice("Error: failed to render markdown");
