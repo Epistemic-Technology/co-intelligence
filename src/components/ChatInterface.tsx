@@ -1,6 +1,6 @@
 import { createSignal, useContext, Show, createEffect } from "solid-js";
 import { ModelChatMessage } from "@/types";
-import { TFile, Notice } from "obsidian";
+import { TFile, Notice, debounce } from "obsidian";
 
 import { ModelRegistry } from "@/services/model-registry";
 import {
@@ -17,7 +17,6 @@ import {
   ContextItems,
   Tag,
 } from "@/types";
-import { debounce } from "@/utils/debounce";
 import { PluginContext, AppContext } from "@/CoiChatApp";
 import { ChatHistory } from "@/components/ChatHistory";
 import { UserInput } from "@/components/UserInput";
