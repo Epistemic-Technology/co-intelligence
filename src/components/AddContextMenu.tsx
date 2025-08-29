@@ -58,47 +58,7 @@ export const AddContextMenu: Component<AddContextMenuProps> = ({
     }
   };
 
-  const closeMenu = () => {
-    dialogRef?.close();
-  };
-
-  const handleDialogClick = (e: MouseEvent) => {
-    if (e.target === dialogRef) {
-      closeMenu();
-    }
-  };
-
-  const handleKeyDown = (e: KeyboardEvent) => {
-    const items = menuItems().filter(Boolean);
-    const currentIndex = focusedIndex();
-
-    switch (e.key) {
-      case "ArrowDown":
-        e.preventDefault();
-        const nextIndex = (currentIndex + 1) % items.length;
-        setFocusedIndex(nextIndex);
-        items[nextIndex]?.focus();
-        break;
-      case "ArrowUp":
-        e.preventDefault();
-        const prevIndex = (currentIndex - 1 + items.length) % items.length;
-        setFocusedIndex(prevIndex);
-        items[prevIndex]?.focus();
-        break;
-      case "Escape":
-        e.preventDefault();
-        closeMenu();
-        break;
-      case "Enter":
-      case " ":
-        e.preventDefault();
-        items[currentIndex]?.click();
-        break;
-    }
-  };
-
   const handleNoteClick = () => {
-    closeMenu();
     const modal = new NoteLinkSuggestionModal(app, "", (file: TFile) => {
       onAddNote(file);
     });
@@ -106,7 +66,6 @@ export const AddContextMenu: Component<AddContextMenuProps> = ({
   };
 
   const handleTagClick = () => {
-    closeMenu();
     const modal = new TagSuggestionModal(app, "", (tag: Tag) => {
       onAddTag(tag);
     });
@@ -124,50 +83,6 @@ export const AddContextMenu: Component<AddContextMenuProps> = ({
       >
         +
       </button>
-
-      <dialog
-        ref={dialogRef!}
-        class="coi-add-context-menu"
-        onClose={closeMenu}
-        onClick={handleDialogClick}
-        onKeyDown={handleKeyDown}
-      >
-        <div class="coi-add-context-menu-content">
-          <h3>Add context</h3>
-          <ul role="menu" class="coi-add-context-menu-options">
-            <li>
-              <button
-                ref={noteButtonRef!}
-                type="button"
-                role="menuitem"
-                class="coi-add-context-menu-option"
-                onClick={handleNoteClick}
-              >
-                <span
-                  ref={noteIconRef!}
-                  class="coi-add-context-menu-icon"
-                ></span>
-                Add note
-              </button>
-            </li>
-            <li>
-              <button
-                ref={tagButtonRef!}
-                type="button"
-                role="menuitem"
-                class="coi-add-context-menu-option"
-                onClick={handleTagClick}
-              >
-                <span
-                  ref={tagIconRef!}
-                  class="coi-add-context-menu-icon"
-                ></span>
-                Add tag
-              </button>
-            </li>
-          </ul>
-        </div>
-      </dialog>
     </div>
   );
 };
