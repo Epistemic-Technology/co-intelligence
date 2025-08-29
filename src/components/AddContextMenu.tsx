@@ -1,5 +1,5 @@
 import { Component, onMount, createSignal } from "solid-js";
-import { App, TFile, setIcon } from "obsidian";
+import { App, TFile, Menu, setIcon } from "obsidian";
 import { NoteLinkSuggestionModal } from "@/components/NoteLinkSuggestionModal";
 import { TagSuggestionModal } from "@/components/TagSuggestionModal";
 import { Tag } from "@/types";
@@ -15,47 +15,17 @@ export const AddContextMenu: Component<AddContextMenuProps> = ({
   onAddNote,
   onAddTag,
 }) => {
-  let dialogRef: HTMLDialogElement | undefined;
-  let noteIconRef: HTMLSpanElement | undefined;
-  let tagIconRef: HTMLSpanElement | undefined;
   let noteButtonRef: HTMLButtonElement | undefined;
-  let tagButtonRef: HTMLButtonElement | undefined;
-
-  const [focusedIndex, setFocusedIndex] = createSignal(0);
-  const menuItems = () => [noteButtonRef, tagButtonRef];
-
-  onMount(() => {
-    if (noteIconRef) {
-      setIcon(noteIconRef, "file-text");
-    }
-    if (tagIconRef) {
-      setIcon(tagIconRef, "tag");
-    }
-  });
 
   const openMenu = () => {
-    if (!dialogRef) return;
-
-    dialogRef.showModal();
-    setFocusedIndex(0);
-
-    // Focus the first menu item
-    window.setTimeout(() => {
-      noteButtonRef?.focus();
-    }, 0);
-
-    const buttonRect =
-      dialogRef.previousElementSibling?.getBoundingClientRect();
+    const buttonRect = noteButtonRef?.getBoundingClientRect();
+    let left = 0;
+    let bottom = 0;
     if (buttonRect) {
-      const dialogContent = dialogRef.querySelector(
-        ".coi-add-context-menu-content",
-      ) as HTMLElement;
-      if (dialogContent) {
-        dialogContent.style.position = "fixed";
-        dialogContent.style.top = `${buttonRect.top - dialogContent.offsetHeight - 4}px`;
-        dialogContent.style.left = `${buttonRect.right - dialogContent.offsetWidth}px`;
-      }
+      left = buttonRect.left;
+      bottom = buttonRect.bottom;
     }
+    menu.showAtPosition({ x: left, y: bottom });
   };
 
   const handleNoteClick = () => {
@@ -72,9 +42,18 @@ export const AddContextMenu: Component<AddContextMenuProps> = ({
     modal.open();
   };
 
+  const menu = new Menu();
+  menu.addItem((item) =>
+    item.setTitle("Add note").setIcon("file-text").onClick(handleNoteClick),
+  );
+  menu.addItem((item) =>
+    item.setTitle("Add tag").setIcon("tag").onClick(handleTagClick),
+  );
+
   return (
     <div class="coi-add-context-wrapper">
       <button
+        ref={noteButtonRef}
         aria-label="Add context"
         title="Add context to note"
         type="button"
