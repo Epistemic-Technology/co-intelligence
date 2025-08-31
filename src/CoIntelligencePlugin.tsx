@@ -54,16 +54,13 @@ export class CoIntelligencePlugin extends Plugin {
       createCOINote(this.app, this);
     });
     this.registerEvent(
-      this.app.workspace.on("file-open" as any, this.handleFileOpen.bind(this)),
+      this.app.workspace.on("file-open", this.handleFileOpen.bind(this)),
     );
     this.registerEvent(
       this.app.vault.on("rename", this.handleFileRename.bind(this)),
     );
     this.registerEvent(
-      this.app.workspace.on(
-        "file-menu" as any,
-        this.onFileMenuHandler.bind(this) as any,
-      ),
+      this.app.workspace.on("file-menu", this.onFileMenuHandler.bind(this)),
     );
 
     this.app.workspace.onLayoutReady(this.onloadOnLayoutReady.bind(this));
@@ -114,7 +111,7 @@ export class CoIntelligencePlugin extends Plugin {
     menu.addItem((item) => {
       item.setTitle("View as chat");
       item.onClick(async () => {
-        (this.app as any).commands.executeCommandById(
+        this.app.commands.executeCommandById(
           "co-intelligence:toggle-chat-view",
         );
       });

@@ -51,12 +51,9 @@ export class ChatView extends TextFileView {
     this.handleChatChange = this.handleChatChange.bind(this);
     this.icon = "bot-message-square";
     this.registerEvent(
-      this.app.workspace.on(
-        "co-intelligence:settings-changed" as any,
-        async () => {
-          await this.refresh();
-        },
-      ),
+      this.app.workspace.on("co-intelligence:settings-changed", async () => {
+        await this.refresh();
+      }),
     );
   }
 
@@ -242,7 +239,7 @@ export class ChatView extends TextFileView {
         .setTitle("View as markdown")
         .setIcon("bot-message-square")
         .onClick(() => {
-          (this.app as any).commands.executeCommandById(
+          this.app.commands.executeCommandById(
             "co-intelligence:toggle-chat-view",
           );
         });

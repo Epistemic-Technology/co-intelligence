@@ -287,7 +287,7 @@ export const ChatInterface = ({
       }
       triggerChange(true);
     } catch (error) {
-      const message = (error as any).message || "Unknown error";
+      const message = (error as Error).message || "Unknown error";
       new Notice("Error generating response: " + message);
       console.error("Error generating response:", error);
       setIsProcessing(false);

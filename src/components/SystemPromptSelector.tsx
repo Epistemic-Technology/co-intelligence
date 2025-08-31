@@ -69,7 +69,7 @@ export const SystemPromptSelector: Component<SystemPromptSelectorProps> = ({
     // Listen for settings changes
     if (app) {
       const eventRef = app.workspace.on(
-        "co-intelligence:settings-changed" as any,
+        "co-intelligence:settings-changed",
         loadPrompts,
       );
 
