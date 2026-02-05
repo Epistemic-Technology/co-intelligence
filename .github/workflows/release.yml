@@ -41,5 +41,6 @@ jobs:
             gh release create "$tag" \
               --title="$tag" \
               --draft \
+              --generate-notes \
               dist/main.js dist/manifest.json dist/styles.css
           fi

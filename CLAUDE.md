@@ -4,89 +4,60 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Co-Intelligence AI is an Obsidian plugin that integrates AI chat functionality directly into Obsidian. It uses Solid.js for the UI framework and TypeScript throughout.
+Co-Intelligence AI is an Obsidian plugin that integrates AI chat functionality directly into Obsidian. It uses Solid.js for the UI framework, TypeScript throughout, and the Vercel AI SDK for model integrations. It supports OpenAI, Anthropic, Google, and Perplexity providers.
 
 ## Development Commands
 
 ```bash
-# Install dependencies
-npm install
-
-# Development mode with hot reload
-npm run dev
-
-# Production build
-npm run build
-
-# Run tests
-npm test
-
-# Run tests with UI
-npm run test:ui
-
-# Run tests once (CI mode)
-npm run test:run
-
-# Run tests with coverage
-npm run test:coverage
+npm install          # Install dependencies
+npm run dev          # Development mode with file watching
+npm run build        # Production build (also validates TypeScript types)
+npm test             # Run tests with Vitest
+npm run test:run     # Run tests once (CI mode)
+npm run test:ui      # Run tests with UI
+npm run test:coverage # Run tests with V8 coverage
 ```
 
 ## Architecture
 
-### Key Entry Points
-- `src/CoIntelligencePlugin.tsx` - Main plugin class that extends Obsidian's Plugin
-- `src/ChatView.tsx` - Custom Obsidian view for the chat interface
-- `src/CoiChatApp.tsx` - Main Solid.js app component
+### Entry Points & Data Flow
+1. `src/CoIntelligencePlugin.tsx` — Main plugin class. Registers the custom view, commands, ribbon icon, and monkey-patches `WorkspaceLeaf.setViewState()` (via `monkey-around`) to intercept markdown views for COI notes and redirect them to the chat view.
+2. `src/ChatView.tsx` — Extends Obsidian's `TextFileView`. Manages chat state (messages, context, sources), handles serialization/deserialization of chat files, and renders the Solid.js app via `render()`. Uses debounced saves (500ms).
+3. `src/CoiChatApp.tsx` — Root Solid.js component. Creates context providers (`PluginContext`, `AppContext`, `FileContext`) and renders `ChatInterface`.
 
 ### Core Services
-- `src/services/modelRegistry.ts` - Singleton managing AI provider integrations
-- `src/services/modelService.ts` - Handles AI model interactions and streaming
+- `src/services/model-registry.ts` — Singleton that manages AI provider initialization from settings API keys and tracks available models.
+- `src/services/model-service.ts` — `generateChatResponse()` streams AI responses with provider-specific configs (OpenAI web search tool, Google search grounding, Anthropic headers). `generateChatTitle()` auto-renames chats using a configurable renaming model.
 
-### Plugin Integration
-The plugin uses `monkey-around` to patch Obsidian's `WorkspaceLeaf` to automatically open COI chat notes in the custom chat view. This happens in `src/CoIntelligencePlugin.tsx:139-171`.
+### Chat Storage Format
+Chats are markdown files with frontmatter (`is-coi-chat: true`, `coi-chat-view`, `linked-notes`, `linked-tags`) and content between `<!-- CHAT-THREAD-START -->` / `<!-- CHAT-THREAD-END -->` markers. Messages use `## user:` and `## assistant:` headings. Serialization logic is in `src/utils/notes.ts`.
 
-### Chat Storage
-Chats are stored as markdown files with special frontmatter:
-- `is-coi-chat: true` - Identifies COI chat notes
-- `coi-chat-view: "chat"|"source"` - Display mode
-- Chat content is wrapped in `<!-- CHAT-THREAD-START -->` and `<!-- CHAT-THREAD-END -->` tags
+### Context System
+`src/utils/model-context.ts` handles fetching content from linked notes/tags (`getContext()`), formatting it into prompts (`makeContext()`), and estimating token usage (`contextTokenEstimate()`).
 
-### Build Configuration
-- Uses Vite with `vite-plugin-solid` for Solid.js support
-- Outputs CommonJS format for Obsidian compatibility
-- Path aliases: `@/` → `src/`, `@assets/` → `assets/`
+### UI Components
+`src/components/ChatInterface.tsx` is the main orchestrator (manages model, messages, context, sources, processing state). `src/components/UserInput.tsx` handles message input with `[[` note and `#` tag autocomplete via suggestion modals.
+
+## Code Conventions (from .rules)
+
+**This project uses Solid.js, NOT React.** This is the most important convention:
+- Use `createSignal` and `createEffect` for state management
+- Use `<For>` for looping, `<Show>` for conditional rendering
+- Pass accessors (functions) to child components, not values
+- Avoid refs; prefer signals and effects
+- Prefer stateless components when possible
+
+**Other conventions:**
+- Use `@/` imports (maps to `src/`), not relative imports
+- No inline styles — use CSS classes in `src/styles.css` with Obsidian CSS variables
+- Use Lucide icons (from Obsidian), not emoji
+- No NodeJS APIs — the plugin must work on Obsidian mobile
+- Minimal comments — only for complex logic or function/class documentation
+- Favor native HTML elements (e.g., `<dialog>` for modals, `<details>` for collapsibles)
 
 ## Testing
 
-The project uses Vitest for testing with the following infrastructure:
-
-### Test Framework
-- **Vitest** - Fast unit testing framework with Jest-compatible API
-- **@solidjs/testing-library** - Testing utilities for Solid.js components
-- **jsdom** - DOM environment for testing
-- **Coverage** - V8 coverage provider with text, JSON, and HTML reports
-
-### Test Configuration
-- Tests run in jsdom environment with global APIs enabled
-- Setup file at `test/setup.ts` configures mocks and polyfills
-- Obsidian API is mocked via alias in `vitest.config.ts`
-- String.prototype.contains polyfill for Obsidian compatibility
-
-### Testing Guidelines for Claude Code
-- **Always run tests before making changes**: `npm run test:run`
-- **Write tests for new functionality** in `src/**/__tests__/` directories
-- **Run tests after implementation** to verify functionality
-- **Check TypeScript errors**: Use `npm run build` to validate types
-- **Use coverage reports** to ensure adequate test coverage
-
-### Test Location Patterns
-- Unit tests: `src/**/__tests__/*.test.ts`
-- Test utilities: `test/utils/`
-- Mock implementations: `test/mocks/`
-
-## Important Notes
-
-- Target Obsidian version: 1.8.0+
-- Uses Vercel AI SDK for model integrations
-- Supports OpenAI, Anthropic, Google, and Perplexity providers
-- CSS is in `src/styles.css` and gets copied to dist during build
+- Tests go in `src/**/__tests__/*.test.ts` directories
+- Obsidian API is mocked via alias in `vitest.config.ts` pointing to `test/mocks/obsidian.ts`
+- Uses jsdom environment with `@solidjs/testing-library` for component testing
+- Run `npm run build` to validate TypeScript types
