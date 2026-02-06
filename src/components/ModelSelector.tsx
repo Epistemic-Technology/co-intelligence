@@ -24,16 +24,16 @@ export const ModelSelector = ({
   const hasModels = registry.availableModels.length > 0;
 
   return (
-    <div class="model-selector">
+    <div class="coi-model-selector">
       {showLabel ? (
-        <label for={id} class="model-selector-label">
+        <label for={id} class="coi-model-selector-label">
           <LucideIcon name="bot-message-square" aria-hidden="true" />
           {label}
         </label>
       ) : (
         <>
           <LucideIcon name="bot-message-square" aria-hidden="true" />
-          <label for={id} class="sr-only">
+          <label for={id} class="coi-sr-only">
             {label}
           </label>
         </>
@@ -62,7 +62,7 @@ export const ModelSelector = ({
         )}
       </select>
       {!hasModels && (
-        <div id={`${id}-description`} class="sr-only">
+        <div id={`${id}-description`} class="coi-sr-only">
           No AI models are currently available. Please configure model providers
           in settings.
         </div>

@@ -1,5 +1,5 @@
 import { MarkdownRenderer, MarkdownRenderChild, Notice } from "obsidian";
-import { createEffect, onMount, useContext } from "solid-js";
+import { createEffect, onCleanup, onMount, useContext } from "solid-js";
 import { AppContext, PluginContext } from "@/CoiChatApp";
 
 interface MarkdownViewProps {
@@ -12,6 +12,7 @@ export const MarkdownView = ({
   sourcePath = "",
 }: MarkdownViewProps) => {
   let containerRef: HTMLDivElement | undefined;
+  let currentRenderChild: MarkdownRenderChild | undefined;
   const app = useContext(AppContext);
   const plugin = useContext(PluginContext);
   if (!app) {
@@ -31,18 +32,22 @@ export const MarkdownView = ({
 
   const renderMarkdown = async () => {
     if (containerRef && app && plugin) {
+      if (currentRenderChild) {
+        currentRenderChild.unload();
+      }
+
       while (containerRef.firstChild) {
         containerRef.removeChild(containerRef.firstChild);
       }
 
       try {
-        const renderChild = new MarkdownRenderChild(containerRef);
+        currentRenderChild = new MarkdownRenderChild(containerRef);
         await MarkdownRenderer.render(
           app,
           markdown,
           containerRef,
           sourcePath,
-          renderChild,
+          currentRenderChild,
         );
       } catch (error) {
         new Notice("Error: failed to render markdown");
@@ -60,6 +65,12 @@ export const MarkdownView = ({
 
   onMount(() => {
     renderMarkdown();
+  });
+
+  onCleanup(() => {
+    if (currentRenderChild) {
+      currentRenderChild.unload();
+    }
   });
 
   return <div class="markdown-rendered" ref={(el) => (containerRef = el)} />;

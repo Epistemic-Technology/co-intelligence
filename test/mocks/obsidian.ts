@@ -38,6 +38,7 @@ export class Vault {
   rename = vi.fn().mockResolvedValue(undefined);
   getAbstractFileByPath = vi.fn().mockReturnValue(null);
   getMarkdownFiles = vi.fn().mockReturnValue([]);
+  getAllLoadedFiles = vi.fn().mockReturnValue([]);
   createFolder = vi.fn().mockImplementation(async () => new TFolder());
 }
 
@@ -347,6 +348,28 @@ export class MarkdownRenderChild {
   constructor(containerEl: HTMLElement) {
     this.containerEl = containerEl;
   }
+  load(): void {}
+  unload(): void {}
   onload(): void {}
   onunload(): void {}
+}
+
+export class AbstractInputSuggest<T> {
+  app: App;
+  inputEl: HTMLInputElement;
+
+  constructor(app: App, inputEl: HTMLInputElement) {
+    this.app = app;
+    this.inputEl = inputEl;
+  }
+
+  getSuggestions(_query: string): T[] {
+    return [];
+  }
+
+  renderSuggestion(_item: T, _el: HTMLElement): void {}
+
+  selectSuggestion(_item: T): void {}
+
+  close(): void {}
 }

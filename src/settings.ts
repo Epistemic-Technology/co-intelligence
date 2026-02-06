@@ -1,6 +1,7 @@
 import type CoIntelligencePlugin from "@/CoIntelligencePlugin";
 import { App, normalizePath, PluginSettingTab, Setting } from "obsidian";
 import { ModelId } from "@/types";
+import { FolderSuggest } from "@/components/FolderSuggest";
 
 import kofiLogo from "@assets/images/kofi.png";
 
@@ -201,12 +202,13 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName("Default folder")
       .setDesc("Enter the default folder for CoIntelligence")
-      .addText((text) =>
+      .addText((text) => {
         text
           .setPlaceholder("Enter the default folder for CoIntelligence")
           .setValue(this.plugin.settings.defaultFolder)
-          .onChange(this.createDebouncedChangeHandler("defaultFolder")),
-      );
+          .onChange(this.createDebouncedChangeHandler("defaultFolder"));
+        new FolderSuggest(this.app, text.inputEl);
+      });
 
     new Setting(containerEl)
       .setName("Default model")
@@ -256,6 +258,7 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
         textArea.onChange(
           this.createDebouncedChangeHandler("systemPromptFolder", false, true),
         );
+        new FolderSuggest(this.app, textArea.inputEl);
       });
 
     new Setting(containerEl)
@@ -293,7 +296,7 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
     });
     const srOnlySpan = kofiLink.createEl("span", {
       text: "Support me on Ko-fi",
-      cls: "sr-only",
+      cls: "coi-sr-only",
     });
     kofiLink.createEl("img", {
       attr: {

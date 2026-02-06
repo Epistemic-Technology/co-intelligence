@@ -94,16 +94,16 @@ export const SystemPromptSelector: Component<SystemPromptSelectorProps> = ({
   };
 
   return (
-    <div class="system-prompt-selector">
+    <div class="coi-system-prompt-selector">
       {showLabel ? (
-        <label for={id} class="system-prompt-selector-label">
+        <label for={id} class="coi-system-prompt-selector-label">
           <LucideIcon name="message-circle-code" aria-hidden="true" />
           {label}
         </label>
       ) : (
         <>
           <LucideIcon name="message-circle-code" aria-hidden="true" />
-          <label for={id} class="sr-only">
+          <label for={id} class="coi-sr-only">
             {label}
           </label>
         </>
@@ -140,7 +140,7 @@ export const SystemPromptSelector: Component<SystemPromptSelectorProps> = ({
         </For>
       </select>
       {prompts().length === 0 && (
-        <div id={`${id}-description`} class="sr-only">
+        <div id={`${id}-description`} class="coi-sr-only">
           No system prompts are available. Configure a system prompts folder in
           settings to add custom prompts.
         </div>
