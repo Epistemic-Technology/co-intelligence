@@ -1,15 +1,15 @@
-import { LanguageModelV1 } from "ai";
+import { LanguageModel } from "ai";
 
 // Provider registry types - accessing internal ai SDK structure
 export interface ProviderRegistryInternal {
   providers: Record<
     string,
     {
-      responses?: (model: string) => LanguageModelV1;
+      responses?: (model: string) => LanguageModel;
       [key: string]: unknown;
     }
   >;
-  languageModel: (modelId: string) => LanguageModelV1;
+  languageModel: (modelId: string) => LanguageModel;
 }
 
 // Provider-specific options
@@ -24,13 +24,6 @@ export interface ProviderOptions {
   google?: Record<string, unknown>;
   perplexity?: Record<string, unknown>;
   [key: string]: Record<string, unknown> | undefined;
-}
-
-// Extended language model for Google
-export interface ExtendedLanguageModel extends LanguageModelV1 {
-  settings?: {
-    useSearchGrounding?: boolean;
-  };
 }
 
 // Generic async function type for debouncing

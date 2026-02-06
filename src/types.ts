@@ -1,4 +1,4 @@
-import { CoreMessage } from "ai";
+import { ModelMessage } from "ai";
 import { TFile } from "obsidian";
 
 export interface ContextItemContent {
@@ -23,7 +23,7 @@ export interface Source {
   title?: string;
 }
 
-export type ModelChatMessage = CoreMessage & {
+export type ModelChatMessage = ModelMessage & {
   isReasoning?: boolean;
 };
 
