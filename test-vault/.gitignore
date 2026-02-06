@@ -1,0 +1,7 @@
+# Obsidian generates config files when the vault is opened.
+# Only community-plugins.json is checked in (to pre-enable the plugin).
+.obsidian/*
+!.obsidian/community-plugins.json
+
+# Plugin symlinks are machine-specific; the script recreates them.
+.obsidian/plugins/

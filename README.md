@@ -107,6 +107,35 @@ I am an idependent software developer. If you find Co-Intelligence to be useful,
 
 [<img style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi6.png?v=6' border='0' alt='Buy Me a Coffee at ko-fi.com' />](https://ko-fi.com/X8X71G7YSI)
 
+## Development
+
+### Setup
+
+```bash
+npm install
+npm run dev      # Watch mode — rebuilds on file changes
+npm run build    # Production build (also validates TypeScript types)
+npm test         # Run tests with Vitest
+```
+
+### Manual Testing
+
+A test vault is included at `test-vault/` so you can test the plugin in Obsidian without affecting your personal vault. To build and open it:
+
+```bash
+./scripts/open-test-vault.sh
+```
+
+The first time you open the vault, you'll need to enable community plugins in Settings > Community plugins. After that, the Co-Intelligence AI plugin will be pre-enabled.
+
+The script symlinks the build output (`dist/`) into the test vault's plugin directory, so rebuilds are picked up automatically. For a live development workflow:
+
+1. Run `npm run dev` in one terminal
+2. Run `./scripts/open-test-vault.sh` to open the vault
+3. After changes rebuild, reload Obsidian (Cmd/Ctrl+P > "Reload app without saving")
+
+The test vault includes sample folders and system prompts for exercising plugin features.
+
 ## Contributing, Feedback, and Help
 
 This is an open source project, using the [MIT License](LICENSE). Pull requests for bug fixes or small improvements are welcome. If you want to get involved in a more substantial way, please [Contact me](https://epistemic.technology/contact/).
