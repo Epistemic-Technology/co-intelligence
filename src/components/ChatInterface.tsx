@@ -176,28 +176,31 @@ export const ChatInterface = ({
             console.log("Error:", chunk.error);
             new Notice("Unknown error occurred. See console log for details.");
           }
-          if (chunk.type !== "text-delta" && chunk.type !== "reasoning") {
+          if (chunk.type === "reasoning-start") {
+            doingReasoning = true;
+            accumulatedContent += "<think>";
             continue;
           }
+          if (chunk.type === "reasoning-end") {
+            doingReasoning = false;
+            accumulatedContent += "</think>";
+            continue;
+          }
+          if (chunk.type !== "text-delta" && chunk.type !== "reasoning-delta") {
+            continue;
+          }
+          const text = chunk.text;
           if (isFirstChunk) {
             const assistantMessage: ModelChatMessage = {
               role: "assistant",
-              content: chunk.textDelta,
+              content: text,
             };
             setMessages([...messages(), assistantMessage]);
-            if (chunk.type === "reasoning") {
-              accumulatedContent = "<think>";
-              doingReasoning = true;
-            }
-            accumulatedContent += chunk.textDelta;
+            accumulatedContent += text;
             isFirstChunk = false;
             setIsProcessing(false);
           } else {
-            if (doingReasoning && chunk.type !== "reasoning") {
-              accumulatedContent += "</think>";
-              doingReasoning = false;
-            }
-            accumulatedContent += chunk.textDelta;
+            accumulatedContent += text;
             setMessages((prevMessages) => {
               const updatedMessages = [...prevMessages];
               updatedMessages[updatedMessages.length - 1] = {
@@ -246,7 +249,7 @@ export const ChatInterface = ({
 
         // Replace source reference numbers [n] with [n+offset]
         const offset = lastSourceLinkNumber();
-        const updatedContent = (lastMessage.content as string).replace(
+        const updatedContent = ((lastMessage.content as string) ?? "").replace(
           /\[(\d+)\]/g,
           (match, num) => {
             const source = uniqueNewSources[parseInt(num) - 1];
@@ -274,7 +277,9 @@ export const ChatInterface = ({
       if (!hasProcessedSources) {
         const currentMessage = messages()[messages().length - 1];
         const newLinks =
-          (currentMessage.content as string).match(/\[(.*?)\]\((.*?)\)/g) || [];
+          ((currentMessage.content as string) ?? "").match(
+            /\[(.*?)\]\((.*?)\)/g,
+          ) || [];
         newLinks.forEach((link) => {
           const [text, url] = link.slice(1, -1).split("](");
           const existingSource = sources().find((source) => source.url === url);
