@@ -353,23 +353,3 @@ export class MarkdownRenderChild {
   onload(): void {}
   onunload(): void {}
 }
-
-export class AbstractInputSuggest<T> {
-  app: App;
-  inputEl: HTMLInputElement;
-
-  constructor(app: App, inputEl: HTMLInputElement) {
-    this.app = app;
-    this.inputEl = inputEl;
-  }
-
-  getSuggestions(_query: string): T[] {
-    return [];
-  }
-
-  renderSuggestion(_item: T, _el: HTMLElement): void {}
-
-  selectSuggestion(_item: T): void {}
-
-  close(): void {}
-}
