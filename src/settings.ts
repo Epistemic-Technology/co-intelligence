@@ -29,114 +29,108 @@ export const DEFAULT_SETTINGS: CoIntelligenceSettings = {
 
 export class CoIntelligenceSettingsTab extends PluginSettingTab {
   plugin: CoIntelligencePlugin;
-  private debounceTimer: number | null = null;
-  private pendingChanges: {
-    settingKey: keyof CoIntelligenceSettings;
-    value: string;
-    shouldReinitialize: boolean;
-    shouldRefreshDisplay: boolean;
-  }[] = [];
+  private defaultModelSelect: HTMLSelectElement | null = null;
+  private renamingModelSelect: HTMLSelectElement | null = null;
+  private systemPromptSelect: HTMLSelectElement | null = null;
 
   constructor(app: App, plugin: CoIntelligencePlugin) {
     super(app, plugin);
     this.plugin = plugin;
   }
 
-  private createDebouncedChangeHandler(
+  private async saveSetting(
     settingKey: keyof CoIntelligenceSettings,
-    shouldReinitialize = false,
-    shouldRefreshDisplay = false,
-  ) {
-    return async (value: string) => {
-      const existingIndex = this.pendingChanges.findIndex(
-        (change) => change.settingKey === settingKey,
-      );
-      if (settingKey.includes("Folder")) {
-        value = normalizePath(value);
-      }
-      if (existingIndex >= 0) {
-        this.pendingChanges[existingIndex] = {
-          settingKey,
-          value,
-          shouldReinitialize,
-          shouldRefreshDisplay,
-        };
-      } else {
-        this.pendingChanges.push({
-          settingKey,
-          value,
-          shouldReinitialize,
-          shouldRefreshDisplay,
-        });
-      }
-
-      if (this.debounceTimer) {
-        window.clearTimeout(this.debounceTimer);
-      }
-
-      this.debounceTimer = window.setTimeout(async () => {
-        const changes = [...this.pendingChanges];
-        this.pendingChanges = [];
-        this.debounceTimer = null;
-
-        let needsReinitialize = false;
-        let needsRefreshDisplay = false;
-
-        for (const change of changes) {
-          // Type-safe property assignment
-          (
-            this.plugin.settings as Record<keyof CoIntelligenceSettings, string>
-          )[change.settingKey] = change.value;
-          if (change.shouldReinitialize) needsReinitialize = true;
-          if (change.shouldRefreshDisplay) needsRefreshDisplay = true;
-        }
-
-        await this.plugin.saveSettings();
-
-        if (needsReinitialize) {
-          this.plugin.registry?.reinitialize();
-        }
-
-        if (needsRefreshDisplay) {
-          this.displayWithFocusPreservation();
-        }
-
-        this.app.workspace.trigger("co-intelligence:settings-changed");
-      }, 500);
-    };
+    value: string,
+  ): Promise<void> {
+    if (settingKey.includes("Folder")) {
+      value = normalizePath(value);
+    }
+    (this.plugin.settings as Record<keyof CoIntelligenceSettings, string>)[
+      settingKey
+    ] = value;
+    await this.plugin.saveSettings();
+    this.app.workspace.trigger("co-intelligence:settings-changed");
   }
 
-  private displayWithFocusPreservation(): void {
-    // Store focus information
-    const activeElement = document.activeElement as HTMLInputElement;
-    let focusedPlaceholder: string | null = null;
-    let cursorPosition: number | null = null;
+  private reinitializeAndRefreshDropdowns(): void {
+    this.plugin.registry?.reinitialize();
+    this.refreshDropdowns();
+  }
 
-    if (activeElement && activeElement.placeholder) {
-      focusedPlaceholder = activeElement.placeholder;
-      cursorPosition = activeElement.selectionStart;
+  private refreshDropdowns(): void {
+    this.refreshModelDropdown(
+      this.defaultModelSelect,
+      this.plugin.settings.defaultModel || "",
+      false,
+    );
+    this.refreshModelDropdown(
+      this.renamingModelSelect,
+      this.plugin.settings.renamingModel || "",
+      true,
+    );
+    this.refreshSystemPromptDropdown();
+  }
+
+  private refreshModelDropdown(
+    select: HTMLSelectElement | null,
+    currentValue: string,
+    isRenaming: boolean,
+  ): void {
+    if (!select) return;
+
+    select.empty();
+
+    const availableModels = this.plugin.registry?.availableModels;
+
+    if (!availableModels || availableModels.length === 0) {
+      select.createEl("option", {
+        value: "",
+        text: "No models available - add API keys first",
+      });
+    } else {
+      if (isRenaming) {
+        select.createEl("option", {
+          value: "",
+          text: "Do not rename notes",
+        });
+      }
+      for (const model of availableModels) {
+        if (isRenaming && !model.renaming) continue;
+        select.createEl("option", { value: model.id, text: model.name });
+      }
     }
 
-    // Refresh the display
-    this.display();
+    select.value = currentValue;
+  }
 
-    // Restore focus after a brief delay to allow DOM to update
-    if (focusedPlaceholder) {
-      window.setTimeout(() => {
-        const inputs = this.containerEl.querySelectorAll(
-          "input[placeholder]",
-        ) as NodeListOf<HTMLInputElement>;
-        for (const input of inputs) {
-          if (input.placeholder === focusedPlaceholder) {
-            input.focus();
-            if (cursorPosition !== null) {
-              input.setSelectionRange(cursorPosition, cursorPosition);
-            }
-            break;
-          }
-        }
-      }, 10);
+  private refreshSystemPromptDropdown(): void {
+    if (!this.systemPromptSelect) return;
+
+    this.systemPromptSelect.empty();
+
+    const systemPromptFolder = this.plugin.settings.systemPromptFolder;
+    const notes = this.app.vault
+      .getMarkdownFiles()
+      .filter(
+        (file) =>
+          file.path.startsWith(systemPromptFolder + "/") ||
+          file.path === systemPromptFolder,
+      );
+
+    this.systemPromptSelect.createEl("option", {
+      value: "",
+      text: "No default system prompt",
+    });
+
+    for (const note of notes) {
+      this.systemPromptSelect.createEl("option", {
+        value: note.path,
+        text: note.basename,
+      });
     }
+
+    this.systemPromptSelect.value =
+      this.plugin.settings.defaultSystemPromptNote || "";
   }
 
   display(): void {
@@ -152,50 +146,54 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName("OpenAI API key")
       .setDesc("Enter your OpenAI API key")
-      .addText((text) =>
+      .addText((text) => {
         text
           .setPlaceholder("Enter your OpenAI API key")
           .setValue(this.plugin.settings.openaiApiKey)
-          .onChange(
-            this.createDebouncedChangeHandler("openaiApiKey", true, true),
-          ),
-      );
+          .onChange((value) => this.saveSetting("openaiApiKey", value));
+        text.inputEl.addEventListener("blur", () =>
+          this.reinitializeAndRefreshDropdowns(),
+        );
+      });
 
     new Setting(containerEl)
       .setName("Anthropic API key")
       .setDesc("Enter your Anthropic API key")
-      .addText((text) =>
+      .addText((text) => {
         text
           .setPlaceholder("Enter your Anthropic API key")
           .setValue(this.plugin.settings.anthropicApiKey)
-          .onChange(
-            this.createDebouncedChangeHandler("anthropicApiKey", true, true),
-          ),
-      );
+          .onChange((value) => this.saveSetting("anthropicApiKey", value));
+        text.inputEl.addEventListener("blur", () =>
+          this.reinitializeAndRefreshDropdowns(),
+        );
+      });
 
     new Setting(containerEl)
       .setName("Google API key")
       .setDesc("Enter your Google API key")
-      .addText((text) =>
+      .addText((text) => {
         text
           .setPlaceholder("Enter your Google API key")
           .setValue(this.plugin.settings.googleApiKey)
-          .onChange(
-            this.createDebouncedChangeHandler("googleApiKey", true, true),
-          ),
-      );
+          .onChange((value) => this.saveSetting("googleApiKey", value));
+        text.inputEl.addEventListener("blur", () =>
+          this.reinitializeAndRefreshDropdowns(),
+        );
+      });
 
     new Setting(containerEl)
       .setName("Perplexity API key")
       .setDesc("Enter your Perplexity API key")
-      .addText((text) =>
+      .addText((text) => {
         text
           .setPlaceholder("Enter your Perplexity API key")
           .setValue(this.plugin.settings.perplexityApiKey)
-          .onChange(
-            this.createDebouncedChangeHandler("perplexityApiKey", true, true),
-          ),
-      );
+          .onChange((value) => this.saveSetting("perplexityApiKey", value));
+        text.inputEl.addEventListener("blur", () =>
+          this.reinitializeAndRefreshDropdowns(),
+        );
+      });
 
     new Setting(containerEl)
       .setName("Default folder")
@@ -204,13 +202,15 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
         text
           .setPlaceholder("Enter the default folder for CoIntelligence")
           .setValue(this.plugin.settings.defaultFolder)
-          .onChange(this.createDebouncedChangeHandler("defaultFolder")),
+          .onChange((value) => this.saveSetting("defaultFolder", value)),
       );
 
     new Setting(containerEl)
       .setName("Default model")
       .setDesc("Enter the default model for CoIntelligence")
       .addDropdown((dropdown) => {
+        this.defaultModelSelect = dropdown.selectEl;
+
         const availableModels = this.plugin.registry?.availableModels;
 
         if (!availableModels || availableModels.length === 0) {
@@ -222,13 +222,15 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
         }
 
         dropdown.setValue(this.plugin.settings.defaultModel || "");
-        dropdown.onChange(this.createDebouncedChangeHandler("defaultModel"));
+        dropdown.onChange((value) => this.saveSetting("defaultModel", value));
       });
 
     new Setting(containerEl)
       .setName("Renaming model")
       .setDesc("Enter the model for automatically renaming notes")
       .addDropdown((dropdown) => {
+        this.renamingModelSelect = dropdown.selectEl;
+
         const availableModels = this.plugin.registry?.availableModels;
 
         if (!availableModels || availableModels.length === 0) {
@@ -243,17 +245,18 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
         }
 
         dropdown.setValue(this.plugin.settings.renamingModel || "");
-        dropdown.onChange(this.createDebouncedChangeHandler("renamingModel"));
+        dropdown.onChange((value) => this.saveSetting("renamingModel", value));
       });
 
     new Setting(containerEl)
       .setName("System prompt folder")
       .setDesc("Enter the folder path for custom system prompts")
-      .addText((textArea) => {
-        textArea.setPlaceholder("Enter folder for custom system prompts");
-        textArea.setValue(this.plugin.settings.systemPromptFolder || "");
-        textArea.onChange(
-          this.createDebouncedChangeHandler("systemPromptFolder", false, true),
+      .addText((text) => {
+        text.setPlaceholder("Enter folder for custom system prompts");
+        text.setValue(this.plugin.settings.systemPromptFolder || "");
+        text.onChange((value) => this.saveSetting("systemPromptFolder", value));
+        text.inputEl.addEventListener("blur", () =>
+          this.refreshSystemPromptDropdown(),
         );
       });
 
@@ -261,6 +264,8 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
       .setName("Default system prompt")
       .setDesc("Select note for default system prompt")
       .addDropdown((dropdown) => {
+        this.systemPromptSelect = dropdown.selectEl;
+
         const systemPromptFolder = this.plugin.settings.systemPromptFolder;
         const notes = this.app.vault
           .getMarkdownFiles()
@@ -277,8 +282,8 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
         }
 
         dropdown.setValue(this.plugin.settings.defaultSystemPromptNote || "");
-        dropdown.onChange(
-          this.createDebouncedChangeHandler("defaultSystemPromptNote"),
+        dropdown.onChange((value) =>
+          this.saveSetting("defaultSystemPromptNote", value),
         );
       });
 
