@@ -1,7 +1,6 @@
 import type CoIntelligencePlugin from "@/CoIntelligencePlugin";
 import { App, normalizePath, PluginSettingTab, Setting } from "obsidian";
 import { ModelId } from "@/types";
-
 import kofiLogo from "@assets/images/kofi.png";
 
 export interface CoIntelligenceSettings {
@@ -293,7 +292,7 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
     });
     const srOnlySpan = kofiLink.createEl("span", {
       text: "Support me on Ko-fi",
-      cls: "sr-only",
+      cls: "coi-sr-only",
     });
     kofiLink.createEl("img", {
       attr: {
