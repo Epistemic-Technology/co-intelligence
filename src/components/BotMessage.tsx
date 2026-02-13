@@ -3,7 +3,7 @@ import { ModelChatMessage } from "@/types";
 
 import { ChatMessage } from "@/components/ChatMessage";
 import { MarkdownView } from "@/components/MarkdownView";
-import { AppContext, FileContext, PluginContext } from "@/CoiChatApp";
+import { FileContext } from "@/CoiChatApp";
 
 export interface BotMessageProps {
   message: ModelChatMessage;

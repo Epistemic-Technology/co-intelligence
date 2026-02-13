@@ -1,4 +1,4 @@
-import { App, Plugin, Command, TFile, TFolder, normalizePath } from "obsidian";
+import { App, Command } from "obsidian";
 
 import CoIntelligencePlugin from "@/CoIntelligencePlugin";
 import { createCOINote } from "@/utils/notes";

@@ -50,8 +50,8 @@ export class CoIntelligencePlugin extends Plugin {
       (leaf: WorkspaceLeaf) => new ChatView(leaf, this, this.app),
     );
 
-    this.addRibbonIcon("bot-message-square", "New COI chat", () => {
-      createCOINote(this.app, this);
+    this.addRibbonIcon("bot-message-square", "New chat", () => {
+      void createCOINote(this.app, this);
     });
     this.registerEvent(
       this.app.workspace.on("file-open", this.handleFileOpen.bind(this)),
@@ -66,7 +66,7 @@ export class CoIntelligencePlugin extends Plugin {
     this.app.workspace.onLayoutReady(this.onloadOnLayoutReady.bind(this));
   }
 
-  async onloadOnLayoutReady() {
+  onloadOnLayoutReady() {
     this.registerMonkeyPatches();
   }
 
@@ -99,18 +99,18 @@ export class CoIntelligencePlugin extends Plugin {
     }
   }
 
-  private async onFileMenuHandler(
+  private onFileMenuHandler(
     menu: Menu,
     file: TFile,
-    source: string,
-    leaf: WorkspaceLeaf,
+    _source: string,
+    _leaf: WorkspaceLeaf,
   ) {
     if (!isCoiNote(file, this.app) || isActiveCoiNote(file, this.app)) {
       return;
     }
     menu.addItem((item) => {
       item.setTitle("View as chat");
-      item.onClick(async () => {
+      item.onClick(() => {
         this.app.commands.executeCommandById(
           "co-intelligence:toggle-chat-view",
         );
@@ -141,13 +141,17 @@ export class CoIntelligencePlugin extends Plugin {
     this.register(
       around(WorkspaceLeaf.prototype, {
         setViewState(next) {
-          return function (this: any, state: ViewState, eState?: any) {
+          return function (
+            this: WorkspaceLeaf,
+            state: ViewState,
+            eState?: unknown,
+          ) {
             const newState = {
               ...state,
             };
             if (state.type === "markdown") {
               const path = (state.state?.file as string) ?? "";
-              if (isPathActiveCoiNote(path, this.app as App)) {
+              if (isPathActiveCoiNote(path, this.app)) {
                 newState.type = VIEW_TYPE_COI_CHAT;
               }
             }

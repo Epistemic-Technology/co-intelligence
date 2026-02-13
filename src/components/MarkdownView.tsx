@@ -16,16 +16,12 @@ export const MarkdownView = ({
   const app = useContext(AppContext);
   const plugin = useContext(PluginContext);
   if (!app) {
-    new Notice(
-      "Error: AppContext is not available while creating MarkdownView",
-    );
+    new Notice("Error: app context is not available");
     console.error("AppContext is not available");
     return null;
   }
   if (!plugin) {
-    new Notice(
-      "Error: PluginContext is not available while creating MarkdownView",
-    );
+    new Notice("Error: plugin context is not available");
     console.error("PluginContext is not available");
     return null;
   }
@@ -50,21 +46,21 @@ export const MarkdownView = ({
           currentRenderChild,
         );
       } catch (error) {
-        new Notice("Error: failed to render markdown");
-        console.error("Failed to render markdown:", error);
-        containerRef.textContent = "Error rendering markdown";
+        new Notice("Error: failed to render Markdown");
+        console.error("Failed to render Markdown:", error);
+        containerRef.textContent = "Error rendering Markdown";
       }
     }
   };
 
   createEffect(() => {
     if (markdown) {
-      renderMarkdown();
+      void renderMarkdown();
     }
   });
 
   onMount(() => {
-    renderMarkdown();
+    void renderMarkdown();
   });
 
   onCleanup(() => {

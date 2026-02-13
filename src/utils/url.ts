@@ -5,9 +5,9 @@ export function getDomainFromUrl(url: string): string {
   try {
     const urlObj = new URL(url);
     return urlObj.hostname;
-  } catch (error) {
+  } catch {
     // If URL parsing fails, try to extract domain manually
-    const match = url.match(/^(?:https?:\/\/)?(?:www\.)?([^\/]+)/);
+    const match = url.match(/^(?:https?:\/\/)?(?:www\.)?([^/]+)/);
     return match ? match[1] : url;
   }
 }

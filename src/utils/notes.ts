@@ -12,14 +12,7 @@ import { ModelChatMessage } from "@/types";
 import { ModelRegistry } from "@/services/model-registry";
 import { VIEW_TYPE_COI_CHAT } from "@/ChatView";
 import type CoIntelligencePlugin from "@/CoIntelligencePlugin";
-import {
-  Source,
-  CoiNoteFrontmatter,
-  ContextItems,
-  ContextItemContent,
-  ChatRequest,
-  Model,
-} from "@/types";
+import { Source, CoiNoteFrontmatter, ContextItems } from "@/types";
 
 const CHAT_START = "<!-- CHAT-THREAD-START -->";
 const CHAT_END = "<!-- CHAT-THREAD-END -->";
@@ -180,13 +173,13 @@ export async function openCOINote(
   });
 }
 
-export async function serializeCoiNoteContent(
+export function serializeCoiNoteContent(
   currentNoteContent: string,
-  app: App,
+  _app: App,
   messages: ModelChatMessage[],
   contextItems: ContextItems | null,
   sources?: Source[],
-): Promise<string> {
+): string {
   const serializedMessages = messages
     .map(({ role, content }) => {
       const contentStr = content as string;
@@ -267,7 +260,7 @@ export async function serializeCoiNote(
     return;
   }
 
-  const newNoteContent = await serializeCoiNoteContent(
+  const newNoteContent = serializeCoiNoteContent(
     currentNoteContent,
     app,
     messages,
@@ -305,15 +298,15 @@ export async function deserializeCoiNote(note: TFile, app: App) {
   );
 }
 
-export async function deserializeCoiNoteContent(
+export function deserializeCoiNoteContent(
   content: string,
   metadata: CachedMetadata | null,
   app: App,
-): Promise<{
+): {
   messages: ModelChatMessage[];
   contextItems: ContextItems;
   sources: Source[];
-}> {
+} {
   if (!pattern.test(content)) {
     return {
       messages: [],
@@ -363,7 +356,7 @@ export async function deserializeCoiNoteContent(
       flushContent();
       const candidateMode = line
         .replace(/^## /, "")
-        .replace(/\:/, "")
+        .replace(/:/, "")
         .trim()
         .toLowerCase();
       if (

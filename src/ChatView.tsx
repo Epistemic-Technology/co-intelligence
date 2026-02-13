@@ -38,7 +38,7 @@ export class ChatView extends TextFileView {
   public contextItems: ContextItems = { notes: [], tags: [], sources: [] };
   public sources: Source[] = [];
   public rootElement: Element | null = null;
-  public dispose: any;
+  public dispose: (() => void) | null = null;
 
   private updating = false;
   private debounceTimeout: number | null = null;
@@ -60,13 +60,13 @@ export class ChatView extends TextFileView {
     return this.file?.basename || "Co-Intelligence Chat";
   }
 
-  async debounceUpdateViewData() {
+  debounceUpdateViewData() {
     if (this.debounceTimeout) {
       window.clearTimeout(this.debounceTimeout);
     }
     this.debounceTimeout = window.setTimeout(() => {
       this.debounceTimeout = null;
-      this.updateViewData();
+      void this.updateViewData();
     }, 500);
   }
 
@@ -79,7 +79,7 @@ export class ChatView extends TextFileView {
     }
     this.updating = true;
     const currentNoteContent = await this.app.vault.cachedRead(this.file);
-    const content = await serializeCoiNoteContent(
+    const content = serializeCoiNoteContent(
       currentNoteContent,
       this.app,
       this.messages,
@@ -94,7 +94,7 @@ export class ChatView extends TextFileView {
     return this.data;
   }
 
-  async setViewData(data: string, clear: boolean) {
+  setViewData(data: string, clear: boolean): void {
     this.data = data;
     if (!this.file) {
       new Notice("Error: file is null while trying to set view data");
@@ -105,7 +105,7 @@ export class ChatView extends TextFileView {
       this.clear();
     }
     const metadata = this.app.metadataCache.getFileCache(this.file);
-    const { messages, contextItems, sources } = await deserializeCoiNoteContent(
+    const { messages, contextItems, sources } = deserializeCoiNoteContent(
       data,
       metadata,
       this.app,
@@ -128,7 +128,7 @@ export class ChatView extends TextFileView {
     }
   }
 
-  async render() {
+  render() {
     this.rootElement = this.rootElement || this.containerEl.children[1];
     if (!this.rootElement) {
       new Notice("Error: root element is null");
@@ -146,7 +146,7 @@ export class ChatView extends TextFileView {
           app={this.app}
           plugin={this.plugin}
           file={file}
-          onChange={this.handleChatChange}
+          onChange={(props) => void this.handleChatChange(props)}
           initialMessages={this.messages}
           initialContext={this.contextItems}
           initialSources={this.sources}
@@ -183,8 +183,8 @@ export class ChatView extends TextFileView {
         await renameNote(this.file, newTitle, this.app, this.plugin);
       }
     } catch (error) {
-      new Notice(`Error serializing CoiNote: ${error}`);
-      console.error(`Error serializing CoiNote: ${error}`);
+      new Notice(`Error serializing CoiNote: ${String(error)}`);
+      console.error(`Error serializing CoiNote: ${String(error)}`);
     } finally {
       this.updating = false;
     }
@@ -199,10 +199,10 @@ export class ChatView extends TextFileView {
     this.messages = messages;
     this.contextItems = contextItems;
     this.sources = sources;
-    await this.render();
+    this.render();
   }
 
-  async onUnloadFile(file: TFile): Promise<void> {
+  onUnloadFile(_file: TFile): void {
     this.clear();
   }
 
@@ -220,7 +220,7 @@ export class ChatView extends TextFileView {
     this.messages = messages;
     this.contextItems = contextItems;
     this.sources = sources;
-    await this.render();
+    this.render();
   }
 
   async refresh(): Promise<void> {
@@ -228,10 +228,10 @@ export class ChatView extends TextFileView {
     await this.onOpen();
   }
 
-  onPaneMenu(menu: Menu, source: "more-options" | "tab-header" | string): void {
+  onPaneMenu(menu: Menu, source: string): void {
     menu.addItem((item) => {
       item
-        .setTitle("View as markdown")
+        .setTitle("View as Markdown")
         .setIcon("bot-message-square")
         .onClick(() => {
           this.app.commands.executeCommandById(

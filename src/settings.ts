@@ -144,11 +144,11 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
     });
 
     new Setting(containerEl)
+      // eslint-disable-next-line obsidianmd/ui/sentence-case -- brand name
       .setName("OpenAI API key")
-      .setDesc("Enter your OpenAI API key")
       .addText((text) => {
         text
-          .setPlaceholder("Enter your OpenAI API key")
+          .setPlaceholder("Enter API key")
           .setValue(this.plugin.settings.openaiApiKey)
           .onChange((value) => this.saveSetting("openaiApiKey", value));
         text.inputEl.addEventListener("blur", () =>
@@ -158,10 +158,9 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Anthropic API key")
-      .setDesc("Enter your Anthropic API key")
       .addText((text) => {
         text
-          .setPlaceholder("Enter your Anthropic API key")
+          .setPlaceholder("Enter API key")
           .setValue(this.plugin.settings.anthropicApiKey)
           .onChange((value) => this.saveSetting("anthropicApiKey", value));
         text.inputEl.addEventListener("blur", () =>
@@ -171,10 +170,9 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Google API key")
-      .setDesc("Enter your Google API key")
       .addText((text) => {
         text
-          .setPlaceholder("Enter your Google API key")
+          .setPlaceholder("Enter API key")
           .setValue(this.plugin.settings.googleApiKey)
           .onChange((value) => this.saveSetting("googleApiKey", value));
         text.inputEl.addEventListener("blur", () =>
@@ -184,10 +182,9 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Perplexity API key")
-      .setDesc("Enter your Perplexity API key")
       .addText((text) => {
         text
-          .setPlaceholder("Enter your Perplexity API key")
+          .setPlaceholder("Enter API key")
           .setValue(this.plugin.settings.perplexityApiKey)
           .onChange((value) => this.saveSetting("perplexityApiKey", value));
         text.inputEl.addEventListener("blur", () =>
@@ -197,17 +194,17 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Default folder")
-      .setDesc("Enter the default folder for CoIntelligence")
+      .setDesc("Enter the default folder")
       .addText((text) =>
         text
-          .setPlaceholder("Enter the default folder for CoIntelligence")
+          .setPlaceholder("Enter the default folder")
           .setValue(this.plugin.settings.defaultFolder)
           .onChange((value) => this.saveSetting("defaultFolder", value)),
       );
 
     new Setting(containerEl)
       .setName("Default model")
-      .setDesc("Enter the default model for CoIntelligence")
+      .setDesc("Enter the default model")
       .addDropdown((dropdown) => {
         this.defaultModelSelect = dropdown.selectEl;
 
@@ -295,8 +292,8 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
       href: "https://ko-fi.com/epistemictechnology",
       cls: "coi-settings-donate-link",
     });
-    const srOnlySpan = kofiLink.createEl("span", {
-      text: "Support me on Ko-fi",
+    kofiLink.createEl("span", {
+      text: "Support me on ko-fi",
       cls: "coi-sr-only",
     });
     kofiLink.createEl("img", {

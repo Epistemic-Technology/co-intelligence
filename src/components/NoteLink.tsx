@@ -14,7 +14,7 @@ export const NoteLink: Component<LinkProps> = (props) => {
   const app = useContext(AppContext);
   const file = useContext(FileContext);
   if (!file) {
-    new Notice("Error: no file context for NoteLink");
+    new Notice("Error: no file context available");
     console.error("NoteLink called with no file context");
     return null;
   }
@@ -27,7 +27,7 @@ export const NoteLink: Component<LinkProps> = (props) => {
       return;
     }
     const filePath = file?.path ?? "";
-    app?.workspace.openLinkText(local.href, filePath);
+    void app?.workspace.openLinkText(local.href, filePath);
   };
 
   return (

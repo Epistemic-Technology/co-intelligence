@@ -25,10 +25,10 @@ const abortControllers = new Map<string, AbortController>();
  * @returns For stream=true: a Promise of StreamTextResult object with streaming capabilities
  *          For stream=false: a Promise of GenerateTextResult object with the complete response
  */
-export async function generateChatResponse(
+export function generateChatResponse(
   request: ChatRequest,
   registry: ModelRegistry,
-): Promise<StreamTextResult<ToolSet, never>> {
+): StreamTextResult<ToolSet, never> {
   const model = registry.getLanguageModel(request.modelId);
 
   const abortController = new AbortController();

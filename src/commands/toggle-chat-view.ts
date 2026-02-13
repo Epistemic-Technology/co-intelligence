@@ -33,7 +33,7 @@ export class ToggleChatViewCommand implements Command {
       return;
     }
 
-    this.performToggle(currentFile);
+    void this.performToggle(currentFile);
     return;
   };
 
