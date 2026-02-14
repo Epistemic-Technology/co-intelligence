@@ -176,28 +176,34 @@ export const ChatInterface = ({
             console.error("Error:", chunk.error);
             new Notice("Unknown error occurred. See console log for details.");
           }
-          if (chunk.type !== "text-delta" && chunk.type !== "reasoning") {
+          if (
+            chunk.type !== "text-delta" &&
+            chunk.type !== "reasoning-delta"
+          ) {
+            continue;
+          }
+          if (!chunk.text) {
             continue;
           }
           if (isFirstChunk) {
             const assistantMessage: ModelChatMessage = {
               role: "assistant",
-              content: chunk.textDelta,
+              content: chunk.text,
             };
             setMessages([...messages(), assistantMessage]);
-            if (chunk.type === "reasoning") {
+            if (chunk.type === "reasoning-delta") {
               accumulatedContent = "<think>";
               doingReasoning = true;
             }
-            accumulatedContent += chunk.textDelta;
+            accumulatedContent += chunk.text;
             isFirstChunk = false;
             setIsProcessing(false);
           } else {
-            if (doingReasoning && chunk.type !== "reasoning") {
+            if (doingReasoning && chunk.type !== "reasoning-delta") {
               accumulatedContent += "</think>";
               doingReasoning = false;
             }
-            accumulatedContent += chunk.textDelta;
+            accumulatedContent += chunk.text;
             setMessages((prevMessages) => {
               const updatedMessages = [...prevMessages];
               updatedMessages[updatedMessages.length - 1] = {
