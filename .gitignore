@@ -137,3 +137,6 @@ dist
 
 #macos
 .DS_Store
+
+# Manual test vault
+test-vault/
