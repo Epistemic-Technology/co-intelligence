@@ -1,6 +1,6 @@
 {
   "name": "co-intelligence",
-  "version": "0.0.1",
+  "version": "1.0.10",
   "description": "Obsidian plugin for interacting with AI tools",
   "main": "index.ts",
   "scripts": {

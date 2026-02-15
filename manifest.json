@@ -1,7 +1,7 @@
 {
   "id": "co-intelligence",
   "name": "Co-Intelligence AI",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "minAppVersion": "1.8.0",
   "description": "A full AI chat experience with models from OpenAI, Anthropic, Google, and Perplexity.",
   "author": "Mike Thicke",
