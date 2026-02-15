@@ -8,7 +8,7 @@ import {
 } from "solid-js";
 import { TFile } from "obsidian";
 
-import { ModelSelector, ModelSelectorProps } from "@/components/ModelSelector";
+import { ModelSelector } from "@/components/ModelSelector";
 import { SystemPromptSelector } from "@/components/SystemPromptSelector";
 import { NoteLinkSuggestionModal } from "@/components/NoteLinkSuggestionModal";
 import { TagSuggestionModal } from "@/components/TagSuggestionModal";

@@ -1,5 +1,5 @@
-import { Component, onMount, createSignal } from "solid-js";
-import { App, TFile, Menu, setIcon } from "obsidian";
+import { Component } from "solid-js";
+import { App, TFile, Menu } from "obsidian";
 import { NoteLinkSuggestionModal } from "@/components/NoteLinkSuggestionModal";
 import { TagSuggestionModal } from "@/components/TagSuggestionModal";
 import { Tag } from "@/types";

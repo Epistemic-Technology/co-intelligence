@@ -49,7 +49,7 @@ export const ChatInterface = ({
   const modelSetting = plugin.settings.defaultModel;
   let currentModel: Model | null = null;
   if (modelSetting) {
-    currentModel = registry.getModel(modelSetting as ModelId);
+    currentModel = registry.getModel(modelSetting);
   } else {
     currentModel = registry.getDefaultModel();
   }
@@ -164,7 +164,7 @@ export const ChatInterface = ({
 
     try {
       setIsProcessing(true);
-      const responseStream = await generateChatResponse(request, registry);
+      const responseStream = generateChatResponse(request, registry);
       let accumulatedContent = "";
       let isFirstChunk = true;
       let chunk;
@@ -173,7 +173,7 @@ export const ChatInterface = ({
       try {
         for await (chunk of responseStream.fullStream) {
           if (chunk.type === "error") {
-            console.log("Error:", chunk.error);
+            console.error("Error:", chunk.error);
             new Notice("Unknown error occurred. See console log for details.");
           }
           if (chunk.type === "reasoning-start") {
@@ -370,7 +370,7 @@ export const ChatInterface = ({
       />
       <UserInput
         triggerChange={triggerChange}
-        onSubmit={handleSendMessage}
+        onSubmit={(msg, ws, sp) => void handleSendMessage(msg, ws, sp)}
         currentModel={model}
         updateModel={setModel}
         onLinkNote={handleLinkNote}

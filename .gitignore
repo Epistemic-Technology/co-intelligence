@@ -140,3 +140,6 @@ test-vault/coi/chat_*.md
 
 #macos
 .DS_Store
+
+# Manual test vault
+test-vault/

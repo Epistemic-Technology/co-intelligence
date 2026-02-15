@@ -1,4 +1,4 @@
-import { Component, Context, createContext } from "solid-js";
+import { Component, createContext } from "solid-js";
 import { ModelChatMessage } from "@/types";
 import { App, TFile } from "obsidian";
 

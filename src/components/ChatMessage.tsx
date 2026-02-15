@@ -1,4 +1,4 @@
-import { Component, useContext, Accessor } from "solid-js";
+import { Component, useContext } from "solid-js";
 import { ModelChatMessage } from "@/types";
 
 import { MarkdownView } from "@/components/MarkdownView";
@@ -32,7 +32,7 @@ export const ChatMessage: Component<ModelChatMessageProps> = ({
           window.open(newHref);
         } else if (anchor.classList.contains("internal-link")) {
           const newLeaf = event.ctrlKey || event.metaKey;
-          app.workspace.openLinkText(href, "", newLeaf);
+          void app.workspace.openLinkText(href, "", newLeaf);
         } else {
           window.open(href, "_blank");
         }
