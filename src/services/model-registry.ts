@@ -3,7 +3,7 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createPerplexity } from "@ai-sdk/perplexity";
-import { Model, ModelId, Provider } from "@/types";
+import { Model, ModelId } from "@/types";
 import { ProviderRegistryInternal } from "@/types-extended";
 import type { CoIntelligencePlugin } from "@/CoIntelligencePlugin";
 import { Notice } from "obsidian";
@@ -233,8 +233,8 @@ export class ModelRegistry {
         }
         throw new Error("OpenAI responses method not available");
       } catch (error) {
-        new Notice("Error fetching OpenAI responses model");
-        console.error(`Error fetching OpenAI responses model: ${error}`);
+        new Notice("Error: could not fetch responses model");
+        console.error(`Error fetching OpenAI responses model: ${String(error)}`);
         //fall through to default behavior
       }
     }

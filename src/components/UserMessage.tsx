@@ -1,4 +1,4 @@
-import { Component, Accessor } from "solid-js";
+import { Component } from "solid-js";
 import { ModelChatMessage } from "@/types";
 
 import { ChatMessage } from "./ChatMessage";

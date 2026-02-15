@@ -9,7 +9,7 @@ import {
 } from "solid-js";
 import { NoteLink } from "@/components/NoteLink";
 import { AddContextMenu } from "@/components/AddContextMenu";
-import { ContextItems, Source, Tag } from "@/types";
+import { ContextItems, Tag } from "@/types";
 import { contextTokenEstimate } from "@/utils/model-context";
 
 export interface ContextListProps {
@@ -82,7 +82,7 @@ export const ContextList = ({
           console.warn("Item is not a TFile");
           return;
         }
-        app.workspace.openLinkText(item.basename, "");
+        void app.workspace.openLinkText(item.basename, "");
       } else {
         // Simulate clicking the tag link
         window.open(

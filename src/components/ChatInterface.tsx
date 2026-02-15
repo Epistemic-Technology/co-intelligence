@@ -49,7 +49,7 @@ export const ChatInterface = ({
   const modelSetting = plugin.settings.defaultModel;
   let currentModel: Model | null = null;
   if (modelSetting) {
-    currentModel = registry.getModel(modelSetting as ModelId);
+    currentModel = registry.getModel(modelSetting);
   } else {
     currentModel = registry.getDefaultModel();
   }
@@ -164,7 +164,7 @@ export const ChatInterface = ({
 
     try {
       setIsProcessing(true);
-      const responseStream = await generateChatResponse(request, registry);
+      const responseStream = generateChatResponse(request, registry);
       let accumulatedContent = "";
       let isFirstChunk = true;
       let chunk;
@@ -173,31 +173,37 @@ export const ChatInterface = ({
       try {
         for await (chunk of responseStream.fullStream) {
           if (chunk.type === "error") {
-            console.log("Error:", chunk.error);
+            console.error("Error:", chunk.error);
             new Notice("Unknown error occurred. See console log for details.");
           }
-          if (chunk.type !== "text-delta" && chunk.type !== "reasoning") {
+          if (
+            chunk.type !== "text-delta" &&
+            chunk.type !== "reasoning-delta"
+          ) {
+            continue;
+          }
+          if (!chunk.text) {
             continue;
           }
           if (isFirstChunk) {
             const assistantMessage: ModelChatMessage = {
               role: "assistant",
-              content: chunk.textDelta,
+              content: chunk.text,
             };
             setMessages([...messages(), assistantMessage]);
-            if (chunk.type === "reasoning") {
+            if (chunk.type === "reasoning-delta") {
               accumulatedContent = "<think>";
               doingReasoning = true;
             }
-            accumulatedContent += chunk.textDelta;
+            accumulatedContent += chunk.text;
             isFirstChunk = false;
             setIsProcessing(false);
           } else {
-            if (doingReasoning && chunk.type !== "reasoning") {
+            if (doingReasoning && chunk.type !== "reasoning-delta") {
               accumulatedContent += "</think>";
               doingReasoning = false;
             }
-            accumulatedContent += chunk.textDelta;
+            accumulatedContent += chunk.text;
             setMessages((prevMessages) => {
               const updatedMessages = [...prevMessages];
               updatedMessages[updatedMessages.length - 1] = {
@@ -365,7 +371,7 @@ export const ChatInterface = ({
       />
       <UserInput
         triggerChange={triggerChange}
-        onSubmit={handleSendMessage}
+        onSubmit={(msg, ws, sp) => void handleSendMessage(msg, ws, sp)}
         currentModel={model}
         updateModel={setModel}
         onLinkNote={handleLinkNote}

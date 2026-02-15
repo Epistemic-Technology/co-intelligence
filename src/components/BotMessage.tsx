@@ -3,7 +3,7 @@ import { ModelChatMessage } from "@/types";
 
 import { ChatMessage } from "@/components/ChatMessage";
 import { MarkdownView } from "@/components/MarkdownView";
-import { AppContext, FileContext, PluginContext } from "@/CoiChatApp";
+import { FileContext } from "@/CoiChatApp";
 
 export interface BotMessageProps {
   message: ModelChatMessage;
@@ -14,7 +14,7 @@ export const BotMessage: Component<BotMessageProps> = ({
 }: BotMessageProps) => {
   const file = useContext(FileContext);
   const filePath = file?.path || "";
-  const content = message.content as string;
+  const content = (message.content as string) || "";
   // Perplexity models use <think> tags to indicate the reasoning section.
   // OpenAI models use chunk types instead. These are translated into <think>
   // tags by handleSendMessage in ChatInterface.tsx
