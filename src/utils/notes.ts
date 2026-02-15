@@ -182,7 +182,7 @@ export function serializeCoiNoteContent(
 ): string {
   const serializedMessages = messages
     .map(({ role, content }) => {
-      const contentStr = (content as string) || "";
+      const contentStr = (content as string) ?? "";
 
       // Find the highest level header in the content
       const headerMatches = contentStr.match(/^#+/gm);

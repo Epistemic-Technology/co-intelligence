@@ -135,6 +135,9 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
+# Test vault chat files
+test-vault/coi/chat_*.md
+
 #macos
 .DS_Store
 

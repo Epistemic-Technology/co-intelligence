@@ -14,7 +14,7 @@ export const BotMessage: Component<BotMessageProps> = ({
 }: BotMessageProps) => {
   const file = useContext(FileContext);
   const filePath = file?.path || "";
-  const content = (message.content as string) || "";
+  const content = (message.content as string) ?? "";
   // Perplexity models use <think> tags to indicate the reasoning section.
   // OpenAI models use chunk types instead. These are translated into <think>
   // tags by handleSendMessage in ChatInterface.tsx
