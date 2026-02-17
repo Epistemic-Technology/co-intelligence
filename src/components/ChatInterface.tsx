@@ -13,7 +13,6 @@ import {
   ChatRequest,
   Source,
   Model,
-  ModelId,
   ContextItems,
   Tag,
 } from "@/types";
@@ -168,7 +167,6 @@ export const ChatInterface = ({
       let accumulatedContent = "";
       let isFirstChunk = true;
       let chunk;
-      let doingReasoning = false;
 
       try {
         for await (chunk of responseStream.fullStream) {
@@ -177,12 +175,10 @@ export const ChatInterface = ({
             new Notice("Unknown error occurred. See console log for details.");
           }
           if (chunk.type === "reasoning-start") {
-            doingReasoning = true;
             accumulatedContent += "<think>";
             continue;
           }
           if (chunk.type === "reasoning-end") {
-            doingReasoning = false;
             accumulatedContent += "</think>";
             continue;
           }

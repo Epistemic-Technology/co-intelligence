@@ -144,7 +144,6 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
     });
 
     new Setting(containerEl)
-      // eslint-disable-next-line obsidianmd/ui/sentence-case -- brand name
       .setName("OpenAI API key")
       .addText((text) => {
         text
