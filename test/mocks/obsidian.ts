@@ -78,6 +78,22 @@ export class FileManager {
   renameFile = vi.fn().mockResolvedValue(undefined);
 }
 
+// --- SecretStorage ---
+
+export class SecretStorage {
+  private secrets = new Map<string, string>();
+
+  setSecret = vi.fn((id: string, secret: string): void => {
+    this.secrets.set(id, secret);
+  });
+
+  getSecret = vi.fn((id: string): string | null => {
+    return this.secrets.get(id) ?? null;
+  });
+
+  listSecrets = vi.fn((): string[] => Array.from(this.secrets.keys()));
+}
+
 // --- App ---
 
 export class App {
@@ -85,6 +101,7 @@ export class App {
   workspace = new Workspace();
   metadataCache = new MetadataCache();
   fileManager = new FileManager();
+  secretStorage = new SecretStorage();
 }
 
 // --- View classes ---

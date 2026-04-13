@@ -68,11 +68,28 @@ class FileSuggest extends AbstractInputSuggest<TFile> {
   }
 }
 
+export type ApiKeyProvider = "openai" | "anthropic" | "google" | "perplexity";
+
+export const API_KEY_SECRET_IDS: Record<ApiKeyProvider, string> = {
+  openai: "coi-openai-api-key",
+  anthropic: "coi-anthropic-api-key",
+  google: "coi-google-api-key",
+  perplexity: "coi-perplexity-api-key",
+};
+
+export function getApiKey(app: App, provider: ApiKeyProvider): string {
+  return app.secretStorage.getSecret(API_KEY_SECRET_IDS[provider]) ?? "";
+}
+
+export function setApiKey(
+  app: App,
+  provider: ApiKeyProvider,
+  value: string,
+): void {
+  app.secretStorage.setSecret(API_KEY_SECRET_IDS[provider], value);
+}
+
 export interface CoIntelligenceSettings {
-  openaiApiKey: string;
-  anthropicApiKey: string;
-  googleApiKey: string;
-  perplexityApiKey: string;
   defaultFolder: string;
   defaultModel: ModelId | "";
   renamingModel: ModelId | "";
@@ -81,10 +98,6 @@ export interface CoIntelligenceSettings {
 }
 
 export const DEFAULT_SETTINGS: CoIntelligenceSettings = {
-  openaiApiKey: "",
-  anthropicApiKey: "",
-  googleApiKey: "",
-  perplexityApiKey: "",
   defaultFolder: "coi",
   defaultModel: "",
   renamingModel: "",
@@ -166,63 +179,32 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
     select.value = currentValue;
   }
 
+  private addApiKeySetting(
+    containerEl: HTMLElement,
+    name: string,
+    provider: ApiKeyProvider,
+  ): void {
+    new Setting(containerEl).setName(name).addText((text) => {
+      text.inputEl.type = "password";
+      text
+        .setPlaceholder("Enter API key")
+        .setValue(getApiKey(this.app, provider))
+        .onChange((value) => setApiKey(this.app, provider, value));
+      text.inputEl.addEventListener("blur", () =>
+        this.reinitializeAndRefreshDropdowns(),
+      );
+    });
+  }
+
   display(): void {
     const { containerEl } = this;
 
     containerEl.empty();
 
-    containerEl.createEl("div", {
-      text: "⚠️ API keys are stored unencrypted in your vault. Anyone with access to your vault can read them.",
-      cls: "coi-settings-security-warning",
-    });
-
-    new Setting(containerEl)
-      .setName("OpenAI API key")
-      .addText((text) => {
-        text
-          .setPlaceholder("Enter API key")
-          .setValue(this.plugin.settings.openaiApiKey)
-          .onChange((value) => this.saveSetting("openaiApiKey", value));
-        text.inputEl.addEventListener("blur", () =>
-          this.reinitializeAndRefreshDropdowns(),
-        );
-      });
-
-    new Setting(containerEl)
-      .setName("Anthropic API key")
-      .addText((text) => {
-        text
-          .setPlaceholder("Enter API key")
-          .setValue(this.plugin.settings.anthropicApiKey)
-          .onChange((value) => this.saveSetting("anthropicApiKey", value));
-        text.inputEl.addEventListener("blur", () =>
-          this.reinitializeAndRefreshDropdowns(),
-        );
-      });
-
-    new Setting(containerEl)
-      .setName("Google API key")
-      .addText((text) => {
-        text
-          .setPlaceholder("Enter API key")
-          .setValue(this.plugin.settings.googleApiKey)
-          .onChange((value) => this.saveSetting("googleApiKey", value));
-        text.inputEl.addEventListener("blur", () =>
-          this.reinitializeAndRefreshDropdowns(),
-        );
-      });
-
-    new Setting(containerEl)
-      .setName("Perplexity API key")
-      .addText((text) => {
-        text
-          .setPlaceholder("Enter API key")
-          .setValue(this.plugin.settings.perplexityApiKey)
-          .onChange((value) => this.saveSetting("perplexityApiKey", value));
-        text.inputEl.addEventListener("blur", () =>
-          this.reinitializeAndRefreshDropdowns(),
-        );
-      });
+    this.addApiKeySetting(containerEl, "OpenAI API key", "openai");
+    this.addApiKeySetting(containerEl, "Anthropic API key", "anthropic");
+    this.addApiKeySetting(containerEl, "Google API key", "google");
+    this.addApiKeySetting(containerEl, "Perplexity API key", "perplexity");
 
     new Setting(containerEl)
       .setName("Default folder")
