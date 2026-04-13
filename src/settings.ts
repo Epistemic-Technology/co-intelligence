@@ -1,7 +1,72 @@
 import type CoIntelligencePlugin from "@/CoIntelligencePlugin";
-import { App, normalizePath, PluginSettingTab, Setting } from "obsidian";
+import {
+  AbstractInputSuggest,
+  App,
+  normalizePath,
+  PluginSettingTab,
+  Setting,
+  TFile,
+  TFolder,
+} from "obsidian";
 import { ModelId } from "@/types";
 import kofiLogo from "@assets/images/kofi.png";
+
+class FolderSuggest extends AbstractInputSuggest<TFolder> {
+  constructor(
+    app: App,
+    private readonly inputEl: HTMLInputElement,
+  ) {
+    super(app, inputEl);
+  }
+
+  protected getSuggestions(query: string): TFolder[] {
+    const lower = query.toLowerCase();
+    return this.app.vault
+      .getAllLoadedFiles()
+      .filter((file): file is TFolder => file instanceof TFolder)
+      .filter((folder) => folder.path.toLowerCase().includes(lower));
+  }
+
+  renderSuggestion(folder: TFolder, el: HTMLElement): void {
+    el.setText(folder.path || "/");
+  }
+
+  selectSuggestion(folder: TFolder): void {
+    this.inputEl.value = folder.path;
+    this.inputEl.dispatchEvent(new Event("input"));
+    this.close();
+  }
+}
+
+class FileSuggest extends AbstractInputSuggest<TFile> {
+  constructor(
+    app: App,
+    private readonly inputEl: HTMLInputElement,
+    private readonly getFolder: () => string,
+  ) {
+    super(app, inputEl);
+  }
+
+  protected getSuggestions(query: string): TFile[] {
+    const lower = query.toLowerCase();
+    const folder = this.getFolder();
+    const prefix = folder ? folder + "/" : "";
+    return this.app.vault
+      .getMarkdownFiles()
+      .filter((file) => !folder || file.path === folder || file.path.startsWith(prefix))
+      .filter((file) => file.path.toLowerCase().includes(lower));
+  }
+
+  renderSuggestion(file: TFile, el: HTMLElement): void {
+    el.setText(file.path);
+  }
+
+  selectSuggestion(file: TFile): void {
+    this.inputEl.value = file.path;
+    this.inputEl.dispatchEvent(new Event("input"));
+    this.close();
+  }
+}
 
 export interface CoIntelligenceSettings {
   openaiApiKey: string;
@@ -31,7 +96,6 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
   plugin: CoIntelligencePlugin;
   private defaultModelSelect: HTMLSelectElement | null = null;
   private renamingModelSelect: HTMLSelectElement | null = null;
-  private systemPromptSelect: HTMLSelectElement | null = null;
 
   constructor(app: App, plugin: CoIntelligencePlugin) {
     super(app, plugin);
@@ -68,7 +132,6 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
       this.plugin.settings.renamingModel || "",
       true,
     );
-    this.refreshSystemPromptDropdown();
   }
 
   private refreshModelDropdown(
@@ -101,36 +164,6 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
     }
 
     select.value = currentValue;
-  }
-
-  private refreshSystemPromptDropdown(): void {
-    if (!this.systemPromptSelect) return;
-
-    this.systemPromptSelect.empty();
-
-    const systemPromptFolder = this.plugin.settings.systemPromptFolder;
-    const notes = this.app.vault
-      .getMarkdownFiles()
-      .filter(
-        (file) =>
-          file.path.startsWith(systemPromptFolder + "/") ||
-          file.path === systemPromptFolder,
-      );
-
-    this.systemPromptSelect.createEl("option", {
-      value: "",
-      text: "No default system prompt",
-    });
-
-    for (const note of notes) {
-      this.systemPromptSelect.createEl("option", {
-        value: note.path,
-        text: note.basename,
-      });
-    }
-
-    this.systemPromptSelect.value =
-      this.plugin.settings.defaultSystemPromptNote || "";
   }
 
   display(): void {
@@ -194,12 +227,13 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName("Default folder")
       .setDesc("Enter the default folder")
-      .addText((text) =>
+      .addText((text) => {
         text
           .setPlaceholder("Enter the default folder")
           .setValue(this.plugin.settings.defaultFolder)
-          .onChange((value) => this.saveSetting("defaultFolder", value)),
-      );
+          .onChange((value) => this.saveSetting("defaultFolder", value));
+        new FolderSuggest(this.app, text.inputEl);
+      });
 
     new Setting(containerEl)
       .setName("Default model")
@@ -251,35 +285,22 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
         text.setPlaceholder("Enter folder for custom system prompts");
         text.setValue(this.plugin.settings.systemPromptFolder || "");
         text.onChange((value) => this.saveSetting("systemPromptFolder", value));
-        text.inputEl.addEventListener("blur", () =>
-          this.refreshSystemPromptDropdown(),
-        );
+        new FolderSuggest(this.app, text.inputEl);
       });
 
     new Setting(containerEl)
       .setName("Default system prompt")
-      .setDesc("Select note for default system prompt")
-      .addDropdown((dropdown) => {
-        this.systemPromptSelect = dropdown.selectEl;
-
-        const systemPromptFolder = this.plugin.settings.systemPromptFolder;
-        const notes = this.app.vault
-          .getMarkdownFiles()
-          .filter(
-            (file) =>
-              file.path.startsWith(systemPromptFolder + "/") ||
-              file.path === systemPromptFolder,
-          );
-
-        dropdown.addOption("", "No default system prompt");
-
-        for (const note of notes) {
-          dropdown.addOption(note.path, note.basename);
-        }
-
-        dropdown.setValue(this.plugin.settings.defaultSystemPromptNote || "");
-        dropdown.onChange((value) =>
+      .setDesc("Enter the path of a note within the system prompt folder")
+      .addText((text) => {
+        text.setPlaceholder("Leave blank for no default system prompt");
+        text.setValue(this.plugin.settings.defaultSystemPromptNote || "");
+        text.onChange((value) =>
           this.saveSetting("defaultSystemPromptNote", value),
+        );
+        new FileSuggest(
+          this.app,
+          text.inputEl,
+          () => this.plugin.settings.systemPromptFolder,
         );
       });
 

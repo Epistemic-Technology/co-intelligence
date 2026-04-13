@@ -214,6 +214,28 @@ class ButtonComponent {
   }
 }
 
+export class AbstractInputSuggest<T> {
+  app: App;
+  protected textInputEl: HTMLInputElement | HTMLDivElement;
+
+  constructor(app: App, textInputEl: HTMLInputElement | HTMLDivElement) {
+    this.app = app;
+    this.textInputEl = textInputEl;
+  }
+
+  protected getSuggestions(_query: string): T[] | Promise<T[]> {
+    return [];
+  }
+
+  renderSuggestion(_value: T, _el: HTMLElement): void {}
+
+  selectSuggestion(_value: T, _evt: MouseEvent | KeyboardEvent): void {}
+
+  setValue(_value: string): void {}
+
+  close(): void {}
+}
+
 export class SuggestModal<T> {
   app: App;
   inputEl = document.createElement("input");
