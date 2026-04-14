@@ -251,24 +251,17 @@ export async function serializeCoiNote(
   lastModelId: string | null,
   sources?: Source[],
 ) {
-  const currentNoteContent = await app.vault.read(note);
+  let hadChatMarkers = false;
+  await app.vault.process(note, (data) => {
+    if (!data.includes(CHAT_START) || !data.includes(CHAT_END)) {
+      return data;
+    }
+    hadChatMarkers = true;
+    return serializeCoiNoteContent(data, app, messages, contextItems, sources);
+  });
 
-  if (
-    !currentNoteContent.includes(CHAT_START) ||
-    !currentNoteContent.includes(CHAT_END)
-  ) {
+  if (!hadChatMarkers) {
     return;
-  }
-
-  const newNoteContent = serializeCoiNoteContent(
-    currentNoteContent,
-    app,
-    messages,
-    contextItems,
-    sources,
-  );
-  if (newNoteContent !== currentNoteContent) {
-    await app.vault.modify(note, newNoteContent);
   }
 
   if (contextItems) {

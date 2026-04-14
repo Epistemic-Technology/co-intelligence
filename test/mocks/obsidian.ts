@@ -34,6 +34,12 @@ export class Vault {
   cachedRead = vi.fn().mockResolvedValue("");
   create = vi.fn().mockImplementation(async () => new TFile());
   modify = vi.fn().mockResolvedValue(undefined);
+  process = vi
+    .fn()
+    .mockImplementation(
+      async (_file: TFile, fn: (data: string) => string): Promise<string> =>
+        fn(""),
+    );
   delete = vi.fn().mockResolvedValue(undefined);
   rename = vi.fn().mockResolvedValue(undefined);
   getAbstractFileByPath = vi.fn().mockReturnValue(null);
