@@ -34,6 +34,12 @@ export class Vault {
   cachedRead = vi.fn().mockResolvedValue("");
   create = vi.fn().mockImplementation(async () => new TFile());
   modify = vi.fn().mockResolvedValue(undefined);
+  process = vi
+    .fn()
+    .mockImplementation(
+      async (_file: TFile, fn: (data: string) => string): Promise<string> =>
+        fn(""),
+    );
   delete = vi.fn().mockResolvedValue(undefined);
   rename = vi.fn().mockResolvedValue(undefined);
   getAbstractFileByPath = vi.fn().mockReturnValue(null);
@@ -78,6 +84,22 @@ export class FileManager {
   renameFile = vi.fn().mockResolvedValue(undefined);
 }
 
+// --- SecretStorage ---
+
+export class SecretStorage {
+  private secrets = new Map<string, string>();
+
+  setSecret = vi.fn((id: string, secret: string): void => {
+    this.secrets.set(id, secret);
+  });
+
+  getSecret = vi.fn((id: string): string | null => {
+    return this.secrets.get(id) ?? null;
+  });
+
+  listSecrets = vi.fn((): string[] => Array.from(this.secrets.keys()));
+}
+
 // --- App ---
 
 export class App {
@@ -85,6 +107,7 @@ export class App {
   workspace = new Workspace();
   metadataCache = new MetadataCache();
   fileManager = new FileManager();
+  secretStorage = new SecretStorage();
 }
 
 // --- View classes ---
@@ -212,6 +235,28 @@ class ButtonComponent {
   onClick(_cb: () => void): this {
     return this;
   }
+}
+
+export class AbstractInputSuggest<T> {
+  app: App;
+  protected textInputEl: HTMLInputElement | HTMLDivElement;
+
+  constructor(app: App, textInputEl: HTMLInputElement | HTMLDivElement) {
+    this.app = app;
+    this.textInputEl = textInputEl;
+  }
+
+  protected getSuggestions(_query: string): T[] | Promise<T[]> {
+    return [];
+  }
+
+  renderSuggestion(_value: T, _el: HTMLElement): void {}
+
+  selectSuggestion(_value: T, _evt: MouseEvent | KeyboardEvent): void {}
+
+  setValue(_value: string): void {}
+
+  close(): void {}
 }
 
 export class SuggestModal<T> {

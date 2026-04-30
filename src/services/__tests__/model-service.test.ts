@@ -52,16 +52,17 @@ import { ModelRegistry } from "@/services/model-registry";
 import { streamText, generateText } from "ai";
 import type { ChatRequest, ModelId } from "@/types";
 import type CoIntelligencePlugin from "@/CoIntelligencePlugin";
+import { API_KEY_SECRET_IDS } from "@/settings";
+import { App } from "obsidian";
 
 function createMockPlugin(
   settings: Partial<CoIntelligencePlugin["settings"]> = {},
 ): CoIntelligencePlugin {
+  const app = new App();
+  app.secretStorage.setSecret(API_KEY_SECRET_IDS.openai, "sk-test");
   return {
+    app,
     settings: {
-      openaiApiKey: "sk-test",
-      anthropicApiKey: "",
-      googleApiKey: "",
-      perplexityApiKey: "",
       defaultFolder: "coi",
       defaultModel: "",
       renamingModel: "openai:gpt-4o" as ModelId,

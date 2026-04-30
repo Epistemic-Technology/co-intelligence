@@ -11,9 +11,11 @@ import {
 import { around } from "monkey-around";
 
 import {
+  ApiKeyProvider,
   CoIntelligenceSettings,
   CoIntelligenceSettingsTab,
   DEFAULT_SETTINGS,
+  setApiKey,
 } from "./settings";
 
 import { NewChatCommand } from "@/commands/new-chat";
@@ -121,11 +123,45 @@ export class CoIntelligencePlugin extends Plugin {
   async activateView() {}
 
   async loadSettings() {
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    const data = (await this.loadData()) ?? {};
+    const migrated = this.migrateLegacyApiKeys(data);
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, data);
+    if (migrated) {
+      await this.saveSettings();
+    }
   }
 
   async saveSettings() {
     await this.saveData(this.settings);
+  }
+
+  /**
+   * Move API keys stored in plugin data (pre-1.1) into SecretStorage and strip
+   * them from the data object so the unencrypted copy is removed on next save.
+   * Returns true if any legacy key was found.
+   */
+  private migrateLegacyApiKeys(data: Record<string, unknown>): boolean {
+    const legacyFields: Record<ApiKeyProvider, string> = {
+      openai: "openaiApiKey",
+      anthropic: "anthropicApiKey",
+      google: "googleApiKey",
+      perplexity: "perplexityApiKey",
+    };
+    let migrated = false;
+    for (const [provider, field] of Object.entries(legacyFields) as [
+      ApiKeyProvider,
+      string,
+    ][]) {
+      if (field in data) {
+        const value = data[field];
+        if (typeof value === "string" && value !== "") {
+          setApiKey(this.app, provider, value);
+        }
+        delete data[field];
+        migrated = true;
+      }
+    }
+    return migrated;
   }
 
   /**

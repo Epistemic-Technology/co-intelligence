@@ -1,13 +1,95 @@
 import type CoIntelligencePlugin from "@/CoIntelligencePlugin";
-import { App, normalizePath, PluginSettingTab, Setting } from "obsidian";
+import {
+  AbstractInputSuggest,
+  App,
+  normalizePath,
+  PluginSettingTab,
+  Setting,
+  TFile,
+  TFolder,
+} from "obsidian";
 import { ModelId } from "@/types";
 import kofiLogo from "@assets/images/kofi.png";
 
+class FolderSuggest extends AbstractInputSuggest<TFolder> {
+  constructor(
+    app: App,
+    private readonly inputEl: HTMLInputElement,
+  ) {
+    super(app, inputEl);
+  }
+
+  protected getSuggestions(query: string): TFolder[] {
+    const lower = query.toLowerCase();
+    return this.app.vault
+      .getAllLoadedFiles()
+      .filter((file): file is TFolder => file instanceof TFolder)
+      .filter((folder) => folder.path.toLowerCase().includes(lower));
+  }
+
+  renderSuggestion(folder: TFolder, el: HTMLElement): void {
+    el.setText(folder.path || "/");
+  }
+
+  selectSuggestion(folder: TFolder): void {
+    this.inputEl.value = folder.path;
+    this.inputEl.dispatchEvent(new Event("input"));
+    this.close();
+  }
+}
+
+class FileSuggest extends AbstractInputSuggest<TFile> {
+  constructor(
+    app: App,
+    private readonly inputEl: HTMLInputElement,
+    private readonly getFolder: () => string,
+  ) {
+    super(app, inputEl);
+  }
+
+  protected getSuggestions(query: string): TFile[] {
+    const lower = query.toLowerCase();
+    const folder = this.getFolder();
+    const prefix = folder ? folder + "/" : "";
+    return this.app.vault
+      .getMarkdownFiles()
+      .filter((file) => !folder || file.path === folder || file.path.startsWith(prefix))
+      .filter((file) => file.path.toLowerCase().includes(lower));
+  }
+
+  renderSuggestion(file: TFile, el: HTMLElement): void {
+    el.setText(file.path);
+  }
+
+  selectSuggestion(file: TFile): void {
+    this.inputEl.value = file.path;
+    this.inputEl.dispatchEvent(new Event("input"));
+    this.close();
+  }
+}
+
+export type ApiKeyProvider = "openai" | "anthropic" | "google" | "perplexity";
+
+export const API_KEY_SECRET_IDS: Record<ApiKeyProvider, string> = {
+  openai: "coi-openai-api-key",
+  anthropic: "coi-anthropic-api-key",
+  google: "coi-google-api-key",
+  perplexity: "coi-perplexity-api-key",
+};
+
+export function getApiKey(app: App, provider: ApiKeyProvider): string {
+  return app.secretStorage.getSecret(API_KEY_SECRET_IDS[provider]) ?? "";
+}
+
+export function setApiKey(
+  app: App,
+  provider: ApiKeyProvider,
+  value: string,
+): void {
+  app.secretStorage.setSecret(API_KEY_SECRET_IDS[provider], value);
+}
+
 export interface CoIntelligenceSettings {
-  openaiApiKey: string;
-  anthropicApiKey: string;
-  googleApiKey: string;
-  perplexityApiKey: string;
   defaultFolder: string;
   defaultModel: ModelId | "";
   renamingModel: ModelId | "";
@@ -16,10 +98,6 @@ export interface CoIntelligenceSettings {
 }
 
 export const DEFAULT_SETTINGS: CoIntelligenceSettings = {
-  openaiApiKey: "",
-  anthropicApiKey: "",
-  googleApiKey: "",
-  perplexityApiKey: "",
   defaultFolder: "coi",
   defaultModel: "",
   renamingModel: "",
@@ -31,7 +109,6 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
   plugin: CoIntelligencePlugin;
   private defaultModelSelect: HTMLSelectElement | null = null;
   private renamingModelSelect: HTMLSelectElement | null = null;
-  private systemPromptSelect: HTMLSelectElement | null = null;
 
   constructor(app: App, plugin: CoIntelligencePlugin) {
     super(app, plugin);
@@ -68,7 +145,6 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
       this.plugin.settings.renamingModel || "",
       true,
     );
-    this.refreshSystemPromptDropdown();
   }
 
   private refreshModelDropdown(
@@ -103,34 +179,21 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
     select.value = currentValue;
   }
 
-  private refreshSystemPromptDropdown(): void {
-    if (!this.systemPromptSelect) return;
-
-    this.systemPromptSelect.empty();
-
-    const systemPromptFolder = this.plugin.settings.systemPromptFolder;
-    const notes = this.app.vault
-      .getMarkdownFiles()
-      .filter(
-        (file) =>
-          file.path.startsWith(systemPromptFolder + "/") ||
-          file.path === systemPromptFolder,
+  private addApiKeySetting(
+    containerEl: HTMLElement,
+    name: string,
+    provider: ApiKeyProvider,
+  ): void {
+    new Setting(containerEl).setName(name).addText((text) => {
+      text.inputEl.type = "password";
+      text
+        .setPlaceholder("Enter API key")
+        .setValue(getApiKey(this.app, provider))
+        .onChange((value) => setApiKey(this.app, provider, value));
+      text.inputEl.addEventListener("blur", () =>
+        this.reinitializeAndRefreshDropdowns(),
       );
-
-    this.systemPromptSelect.createEl("option", {
-      value: "",
-      text: "No default system prompt",
     });
-
-    for (const note of notes) {
-      this.systemPromptSelect.createEl("option", {
-        value: note.path,
-        text: note.basename,
-      });
-    }
-
-    this.systemPromptSelect.value =
-      this.plugin.settings.defaultSystemPromptNote || "";
   }
 
   display(): void {
@@ -138,68 +201,21 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
 
     containerEl.empty();
 
-    containerEl.createEl("div", {
-      text: "⚠️ API keys are stored unencrypted in your vault. Anyone with access to your vault can read them.",
-      cls: "coi-settings-security-warning",
-    });
-
-    new Setting(containerEl)
-      .setName("OpenAI API key")
-      .addText((text) => {
-        text
-          .setPlaceholder("Enter API key")
-          .setValue(this.plugin.settings.openaiApiKey)
-          .onChange((value) => this.saveSetting("openaiApiKey", value));
-        text.inputEl.addEventListener("blur", () =>
-          this.reinitializeAndRefreshDropdowns(),
-        );
-      });
-
-    new Setting(containerEl)
-      .setName("Anthropic API key")
-      .addText((text) => {
-        text
-          .setPlaceholder("Enter API key")
-          .setValue(this.plugin.settings.anthropicApiKey)
-          .onChange((value) => this.saveSetting("anthropicApiKey", value));
-        text.inputEl.addEventListener("blur", () =>
-          this.reinitializeAndRefreshDropdowns(),
-        );
-      });
-
-    new Setting(containerEl)
-      .setName("Google API key")
-      .addText((text) => {
-        text
-          .setPlaceholder("Enter API key")
-          .setValue(this.plugin.settings.googleApiKey)
-          .onChange((value) => this.saveSetting("googleApiKey", value));
-        text.inputEl.addEventListener("blur", () =>
-          this.reinitializeAndRefreshDropdowns(),
-        );
-      });
-
-    new Setting(containerEl)
-      .setName("Perplexity API key")
-      .addText((text) => {
-        text
-          .setPlaceholder("Enter API key")
-          .setValue(this.plugin.settings.perplexityApiKey)
-          .onChange((value) => this.saveSetting("perplexityApiKey", value));
-        text.inputEl.addEventListener("blur", () =>
-          this.reinitializeAndRefreshDropdowns(),
-        );
-      });
+    this.addApiKeySetting(containerEl, "OpenAI API key", "openai");
+    this.addApiKeySetting(containerEl, "Anthropic API key", "anthropic");
+    this.addApiKeySetting(containerEl, "Google API key", "google");
+    this.addApiKeySetting(containerEl, "Perplexity API key", "perplexity");
 
     new Setting(containerEl)
       .setName("Default folder")
       .setDesc("Enter the default folder")
-      .addText((text) =>
+      .addText((text) => {
         text
           .setPlaceholder("Enter the default folder")
           .setValue(this.plugin.settings.defaultFolder)
-          .onChange((value) => this.saveSetting("defaultFolder", value)),
-      );
+          .onChange((value) => this.saveSetting("defaultFolder", value));
+        new FolderSuggest(this.app, text.inputEl);
+      });
 
     new Setting(containerEl)
       .setName("Default model")
@@ -251,35 +267,22 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
         text.setPlaceholder("Enter folder for custom system prompts");
         text.setValue(this.plugin.settings.systemPromptFolder || "");
         text.onChange((value) => this.saveSetting("systemPromptFolder", value));
-        text.inputEl.addEventListener("blur", () =>
-          this.refreshSystemPromptDropdown(),
-        );
+        new FolderSuggest(this.app, text.inputEl);
       });
 
     new Setting(containerEl)
       .setName("Default system prompt")
-      .setDesc("Select note for default system prompt")
-      .addDropdown((dropdown) => {
-        this.systemPromptSelect = dropdown.selectEl;
-
-        const systemPromptFolder = this.plugin.settings.systemPromptFolder;
-        const notes = this.app.vault
-          .getMarkdownFiles()
-          .filter(
-            (file) =>
-              file.path.startsWith(systemPromptFolder + "/") ||
-              file.path === systemPromptFolder,
-          );
-
-        dropdown.addOption("", "No default system prompt");
-
-        for (const note of notes) {
-          dropdown.addOption(note.path, note.basename);
-        }
-
-        dropdown.setValue(this.plugin.settings.defaultSystemPromptNote || "");
-        dropdown.onChange((value) =>
+      .setDesc("Enter the path of a note within the system prompt folder")
+      .addText((text) => {
+        text.setPlaceholder("Leave blank for no default system prompt");
+        text.setValue(this.plugin.settings.defaultSystemPromptNote || "");
+        text.onChange((value) =>
           this.saveSetting("defaultSystemPromptNote", value),
+        );
+        new FileSuggest(
+          this.app,
+          text.inputEl,
+          () => this.plugin.settings.systemPromptFolder,
         );
       });
 

@@ -6,6 +6,7 @@ import { createPerplexity } from "@ai-sdk/perplexity";
 import { Model, ModelId } from "@/types";
 import { ProviderRegistryInternal } from "@/types-extended";
 import type { CoIntelligencePlugin } from "@/CoIntelligencePlugin";
+import { getApiKey } from "@/settings";
 import { Notice } from "obsidian";
 
 export class ModelRegistry {
@@ -44,7 +45,7 @@ export class ModelRegistry {
     if (!this.plugin) {
       throw new Error("Plugin instance not initialized");
     }
-    const settings = this.plugin.settings;
+    const app = this.plugin.app;
     const providers: Record<
       string,
       ReturnType<
@@ -55,26 +56,24 @@ export class ModelRegistry {
       >
     > = {};
 
-    if (settings.openaiApiKey) {
-      providers.openai = createOpenAI({ apiKey: settings.openaiApiKey });
+    const openaiKey = getApiKey(app, "openai");
+    if (openaiKey) {
+      providers.openai = createOpenAI({ apiKey: openaiKey });
     }
 
-    if (settings.anthropicApiKey) {
-      providers.anthropic = createAnthropic({
-        apiKey: settings.anthropicApiKey,
-      });
+    const anthropicKey = getApiKey(app, "anthropic");
+    if (anthropicKey) {
+      providers.anthropic = createAnthropic({ apiKey: anthropicKey });
     }
 
-    if (settings.googleApiKey) {
-      providers.google = createGoogleGenerativeAI({
-        apiKey: settings.googleApiKey,
-      });
+    const googleKey = getApiKey(app, "google");
+    if (googleKey) {
+      providers.google = createGoogleGenerativeAI({ apiKey: googleKey });
     }
 
-    if (settings.perplexityApiKey) {
-      providers.perplexity = createPerplexity({
-        apiKey: settings.perplexityApiKey,
-      });
+    const perplexityKey = getApiKey(app, "perplexity");
+    if (perplexityKey) {
+      providers.perplexity = createPerplexity({ apiKey: perplexityKey });
     }
 
     this.providerRegistry = createProviderRegistry(providers);

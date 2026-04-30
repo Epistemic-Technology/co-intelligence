@@ -2,7 +2,7 @@
   "id": "co-intelligence",
   "name": "Co-Intelligence AI",
   "version": "1.0.10",
-  "minAppVersion": "1.8.0",
+  "minAppVersion": "1.11.4",
   "description": "A full AI chat experience with models from OpenAI, Anthropic, Google, and Perplexity.",
   "author": "Mike Thicke",
   "authorUrl": "https://github.com/Epistemic-Technology",
