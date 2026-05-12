@@ -1,0 +1,4 @@
+#!/bin/sh
+# worklog: invoked by Claude Code SessionEnd hook. Forwards stdin JSON
+# to the worklog binary. The worklog repo root is detected via git.
+exec worklog capture-claude

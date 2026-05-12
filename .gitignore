@@ -143,3 +143,6 @@ test-vault/coi/chat_*.md
 
 # Manual test vault
 test-vault/
+
+#explore
+.explore/
