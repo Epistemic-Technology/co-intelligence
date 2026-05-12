@@ -1,5 +1,16 @@
 import { LanguageModel } from "ai";
 
+// Obsidian exposes `app.commands` at runtime, but it's not in the public type
+// definitions. Augment the module so `executeCommandById` can be called
+// without unsafe-any casts.
+declare module "obsidian" {
+  interface App {
+    commands: {
+      executeCommandById(id: string): boolean;
+    };
+  }
+}
+
 // Provider registry types - accessing internal ai SDK structure
 export interface ProviderRegistryInternal {
   providers: Record<

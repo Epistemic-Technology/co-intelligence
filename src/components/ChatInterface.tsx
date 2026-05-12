@@ -247,7 +247,7 @@ export const ChatInterface = ({
         const offset = lastSourceLinkNumber();
         const updatedContent = ((lastMessage.content as string) ?? "").replace(
           /\[(\d+)\]/g,
-          (match, num) => {
+          (match: string, num: string) => {
             const source = uniqueNewSources[parseInt(num) - 1];
             if (!source) return match;
             return ` [${parseInt(num) + offset}](${source.url})`;
@@ -365,7 +365,6 @@ export const ChatInterface = ({
         onAddTag={handleAddTag}
       />
       <UserInput
-        triggerChange={triggerChange}
         onSubmit={(msg, ws, sp) => void handleSendMessage(msg, ws, sp)}
         currentModel={model}
         updateModel={setModel}

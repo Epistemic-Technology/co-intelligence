@@ -22,6 +22,8 @@ import { NewChatCommand } from "@/commands/new-chat";
 import { ToggleChatViewCommand } from "@/commands/toggle-chat-view";
 import { ChatView, VIEW_TYPE_COI_CHAT } from "@/ChatView";
 import { ModelRegistry } from "@/services/model-registry";
+import { CoiNoteFrontmatter } from "@/types";
+import "@/types-extended";
 
 import {
   isCoiNote,
@@ -72,11 +74,11 @@ export class CoIntelligencePlugin extends Plugin {
     this.registerMonkeyPatches();
   }
 
-  private async handleFileOpen(file: TFile) {
+  private async handleFileOpen(_file: TFile) {
     //await openCOINote(file, this.app, this.registry);
   }
 
-  private async handleFileRename(file: TAbstractFile, oldPath: string) {
+  private async handleFileRename(file: TAbstractFile, _oldPath: string) {
     if (!(file instanceof TFile)) {
       console.error("File is not an instance of TFile");
       return;
@@ -93,7 +95,7 @@ export class CoIntelligencePlugin extends Plugin {
     // Only mark as renamed if this wasn't an automatic rename
     if (!this.isPerformingAutomaticRename) {
       await this.app.fileManager.processFrontMatter(file, (frontmatter) => {
-        frontmatter["note-renamed"] = true;
+        (frontmatter as CoiNoteFrontmatter)["note-renamed"] = true;
       });
     } else {
       // Reset the flag after checking it
@@ -123,7 +125,11 @@ export class CoIntelligencePlugin extends Plugin {
   async activateView() {}
 
   async loadSettings() {
-    const data = (await this.loadData()) ?? {};
+    const loaded: unknown = await this.loadData();
+    const data: Record<string, unknown> =
+      loaded && typeof loaded === "object"
+        ? (loaded as Record<string, unknown>)
+        : {};
     const migrated = this.migrateLegacyApiKeys(data);
     this.settings = Object.assign({}, DEFAULT_SETTINGS, data);
     if (migrated) {
@@ -174,6 +180,7 @@ export class CoIntelligencePlugin extends Plugin {
    * @see https://github.com/zsviczian/obsidian-excalidraw-plugin/blob/master/src/core/main.ts
    */
   private registerMonkeyPatches() {
+    const app = this.app;
     this.register(
       around(WorkspaceLeaf.prototype, {
         setViewState(next) {
@@ -186,8 +193,9 @@ export class CoIntelligencePlugin extends Plugin {
               ...state,
             };
             if (state.type === "markdown") {
-              const path = (state.state?.file as string) ?? "";
-              if (isPathActiveCoiNote(path, this.app)) {
+              const rawPath = state.state?.file;
+              const path = typeof rawPath === "string" ? rawPath : "";
+              if (isPathActiveCoiNote(path, app)) {
                 newState.type = VIEW_TYPE_COI_CHAT;
               }
             }

@@ -81,7 +81,7 @@ export class TagSuggestionModal extends SuggestModal<string> {
    * @param el The HTML element to render into
    */
   renderSuggestion(tag: string, el: HTMLElement) {
-    el.createEl("div", {
+    el.createDiv({
       text: `#${tag}`,
       cls: "coi-tag-suggestion-item",
     });
@@ -90,9 +90,9 @@ export class TagSuggestionModal extends SuggestModal<string> {
   /**
    * Called when the user selects a suggestion
    * @param tag The selected tag
-   * @param evt The triggering event (mouse or keyboard)
+   * @param _evt The triggering event (mouse or keyboard)
    */
-  onChooseSuggestion(tag: string, evt: MouseEvent | KeyboardEvent) {
+  onChooseSuggestion(tag: string, _evt: MouseEvent | KeyboardEvent) {
     // Ensure the tag has a # prefix when sending it back
     const formattedTag = tag.startsWith("#") ? tag : `#${tag}`;
     this.onSelect(formattedTag);

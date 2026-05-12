@@ -177,7 +177,7 @@ export function serializeCoiNoteContent(
   currentNoteContent: string,
   _app: App,
   messages: ModelChatMessage[],
-  contextItems: ContextItems | null,
+  _contextItems: ContextItems | null,
   sources?: Source[],
 ): string {
   const serializedMessages = messages
@@ -195,7 +195,7 @@ export function serializeCoiNoteContent(
 
       let processedContent = contentStr.replace(
         /\[\[(.*?)\]\]/g,
-        (match, noteName) => {
+        (_match: string, noteName: string) => {
           return `[[${noteName}]]`;
         },
       );
@@ -266,17 +266,19 @@ export async function serializeCoiNote(
 
   if (contextItems) {
     await app.fileManager.processFrontMatter(note, (frontmatter) => {
-      frontmatter["linked-notes"] = contextItems.notes.map((file) => file.path);
-      frontmatter["linked-tags"] = contextItems.tags;
+      const fm = frontmatter as CoiNoteFrontmatter;
+      fm["linked-notes"] = contextItems.notes.map((file) => file.path);
+      fm["linked-tags"] = contextItems.tags;
     });
   }
   if (lastModelId && lastModelId.contains(":")) {
     await app.fileManager.processFrontMatter(note, (frontmatter) => {
+      const fm = frontmatter as CoiNoteFrontmatter;
       const tag = sanitizeForTagName(lastModelId);
-      if (!frontmatter.tags) {
-        frontmatter.tags = ["coi-chat", tag];
-      } else if (!frontmatter.tags.includes(tag)) {
-        frontmatter.tags.push(tag);
+      if (!fm.tags) {
+        fm.tags = ["coi-chat", tag];
+      } else if (!fm.tags.includes(tag)) {
+        fm.tags.push(tag);
       }
     });
   }
@@ -374,7 +376,8 @@ export function deserializeCoiNoteContent(
     sources: [],
   };
 
-  const linkedNotePaths = metadata?.frontmatter?.["linked-notes"] || [];
+  const fm = metadata?.frontmatter as CoiNoteFrontmatter | undefined;
+  const linkedNotePaths: string[] = fm?.["linked-notes"] ?? [];
   for (const path of linkedNotePaths) {
     const file = app.vault.getAbstractFileByPath(path);
     if (file instanceof TFile) {
@@ -382,7 +385,7 @@ export function deserializeCoiNoteContent(
     }
   }
 
-  const linkedTags = metadata?.frontmatter?.["linked-tags"] || [];
+  const linkedTags: string[] = fm?.["linked-tags"] ?? [];
   for (const tag of linkedTags) {
     contextItems.tags.push(tag);
   }

@@ -19,6 +19,7 @@ import {
   serializeCoiNoteContent,
 } from "@/utils/notes";
 import { Source, ContextItems, ModelChatMessage } from "@/types";
+import "@/types-extended";
 
 export const VIEW_TYPE_COI_CHAT = "coi-chat-view";
 
