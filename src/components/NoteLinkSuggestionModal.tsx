@@ -64,18 +64,18 @@ export class NoteLinkSuggestionModal extends SuggestModal<TFile> {
    * @param el The HTML element to render into
    */
   renderSuggestion(file: TFile, el: HTMLElement) {
-    el.createEl("div", {
+    el.createDiv({
       text: file.basename,
-      cls: "coi-note-suggestion-item"
+      cls: "coi-note-suggestion-item",
     });
   }
 
   /**
    * Called when the user selects a suggestion
    * @param file The selected note file
-   * @param evt The triggering event (mouse or keyboard)
+   * @param _evt The triggering event (mouse or keyboard)
    */
-  onChooseSuggestion(file: TFile, evt: MouseEvent | KeyboardEvent) {
+  onChooseSuggestion(file: TFile, _evt: MouseEvent | KeyboardEvent) {
     this.onSelect(file);
     this.close();
   }

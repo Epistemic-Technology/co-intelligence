@@ -27,7 +27,10 @@ export default tseslint.config(
       },
     },
     rules: {
-      "@typescript-eslint/no-unused-vars": "warn",
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
       "@typescript-eslint/no-floating-promises": "error",
       "@typescript-eslint/require-await": "error",
       "@typescript-eslint/no-misused-promises": "error",

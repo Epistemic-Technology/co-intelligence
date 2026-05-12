@@ -3,6 +3,7 @@ import { App, Command, TFile, ViewState, Notice } from "obsidian";
 import CoIntelligencePlugin from "@/CoIntelligencePlugin";
 import { VIEW_TYPE_COI_CHAT } from "@/ChatView";
 import { isCoiNote, isActiveCoiNote } from "@/utils/notes";
+import { CoiNoteFrontmatter } from "@/types";
 
 export class ToggleChatViewCommand implements Command {
   private app: App;
@@ -43,7 +44,8 @@ export class ToggleChatViewCommand implements Command {
     await this.app.fileManager.processFrontMatter(
       currentFile,
       (frontmatter) => {
-        frontmatter["coi-chat-view"] = !isCurrentlyActive;
+        (frontmatter as CoiNoteFrontmatter)["coi-chat-view"] =
+          !isCurrentlyActive;
       },
     );
 
@@ -56,7 +58,7 @@ export class ToggleChatViewCommand implements Command {
     }
   }
 
-  private async openInDefaultEditor(file: TFile) {
+  private async openInDefaultEditor(_file: TFile) {
     const leaf = this.app.workspace.getMostRecentLeaf();
     if (!leaf) {
       new Notice("Error: no leaf found while opening chat in default editor");
@@ -76,7 +78,7 @@ export class ToggleChatViewCommand implements Command {
     );
   }
 
-  private async openInChatView(file: TFile) {
+  private async openInChatView(_file: TFile) {
     const leaf = this.app.workspace.getMostRecentLeaf();
     if (!leaf) {
       new Notice("Error: no leaf found while opening chat in chat view");
