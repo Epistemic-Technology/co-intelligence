@@ -60,12 +60,13 @@ function createMockPlugin(
 ): CoIntelligencePlugin {
   const app = new App();
   app.secretStorage.setSecret(API_KEY_SECRET_IDS.openai, "sk-test");
+  app.secretStorage.setSecret(API_KEY_SECRET_IDS.perplexity, "pplx-test");
   return {
     app,
     settings: {
       defaultFolder: "coi",
       defaultModel: "",
-      renamingModel: "openai:gpt-4o" as ModelId,
+      renamingModel: "openai:gpt-5.4-mini" as ModelId,
       systemPromptFolder: "coi/prompts",
       defaultSystemPromptNote: "",
       ...settings,
@@ -91,7 +92,7 @@ describe("generateChatResponse", () => {
   it("calls streamText with the correct model", async () => {
     const request: ChatRequest = {
       requestID: "test-1",
-      modelId: "openai:gpt-4o",
+      modelId: "openai:gpt-5.4-mini",
       messages: [{ role: "user", content: "Hello" }],
     };
     await generateChatResponse(request, registry);
@@ -106,7 +107,7 @@ describe("generateChatResponse", () => {
   it("includes system prompt when provided", async () => {
     const request: ChatRequest = {
       requestID: "test-2",
-      modelId: "openai:gpt-4o",
+      modelId: "openai:gpt-5.4-mini",
       messages: [{ role: "user", content: "Hello" }],
       systemPrompt: "You are a pirate.",
     };
@@ -121,7 +122,7 @@ describe("generateChatResponse", () => {
   it("appends web search instructions when webSearch is true", async () => {
     const request: ChatRequest = {
       requestID: "test-3",
-      modelId: "openai:gpt-4o",
+      modelId: "openai:gpt-5.4-mini",
       messages: [{ role: "user", content: "Latest news" }],
       webSearch: true,
     };
@@ -136,7 +137,7 @@ describe("generateChatResponse", () => {
   it("appends context to system prompt when provided", async () => {
     const request: ChatRequest = {
       requestID: "test-4",
-      modelId: "openai:gpt-4o",
+      modelId: "openai:gpt-5.4-mini",
       messages: [{ role: "user", content: "Hello" }],
       context: [{ title: "Note A", content: "Important info" }],
     };
@@ -149,10 +150,10 @@ describe("generateChatResponse", () => {
   });
 
   it("disables web search for models that don't support it", async () => {
-    // o1 has toggleWebSearch: false
+    // perplexity:sonar has toggleWebSearch: false (Perplexity is always web-grounded)
     const request: ChatRequest = {
       requestID: "test-5",
-      modelId: "openai:o1",
+      modelId: "perplexity:sonar",
       messages: [{ role: "user", content: "Hello" }],
       webSearch: true,
     };
@@ -176,7 +177,7 @@ describe("cancelChatResponse", () => {
   it("cancels an active request", async () => {
     const request: ChatRequest = {
       requestID: "cancel-test",
-      modelId: "openai:gpt-4o",
+      modelId: "openai:gpt-5.4-mini",
       messages: [{ role: "user", content: "Hello" }],
     };
     await generateChatResponse(request, registry);
@@ -187,7 +188,7 @@ describe("cancelChatResponse", () => {
   it("does nothing for unknown request ID", () => {
     const request: ChatRequest = {
       requestID: "nonexistent",
-      modelId: "openai:gpt-4o",
+      modelId: "openai:gpt-5.4-mini",
       messages: [],
     };
     // Should not throw
@@ -204,7 +205,7 @@ describe("generateChatTitle", () => {
   });
 
   it("generates a title from messages", async () => {
-    const plugin = createMockPlugin({ renamingModel: "openai:gpt-4o" as ModelId });
+    const plugin = createMockPlugin({ renamingModel: "openai:gpt-5.4-mini" as ModelId });
     ModelRegistry.getInstance(plugin);
 
     const messages = [
@@ -231,7 +232,7 @@ describe("generateChatTitle", () => {
       text: "Title/with\\bad:chars",
     } as never);
 
-    const plugin = createMockPlugin({ renamingModel: "openai:gpt-4o" as ModelId });
+    const plugin = createMockPlugin({ renamingModel: "openai:gpt-5.4-mini" as ModelId });
     ModelRegistry.getInstance(plugin);
 
     const messages = [{ role: "user" as const, content: "Hello" }];
@@ -246,7 +247,7 @@ describe("generateChatTitle", () => {
       text: "A".repeat(100),
     } as never);
 
-    const plugin = createMockPlugin({ renamingModel: "openai:gpt-4o" as ModelId });
+    const plugin = createMockPlugin({ renamingModel: "openai:gpt-5.4-mini" as ModelId });
     ModelRegistry.getInstance(plugin);
 
     const messages = [{ role: "user" as const, content: "Hello" }];
@@ -258,7 +259,7 @@ describe("generateChatTitle", () => {
   it("returns empty string on generation error", async () => {
     vi.mocked(generateText).mockRejectedValueOnce(new Error("API error"));
 
-    const plugin = createMockPlugin({ renamingModel: "openai:gpt-4o" as ModelId });
+    const plugin = createMockPlugin({ renamingModel: "openai:gpt-5.4-mini" as ModelId });
     ModelRegistry.getInstance(plugin);
 
     const messages = [{ role: "user" as const, content: "Hello" }];

@@ -189,8 +189,8 @@ describe("ModelRegistry", () => {
     it("returns model by ID", () => {
       const plugin = createMockPlugin({ apiKeys: { openai: "sk-1" } });
       const registry = ModelRegistry.getInstance(plugin);
-      const model = registry.getModel("openai:gpt-4o");
-      expect(model.id).toBe("openai:gpt-4o");
+      const model = registry.getModel("openai:gpt-5.4-mini");
+      expect(model.id).toBe("openai:gpt-5.4-mini");
       expect(model.provider).toBe("openai");
     });
 
