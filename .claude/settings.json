@@ -1,14 +1,1 @@
-{
-  "hooks": {
-    "SessionEnd": [
-      {
-        "hooks": [
-          {
-            "command": ".worklog/bin/capture-session",
-            "type": "command"
-          }
-        ]
-      }
-    ]
-  }
-}
+{}
