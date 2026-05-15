@@ -20,13 +20,10 @@ To use Co-Intelligence AI, you will need an API key from [OpenAI](https://openai
 [Anthropic](https://console.anthropic.com/), [Google](https://ai.google.dev/gemini-api/docs/api-key),
 or [Perplexity](https://www.perplexity.ai/account/api/keys).
 
-You need a paid account for most models. The following models should be available
-to free-tier users:
-
-- OpenAI: GPT-4.1 Nano, GPT-4.1 Mini
-- Google: Gemini 2.0 Flash, Gemini 2.5 Flash
-
-Anthropic and Perplexity require a paid account to use their APIs.
+Most models require a paid account. Some providers (notably Google's smaller
+Gemini Flash models) offer limited free-tier access, but free-tier availability
+and rate limits change frequently — check your provider's current pricing for
+details. Anthropic and Perplexity require a paid account to use their APIs.
 
 ## Settings
 
@@ -36,7 +33,7 @@ At least one API key is required to use Co-Intelligence AI. Other settings are o
 
 - **Default Folder**: This is where chats are saved in your vault.
 - **Default Model**: The model that will be selected by default when starting a new conversation.
-- **Renaming Model**: The model that will be used to automatically rename chats. Generally you should use a smaller model like GPT-4.1 Nano in order to save tokens.
+- **Renaming Model**: The model that will be used to automatically rename chats. Generally you should use a smaller model like GPT-5.4 Nano in order to save tokens.
 - **System Prompt Folder**: The folder where custom system prompts are stored.
 - **Default System Prompt**: The system prompt that will be used by default when starting a new conversation.
 
@@ -47,7 +44,7 @@ To start a new chat, click the "New COI Chat" button in the ribbon or invoke the
 To add notes or tags as context, click the + button in the Context panel, or type `[[` to begin inserting a note or `#` to begin inserting a tag. Notes and tags added to the context are sent to the model along with your messages. Model providers generally charge based on the total amount of input context supplied with requests, so an estimated number
 of context tokens is given in the context panel.
 
-For each message, you can select from available models to generate a response. It can be useful to switch between models during a chat. For example, it might make sense to use a reasoning model like Open AI's O3 or Perplexity's Sonar Reasoning for an initial requests and a less intensive model such as GPT-4.1 or Gemini Flash 2.0 for follow-up questions.
+For each message, you can select from available models to generate a response. It can be useful to switch between models during a chat. For example, it might make sense to use a reasoning model like Perplexity's Sonar Reasoning Pro or a frontier model like Claude Opus 4.7 for an initial request and a less intensive model such as GPT-5.4 Mini or Gemini 3 Flash for follow-up questions.
 
 You can also select from available system prompts for each message. System prompts are used to guide how a model should respond to your messages. For example, you might want to use a system prompt that encourages the model to be more creative or to provide more detailed explanations. You might want to have a set of "personas" or "roles" that you can switch between during a conversation, such as a friendly assistant or professional critic. If you do not provide a system prompt, the model will be instructed to be a helpful assistant.
 
@@ -61,22 +58,22 @@ We have tried to provide a good range of models that have been tested with the a
 
 Currently, the following models are available:
 
-| Provider | Model | Free Tier? | Web Search? |
-| --- | --- | --- | --- |
-| OpenAI | 4o | No | Toggle |
-| OpenAI | 4.1 | No | Toggle |
-| OpenAI | 4.1 Nano | Yes | Toggle |
-| OpenAI | 4.1 Mini | Yes | Toggle |
-| OpenAI | O1 | No | No |
-| OpenAI | O3 | No | No |
-| Anthropic | Claude 4 Sonnet | No | No |
-| Anthropic | Claude 4 Opus | No | No |
-| Google | Gemini 2.0 Flash | Yes | Toggle |
-| Google | Gemini 2.5 Flash | Yes | Toggle |
-| Google | Gemini 2.5 Pro | No | Toggle |
-| Perplexity | Sonar | No | Yes |
-| Perplexity | Sonar Deep Research | No | Yes |
-| Perplexity | Sonar Reasoning | No | Yes |
+| Provider | Model | Web Search? |
+| --- | --- | --- |
+| OpenAI | GPT-5.5 | Toggle |
+| OpenAI | GPT-5.4 | Toggle |
+| OpenAI | GPT-5.4 Mini | Toggle |
+| OpenAI | GPT-5.4 Nano | Toggle |
+| Anthropic | Claude Opus 4.7 | No |
+| Anthropic | Claude Sonnet 4.6 | No |
+| Anthropic | Claude Haiku 4.5 | No |
+| Google | Gemini 3.1 Pro Preview | Toggle |
+| Google | Gemini 3 Flash Preview | Toggle |
+| Google | Gemini 3.1 Flash Lite | Toggle |
+| Perplexity | Sonar | Yes |
+| Perplexity | Sonar Pro | Yes |
+| Perplexity | Sonar Reasoning Pro | Yes |
+| Perplexity | Sonar Deep Research | Yes |
 
 Co-Intelligence AI is built using the [AI SDK](https://ai-sdk.dev/docs/introduction), and ultimately our ability to interface with models is dependent on the models supported by it.
 
