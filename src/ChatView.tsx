@@ -1,22 +1,22 @@
 import {
-  WorkspaceLeaf,
-  App,
-  TFile,
-  TextFileView,
-  Menu,
-  Notice,
+    WorkspaceLeaf,
+    App,
+    TFile,
+    TextFileView,
+    Menu,
+    Notice,
 } from "obsidian";
 import { render } from "solid-js/web";
 
 import { CoiChatApp } from "@/CoiChatApp";
 import { CoIntelligencePlugin } from "@/CoIntelligencePlugin";
 import {
-  serializeCoiNote,
-  deserializeCoiNote,
-  renameNote,
-  isActiveCoiNote,
-  deserializeCoiNoteContent,
-  serializeCoiNoteContent,
+    serializeCoiNote,
+    deserializeCoiNote,
+    renameNote,
+    isActiveCoiNote,
+    deserializeCoiNoteContent,
+    serializeCoiNoteContent,
 } from "@/utils/notes";
 import { Source, ContextItems, ModelChatMessage } from "@/types";
 import "@/types-extended";
@@ -24,222 +24,224 @@ import "@/types-extended";
 export const VIEW_TYPE_COI_CHAT = "coi-chat-view";
 
 export interface HandleChatChangeProps {
-  newMessages: ModelChatMessage[];
-  newTitle: string;
-  contextItems: ContextItems | null;
-  sources?: Source[];
-  lastModelId: string | null;
+    newMessages: ModelChatMessage[];
+    newTitle: string;
+    contextItems: ContextItems | null;
+    sources?: Source[];
+    lastModelId: string | null;
 }
 
 export class ChatView extends TextFileView {
-  public plugin: CoIntelligencePlugin;
-  public app: App;
-  public file: TFile | null;
-  public messages: ModelChatMessage[] = [];
-  public contextItems: ContextItems = { notes: [], tags: [], sources: [] };
-  public sources: Source[] = [];
-  public rootElement: Element | null = null;
-  public dispose: (() => void) | null = null;
+    public plugin: CoIntelligencePlugin;
+    public app: App;
+    public file: TFile | null;
+    public messages: ModelChatMessage[] = [];
+    public contextItems: ContextItems = { notes: [], tags: [], sources: [] };
+    public sources: Source[] = [];
+    public rootElement: Element | null = null;
+    public dispose: (() => void) | null = null;
 
-  private updating = false;
-  private debounceTimeout: number | null = null;
+    private updating = false;
+    private debounceTimeout: number | null = null;
 
-  constructor(leaf: WorkspaceLeaf, plugin: CoIntelligencePlugin, app: App) {
-    super(leaf);
-    this.plugin = plugin;
-    this.app = app;
-    this.file = app.workspace.getActiveFile();
-    this.handleChatChange = this.handleChatChange.bind(this);
-    this.icon = "bot-message-square";
-  }
-
-  getViewType(): string {
-    return VIEW_TYPE_COI_CHAT;
-  }
-
-  getDisplayText(): string {
-    return this.file?.basename || "Co-Intelligence Chat";
-  }
-
-  debounceUpdateViewData() {
-    if (this.debounceTimeout) {
-      window.clearTimeout(this.debounceTimeout);
+    constructor(leaf: WorkspaceLeaf, plugin: CoIntelligencePlugin, app: App) {
+        super(leaf);
+        this.plugin = plugin;
+        this.app = app;
+        this.file = app.workspace.getActiveFile();
+        this.handleChatChange = this.handleChatChange.bind(this);
+        this.icon = "bot-message-square";
     }
-    this.debounceTimeout = window.setTimeout(() => {
-      this.debounceTimeout = null;
-      void this.updateViewData();
-    }, 500);
-  }
 
-  async updateViewData() {
-    if (this.updating) {
-      return;
+    getViewType(): string {
+        return VIEW_TYPE_COI_CHAT;
     }
-    if (!this.file) {
-      return "";
-    }
-    this.updating = true;
-    const currentNoteContent = await this.app.vault.cachedRead(this.file);
-    const content = serializeCoiNoteContent(
-      currentNoteContent,
-      this.app,
-      this.messages,
-      this.contextItems,
-    );
-    this.data = content;
-    this.requestSave();
-    this.updating = false;
-  }
 
-  getViewData() {
-    return this.data;
-  }
+    getDisplayText(): string {
+        return this.file?.basename || "Co-Intelligence Chat";
+    }
 
-  setViewData(data: string, clear: boolean): void {
-    this.data = data;
-    if (!this.file) {
-      new Notice("Error: file is null while trying to set view data");
-      console.error("File is null while trying to set view data");
-      return;
+    debounceUpdateViewData() {
+        if (this.debounceTimeout) {
+            window.clearTimeout(this.debounceTimeout);
+        }
+        this.debounceTimeout = window.setTimeout(() => {
+            this.debounceTimeout = null;
+            void this.updateViewData();
+        }, 500);
     }
-    if (clear) {
-      this.clear();
-    }
-    const metadata = this.app.metadataCache.getFileCache(this.file);
-    const { messages, contextItems, sources } = deserializeCoiNoteContent(
-      data,
-      metadata,
-      this.app,
-    );
-    this.messages = messages;
-    this.contextItems = contextItems;
-    this.sources = sources;
-  }
 
-  clear(): void {
-    this.messages = [];
-    this.contextItems = {
-      notes: [],
-      tags: [],
-      sources: [],
-    };
-    this.sources = [];
-    if (this.dispose) {
-      this.dispose();
+    async updateViewData() {
+        if (this.updating) {
+            return;
+        }
+        if (!this.file) {
+            return "";
+        }
+        this.updating = true;
+        const currentNoteContent = await this.app.vault.cachedRead(this.file);
+        const content = serializeCoiNoteContent(
+            currentNoteContent,
+            this.app,
+            this.messages,
+            this.contextItems,
+        );
+        this.data = content;
+        this.requestSave();
+        this.updating = false;
     }
-  }
 
-  render() {
-    this.rootElement = this.rootElement || this.containerEl.children[1];
-    if (!this.rootElement) {
-      new Notice("Error: root element is null");
-      console.error("Root element is null");
-      return;
+    getViewData() {
+        return this.data;
     }
-    const file = this.file;
-    if (!(file instanceof TFile)) {
-      console.error("File is not an instance of TFile");
-      return;
-    }
-    this.dispose = render(
-      () => (
-        <CoiChatApp
-          app={this.app}
-          plugin={this.plugin}
-          file={file}
-          onChange={(props) => void this.handleChatChange(props)}
-          initialMessages={this.messages}
-          initialContext={this.contextItems}
-          initialSources={this.sources}
-        />
-      ),
-      this.rootElement,
-    );
-  }
 
-  async handleChatChange({
-    newMessages,
-    newTitle,
-    contextItems,
-    sources,
-    lastModelId,
-  }: HandleChatChangeProps): Promise<void> {
-    if (this.updating) return;
-    this.updating = true;
-    if (!this.file) {
-      new Notice("Error: file is null while trying to handle chat change");
-      console.error("File is null while trying to handle chat change");
-      return;
+    setViewData(data: string, clear: boolean): void {
+        this.data = data;
+        if (!this.file) {
+            new Notice("Error: file is null while trying to set view data");
+            console.error("File is null while trying to set view data");
+            return;
+        }
+        if (clear) {
+            this.clear();
+        }
+        const metadata = this.app.metadataCache.getFileCache(this.file);
+        const { messages, contextItems, sources } = deserializeCoiNoteContent(
+            data,
+            metadata,
+            this.app,
+        );
+        this.messages = messages;
+        this.contextItems = contextItems;
+        this.sources = sources;
     }
-    try {
-      await serializeCoiNote(
-        this.file,
-        this.app,
+
+    clear(): void {
+        this.messages = [];
+        this.contextItems = {
+            notes: [],
+            tags: [],
+            sources: [],
+        };
+        this.sources = [];
+        if (this.dispose) {
+            this.dispose();
+        }
+    }
+
+    render() {
+        this.rootElement = this.rootElement || this.containerEl.children[1];
+        if (!this.rootElement) {
+            new Notice("Error: root element is null");
+            console.error("Root element is null");
+            return;
+        }
+        const file = this.file;
+        if (!(file instanceof TFile)) {
+            console.error("File is not an instance of TFile");
+            return;
+        }
+        this.dispose = render(
+            () => (
+                <CoiChatApp
+                    app={this.app}
+                    plugin={this.plugin}
+                    file={file}
+                    onChange={(props) => void this.handleChatChange(props)}
+                    initialMessages={this.messages}
+                    initialContext={this.contextItems}
+                    initialSources={this.sources}
+                />
+            ),
+            this.rootElement,
+        );
+    }
+
+    async handleChatChange({
         newMessages,
+        newTitle,
         contextItems,
-        lastModelId,
         sources,
-      );
-      if (newTitle !== "" && newTitle !== this.file.basename) {
-        await renameNote(this.file, newTitle, this.app, this.plugin);
-      }
-    } catch (error) {
-      new Notice(`Error serializing CoiNote: ${String(error)}`);
-      console.error(`Error serializing CoiNote: ${String(error)}`);
-    } finally {
-      this.updating = false;
+        lastModelId,
+    }: HandleChatChangeProps): Promise<void> {
+        if (this.updating) return;
+        this.updating = true;
+        if (!this.file) {
+            new Notice(
+                "Error: file is null while trying to handle chat change",
+            );
+            console.error("File is null while trying to handle chat change");
+            return;
+        }
+        try {
+            await serializeCoiNote(
+                this.file,
+                this.app,
+                newMessages,
+                contextItems,
+                lastModelId,
+                sources,
+            );
+            if (newTitle !== "" && newTitle !== this.file.basename) {
+                await renameNote(this.file, newTitle, this.app, this.plugin);
+            }
+        } catch (error) {
+            new Notice(`Error serializing CoiNote: ${String(error)}`);
+            console.error(`Error serializing CoiNote: ${String(error)}`);
+        } finally {
+            this.updating = false;
+        }
     }
-  }
 
-  async onLoadFile(file: TFile): Promise<void> {
-    this.file = file;
-    const { messages, contextItems, sources } = await deserializeCoiNote(
-      file,
-      this.app,
-    );
-    this.messages = messages;
-    this.contextItems = contextItems;
-    this.sources = sources;
-    this.render();
-  }
-
-  onUnloadFile(_file: TFile): void {
-    this.clear();
-  }
-
-  async onOpen(): Promise<void> {
-    if (!this.file) {
-      return;
+    async onLoadFile(file: TFile): Promise<void> {
+        this.file = file;
+        const { messages, contextItems, sources } = await deserializeCoiNote(
+            file,
+            this.app,
+        );
+        this.messages = messages;
+        this.contextItems = contextItems;
+        this.sources = sources;
+        this.render();
     }
-    if (!isActiveCoiNote(this.file, this.app)) {
-      return;
+
+    onUnloadFile(_file: TFile): Promise<void> {
+        this.clear();
+        return Promise.resolve();
     }
-    const { messages, contextItems, sources } = await deserializeCoiNote(
-      this.file,
-      this.app,
-    );
-    this.messages = messages;
-    this.contextItems = contextItems;
-    this.sources = sources;
-    this.render();
-  }
 
-  async refresh(): Promise<void> {
-    this.clear();
-    await this.onOpen();
-  }
+    async onOpen(): Promise<void> {
+        if (!this.file) {
+            return;
+        }
+        if (!isActiveCoiNote(this.file, this.app)) {
+            return;
+        }
+        const { messages, contextItems, sources } = await deserializeCoiNote(
+            this.file,
+            this.app,
+        );
+        this.messages = messages;
+        this.contextItems = contextItems;
+        this.sources = sources;
+        this.render();
+    }
 
-  onPaneMenu(menu: Menu, source: string): void {
-    menu.addItem((item) => {
-      item
-        .setTitle("View as Markdown")
-        .setIcon("bot-message-square")
-        .onClick(() => {
-          this.app.commands.executeCommandById(
-            "co-intelligence:toggle-chat-view",
-          );
+    async refresh(): Promise<void> {
+        this.clear();
+        await this.onOpen();
+    }
+
+    onPaneMenu(menu: Menu, source: string): void {
+        menu.addItem((item) => {
+            item.setTitle("View as Markdown")
+                .setIcon("bot-message-square")
+                .onClick(() => {
+                    this.app.commands.executeCommandById(
+                        "co-intelligence:toggle-chat-view",
+                    );
+                });
         });
-    });
-    super.onPaneMenu(menu, source);
-  }
+        super.onPaneMenu(menu, source);
+    }
 }
