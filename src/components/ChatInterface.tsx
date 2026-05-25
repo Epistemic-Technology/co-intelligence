@@ -18,6 +18,7 @@ import { SourceList } from "@/components/SourceList";
 
 import { getContext } from "@/utils/model-context";
 import { ensureSourceTitle } from "@/utils/url";
+import { loadSystemPrompt } from "@/chat/system-prompt-loader";
 import { HandleChatChangeProps } from "@/ChatView";
 
 export interface ChatInterfaceProps {
@@ -129,20 +130,14 @@ export const ChatInterface = ({
 
         const parsedContext = await getContext(contextItems(), app);
 
-        // Load system prompt content if a path is provided
         let systemPrompt: string | undefined;
-        if (systemPromptPath && systemPromptPath.trim() !== "") {
-            try {
-                const file = app.vault.getAbstractFileByPath(systemPromptPath);
-                if (file instanceof TFile) {
-                    systemPrompt = await app.vault.read(file);
-                }
-            } catch (error) {
-                console.error("Error loading system prompt:", error);
-                new Notice(
-                    "Error loading system prompt: " + (error as Error).message,
-                );
-            }
+        try {
+            systemPrompt = await loadSystemPrompt(systemPromptPath, app);
+        } catch (error) {
+            console.error("Error loading system prompt:", error);
+            new Notice(
+                "Error loading system prompt: " + (error as Error).message,
+            );
         }
 
         const request: ChatRequest = {
