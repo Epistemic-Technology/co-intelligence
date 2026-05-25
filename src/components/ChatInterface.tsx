@@ -1,29 +1,19 @@
-import { createSignal, useContext, Show, createEffect } from "solid-js";
-import { ModelChatMessage } from "@/types";
-import { TFile, Notice, debounce } from "obsidian";
+import { createSignal, useContext, Show } from "solid-js";
+import { TFile } from "obsidian";
 
 import { ModelRegistry } from "@/services/model-registry";
-import {
-    cancelChatResponse,
-    deleteAbortControllerForRequest,
-    generateChatResponse,
-    generateChatTitle,
-} from "@/services/model-service";
-import { ChatRequest, Source, Model, ContextItems, Tag } from "@/types";
+import { Source, Model, ContextItems, Tag, ModelChatMessage } from "@/types";
 import { PluginContext, AppContext } from "@/CoiChatApp";
 import { ChatHistory } from "@/components/ChatHistory";
 import { UserInput } from "@/components/UserInput";
 import { ContextList } from "@/components/ContextList";
 import { SourceList } from "@/components/SourceList";
 
-import { getContext } from "@/utils/model-context";
-import { buildChatRequest } from "@/chat/request-builder";
 import {
-    extractMarkdownLinkSources,
-    processNumberedSources,
-} from "@/chat/source-processor";
-import { consumeChatStream } from "@/chat/stream-consumer";
-import { loadSystemPrompt } from "@/chat/system-prompt-loader";
+    addNoteToContext,
+    addTagToContext,
+} from "@/chat/context-actions";
+import { useChatController } from "@/chat/use-chat-controller";
 import { HandleChatChangeProps } from "@/ChatView";
 
 export interface ChatInterfaceProps {
@@ -40,284 +30,49 @@ export const ChatInterface = ({
     onChange,
 }: ChatInterfaceProps) => {
     const plugin = useContext(PluginContext);
-
     if (!plugin) {
         throw new Error("Plugin Context is not available");
     }
-    const registry = ModelRegistry.getInstance(plugin);
-    const modelSetting = plugin.settings.defaultModel;
-    let currentModel: Model | null = null;
-    if (modelSetting) {
-        currentModel = registry.getModel(modelSetting);
-    } else {
-        currentModel = registry.getDefaultModel();
-    }
-
-    const [model, setModel] = createSignal<Model | null>(currentModel);
-    const [messages, setMessages] =
-        createSignal<ModelChatMessage[]>(initialMessages);
-    const [contextItems, setContextItems] = createSignal<ContextItems | null>(
-        initialContext,
-    );
-    const [sources, setSources] = createSignal<Source[]>(initialSources);
-    const [lastSourceLinkNumber, setLastSourceLinkNumber] =
-        createSignal<number>(initialSources.length);
-    const [isProcessing, setIsProcessing] = createSignal<boolean>(false);
-    const [currentRequest, setCurrentRequest] =
-        createSignal<ChatRequest | null>(null);
-
     const app = useContext(AppContext);
-
     if (!app) {
         throw new Error("App Context is not available");
     }
 
-    const handleLinkNote = (file: TFile) => {
-        const items = contextItems();
-        if (items === null) {
-            setContextItems({
-                notes: [file],
-                tags: [],
-                sources: [],
-            });
-        } else if (!items.notes.some((note) => note.path === file.path)) {
-            setContextItems({
-                notes: [...items.notes, file],
-                tags: items.tags,
-                sources: items.sources,
-            });
-        }
-        triggerChange();
-    };
+    const registry = ModelRegistry.getInstance(plugin);
+    const defaultModel = plugin.settings.defaultModel
+        ? registry.getModel(plugin.settings.defaultModel)
+        : registry.getDefaultModel();
 
-    const handleAddTag = (tag: Tag) => {
-        const items = contextItems();
-        if (items === null) {
-            setContextItems({
-                notes: [],
-                tags: [tag],
-                sources: [],
-            });
-        } else if (!items.tags.includes(tag)) {
-            setContextItems({
-                notes: items.notes,
-                tags: [...items.tags, tag],
-                sources: items.sources,
-            });
-        }
-        triggerChange();
-    };
+    const [model, setModel] = createSignal<Model | null>(defaultModel);
+    const [contextItems, setContextItems] =
+        createSignal<ContextItems | null>(initialContext);
 
-    const handleSendMessage = async (
-        message: string,
-        webSearchEnabled: boolean = false,
-        systemPromptPath?: string,
-    ) => {
-        if (!message.trim()) {
-            new Notice("Warning: sending empty user message");
-            console.warn("Message is empty");
-            return;
-        }
-        const requestModel = model();
-        if (!requestModel) {
-            new Notice("No model selected while sending message");
-            console.error("No model selected while sending message");
-            return;
-        }
-        if (!app) {
-            new Notice("No app instance while sending message");
-            console.error("No app instance while sending message");
-            return;
-        }
-        const newMessage: ModelChatMessage = { role: "user", content: message };
-        setMessages([...messages(), newMessage]);
-        setIsProcessing(true);
-
-        const parsedContext = await getContext(contextItems(), app);
-
-        let systemPrompt: string | undefined;
-        try {
-            systemPrompt = await loadSystemPrompt(systemPromptPath, app);
-        } catch (error) {
-            console.error("Error loading system prompt:", error);
-            new Notice(
-                "Error loading system prompt: " + (error as Error).message,
-            );
-        }
-
-        const request = buildChatRequest({
-            model: requestModel,
-            messages: messages(),
-            context: parsedContext,
-            webSearch: webSearchEnabled,
-            systemPrompt,
-        });
-        setCurrentRequest(request);
-
-        try {
-            setIsProcessing(true);
-            const responseStream = generateChatResponse(request, registry);
-            let accumulatedContent = "";
-            let isFirstChunk = true;
-
-            try {
-                for await (const event of consumeChatStream(
-                    responseStream.fullStream,
-                )) {
-                    if (event.type === "error") {
-                        console.error("Error:", event.error);
-                        new Notice(
-                            "Unknown error occurred. See console log for details.",
-                        );
-                        continue;
-                    }
-                    const text = event.text;
-                    if (isFirstChunk) {
-                        const assistantMessage: ModelChatMessage = {
-                            role: "assistant",
-                            content: text,
-                        };
-                        setMessages([...messages(), assistantMessage]);
-                        accumulatedContent += text;
-                        isFirstChunk = false;
-                        setIsProcessing(false);
-                    } else {
-                        accumulatedContent += text;
-                        setMessages((prevMessages) => {
-                            const updatedMessages = [...prevMessages];
-                            updatedMessages[updatedMessages.length - 1] = {
-                                role: "assistant",
-                                content: accumulatedContent,
-                            };
-                            return updatedMessages;
-                        });
-                    }
-                }
-            } catch (error) {
-                console.error("Caught error:", error);
-                if ((error as Error).message) {
-                    new Notice(
-                        "Error generating response: " +
-                            (error as Error).message,
-                        0,
-                    );
-                }
-            }
-
-            if (isFirstChunk) {
-                setIsProcessing(false);
-                setMessages([
-                    ...messages(),
-                    {
-                        role: "assistant",
-                        content: "No response received from the model.",
-                    },
-                ]);
-            }
-            const lastMessage = messages()[messages().length - 1];
-            const rawSources = await responseStream.sources;
-
-            if (rawSources.length > 0) {
-                const processed = processNumberedSources({
-                    rawSources,
-                    content: (lastMessage.content as string) ?? "",
-                    offset: lastSourceLinkNumber(),
-                });
-                setMessages((prevMessages) => {
-                    const updatedMessages = [...prevMessages];
-                    updatedMessages[updatedMessages.length - 1] = {
-                        ...lastMessage,
-                        content: processed.content,
-                    } as ModelChatMessage;
-                    return updatedMessages;
-                });
-                setSources([...sources(), ...processed.newSources]);
-                setLastSourceLinkNumber(
-                    lastSourceLinkNumber() + processed.newSources.length,
-                );
-            } else {
-                const currentMessage = messages()[messages().length - 1];
-                const newLinkSources = extractMarkdownLinkSources({
-                    content: (currentMessage.content as string) ?? "",
-                    existingSources: sources(),
-                });
-                if (newLinkSources.length > 0) {
-                    setSources([...sources(), ...newLinkSources]);
-                    setLastSourceLinkNumber(
-                        lastSourceLinkNumber() + newLinkSources.length,
-                    );
-                }
-            }
-            triggerChange(true);
-        } catch (error) {
-            const message = (error as Error).message || "Unknown error";
-            new Notice("Error generating response: " + message);
-            console.error("Error generating response:", error);
-            setIsProcessing(false);
-            setMessages((prevMessages) => [
-                ...prevMessages,
-                {
-                    role: "assistant",
-                    content:
-                        "Sorry, there was an error generating a response. Please try again.",
-                },
-            ]);
-            triggerChange();
-        } finally {
-            setIsProcessing(false);
-            setCurrentRequest(null);
-            deleteAbortControllerForRequest(request);
-        }
-    };
-
-    const triggerChange = debounce(async (regenNoteTitle: boolean = false) => {
-        let newTitle = "";
-        if (regenNoteTitle) {
-            newTitle = await generateChatTitle(messages(), plugin);
-        }
-        if (onChange) {
-            const currentModelId = currentRequest()?.modelId;
-            onChange({
-                newMessages: messages(),
-                newTitle,
-                contextItems: contextItems(),
-                lastModelId: currentModelId || null,
-                sources: sources(),
-            });
-        }
-    }, 750);
-
-    createEffect(() => {
-        contextItems();
-        sources();
-        messages();
-        triggerChange();
+    const controller = useChatController({
+        app,
+        plugin,
+        registry,
+        model,
+        contextItems,
+        initialMessages,
+        initialSources,
+        onChange,
     });
 
-    const handleCancelRequest = () => {
-        setIsProcessing(false);
-        const request = currentRequest();
-        if (!request) return;
-        cancelChatResponse(request);
+    const handleLinkNote = (file: TFile) =>
+        setContextItems(addNoteToContext(contextItems(), file));
 
-        const cancelMessage: ModelChatMessage = {
-            role: "assistant",
-            content: "*Request cancelled by user*",
-        };
-
-        setMessages((prevMessages) => [...prevMessages, cancelMessage]);
-        triggerChange();
-    };
+    const handleAddTag = (tag: Tag) =>
+        setContextItems(addTagToContext(contextItems(), tag));
 
     return (
         <div>
             <ChatHistory
-                messages={messages}
-                isProcessing={isProcessing} // Pass the isProcessing signal accessor for reactivity
-                onCancelRequest={handleCancelRequest}
+                messages={controller.messages}
+                isProcessing={controller.isProcessing}
+                onCancelRequest={controller.cancel}
             />
-            <Show when={sources().length > 0}>
-                <SourceList sources={sources} />
+            <Show when={controller.sources().length > 0}>
+                <SourceList sources={controller.sources} />
             </Show>
             <ContextList
                 app={app}
@@ -327,7 +82,7 @@ export const ChatInterface = ({
                 onAddTag={handleAddTag}
             />
             <UserInput
-                onSubmit={(msg, ws, sp) => void handleSendMessage(msg, ws, sp)}
+                onSubmit={(msg, ws, sp) => void controller.send(msg, ws, sp)}
                 currentModel={model}
                 updateModel={setModel}
                 onLinkNote={handleLinkNote}
