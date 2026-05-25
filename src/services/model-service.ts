@@ -1,15 +1,13 @@
 import {
-    streamText,
     generateText,
-    StreamTextResult,
-    StreamTextOnErrorCallback,
-    ToolSet,
-    LanguageModel,
-    JSONValue,
+    type JSONValue,
+    type LanguageModel,
+    type ToolSet,
 } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { google } from "@ai-sdk/google";
 
+import { runAgentLoop, type AgentEventStream } from "@/agent/agent-loop";
 import { ModelRegistry } from "@/services/model-registry";
 import { makeContext } from "@/utils/model-context";
 import { ChatRequest, ModelChatMessage } from "@/types";
@@ -20,17 +18,16 @@ type GenerateTextParams = Parameters<typeof generateText>[0];
 const abortControllers = new Map<string, AbortController>();
 
 /**
- * Generates a chat response based on the provided request.
- *
- * @param request The chat request containing model ID, messages, and optional system prompt
- * @param stream Whether to stream the response or not
- * @returns For stream=true: a Promise of StreamTextResult object with streaming capabilities
- *          For stream=false: a Promise of GenerateTextResult object with the complete response
+ * Runs the agent loop for a chat request. Returns the normalized
+ * {@link AgentEventStream} the controller iterates. `tools` is merged on top
+ * of any provider-native tools (web search, etc.) — Coi-registered tools win
+ * on collision.
  */
 export function generateChatResponse(
     request: ChatRequest,
     registry: ModelRegistry,
-): StreamTextResult<ToolSet, never> {
+    tools: ToolSet = {},
+): AgentEventStream {
     const model = registry.getLanguageModel(request.modelId);
 
     const abortController = new AbortController();
@@ -56,21 +53,12 @@ export function generateChatResponse(
         systemPrompt += "\n\n" + contextPreamble + notesContext;
     }
 
-    const errorHandler: StreamTextOnErrorCallback = (event: {
-        error: unknown;
-    }) => {
-        console.error(
-            `Error generating chat response: ${(event.error as Error).message}`,
-        );
-        throw event.error as Error;
-    };
-
-    const defaultConfig: StreamConfig = {
+    const defaultConfig: ProviderConfig = {
         messages: request.messages,
-        model: model,
+        model,
         abortSignal: abortController.signal,
         system: systemPrompt,
-        onError: errorHandler,
+        tools,
     };
 
     const providerConfigProps: ConfigGeneratorProps = {
@@ -80,7 +68,7 @@ export function generateChatResponse(
     };
 
     const providerPrefix = registry.getModel(request.modelId).provider;
-    let finalConfig: StreamConfig;
+    let finalConfig: ProviderConfig;
 
     switch (providerPrefix) {
         case "anthropic":
@@ -96,68 +84,81 @@ export function generateChatResponse(
             finalConfig = defaultConfig;
     }
 
-    try {
-        const result = streamText(finalConfig);
-        return result;
-    } catch (error) {
-        console.error(error);
-        throw error;
-    }
+    return runAgentLoop({
+        model: finalConfig.model,
+        messages: finalConfig.messages,
+        system: finalConfig.system,
+        tools: finalConfig.tools,
+        abortSignal: finalConfig.abortSignal,
+        providerOptions: finalConfig.providerOptions,
+        headers: finalConfig.headers,
+        onError: (error) => {
+            console.error(
+                `Error generating chat response: ${
+                    (error as Error).message
+                }`,
+            );
+            throw error as Error;
+        },
+    });
 }
 
-interface StreamConfig {
+interface ProviderConfig {
     messages: ModelChatMessage[];
     model: LanguageModel;
     abortSignal: AbortSignal;
     system: string;
-    onError: StreamTextOnErrorCallback;
     tools?: ToolSet;
     providerOptions?: Record<string, Record<string, JSONValue>>;
+    headers?: Record<string, string>;
 }
 
 interface ConfigGeneratorProps {
     request: ChatRequest;
     registry: ModelRegistry;
-    defaultConfig: StreamConfig;
+    defaultConfig: ProviderConfig;
 }
 
 const openAIConfig = ({ request, defaultConfig }: ConfigGeneratorProps) => {
-    const config = { ...defaultConfig };
+    const config: ProviderConfig = {
+        ...defaultConfig,
+        tools: { ...(defaultConfig.tools ?? {}) },
+    };
     if (request.webSearch) {
-        if (!config.tools) {
-            config.tools = {};
-        }
-        config.tools.web_search_preview = openai.tools.webSearchPreview({});
+        config.tools = {
+            ...config.tools,
+            web_search_preview: openai.tools.webSearchPreview({}),
+        };
     }
     if (request.modelId.includes("o3")) {
-        if (!config.providerOptions) {
-            config.providerOptions = {};
-        }
-        if (!config.providerOptions.openai) {
-            config.providerOptions.openai = {};
-        }
-        config.providerOptions.openai.reasoningSummary = "detailed";
+        config.providerOptions = {
+            ...(config.providerOptions ?? {}),
+            openai: {
+                ...(config.providerOptions?.openai ?? {}),
+                reasoningSummary: "detailed",
+            },
+        };
     }
     return config;
 };
 
-const anthropicConfig = ({ defaultConfig }: ConfigGeneratorProps) => {
-    const config = {
-        ...defaultConfig,
-        headers: {
-            "anthropic-dangerous-direct-browser-access": "true",
-        },
-    };
-    return config;
-};
+const anthropicConfig = ({ defaultConfig }: ConfigGeneratorProps): ProviderConfig => ({
+    ...defaultConfig,
+    headers: {
+        "anthropic-dangerous-direct-browser-access": "true",
+    },
+});
 
 const googleConfig = ({ request, defaultConfig }: ConfigGeneratorProps) => {
-    const config = { ...defaultConfig };
+    const config: ProviderConfig = {
+        ...defaultConfig,
+        tools: { ...(defaultConfig.tools ?? {}) },
+    };
     if (request.webSearch) {
-        if (!config.tools) {
-            config.tools = {};
-        }
-        config.tools.google_search = google.tools.googleSearch({});
+        config.tools = {
+            ...config.tools,
+            google_search: google.tools.googleSearch({}),
+        };
     }
     return config;
 };

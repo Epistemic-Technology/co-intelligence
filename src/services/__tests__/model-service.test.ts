@@ -6,7 +6,12 @@ vi.mock("ai", () => ({
       yield "Hello";
     })(),
     text: Promise.resolve("Hello"),
+    fullStream: (async function* () {
+      // empty — agent-loop consumers just observe the closed stream
+    })(),
+    sources: Promise.resolve([]),
   }),
+  stepCountIs: vi.fn((n: number) => ({ __stop: n })),
   generateText: vi.fn().mockResolvedValue({ text: "Chat summary title" }),
   createProviderRegistry: vi.fn().mockReturnValue({
     languageModel: vi.fn().mockReturnValue({
@@ -15,6 +20,7 @@ vi.mock("ai", () => ({
     }),
     providers: {},
   }),
+  tool: vi.fn((t) => t),
 }));
 
 vi.mock("@ai-sdk/openai", () => ({

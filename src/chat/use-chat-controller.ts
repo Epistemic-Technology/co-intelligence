@@ -158,13 +158,16 @@ export function useChatController(
 
             try {
                 for await (const event of consumeChatStream(
-                    responseStream.fullStream,
+                    responseStream.events,
                 )) {
                     if (event.type === "error") {
                         console.error("Error:", event.error);
                         new Notice(
                             "Unknown error occurred. See console log for details.",
                         );
+                        continue;
+                    }
+                    if (event.type !== "text") {
                         continue;
                     }
                     const text = event.text;

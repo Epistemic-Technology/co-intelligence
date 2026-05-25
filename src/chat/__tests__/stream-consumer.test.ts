@@ -1,16 +1,16 @@
 import { describe, it, expect } from "vitest";
 import {
     consumeChatStream,
-    type ChatStreamChunk,
     type ChatStreamEvent,
 } from "@/chat/stream-consumer";
+import type { AgentEvent } from "@/agent/types";
 
 async function* fromArray<T>(items: T[]): AsyncIterable<T> {
     for (const item of items) yield item;
 }
 
 async function collect(
-    stream: AsyncIterable<ChatStreamChunk>,
+    stream: AsyncIterable<AgentEvent>,
 ): Promise<ChatStreamEvent[]> {
     const out: ChatStreamEvent[] = [];
     for await (const ev of consumeChatStream(stream)) out.push(ev);
@@ -23,11 +23,11 @@ describe("consumeChatStream", () => {
         expect(events).toEqual([]);
     });
 
-    it("forwards text-delta chunks as text events", async () => {
+    it("forwards text events as text", async () => {
         const events = await collect(
-            fromArray([
-                { type: "text-delta", text: "hello " },
-                { type: "text-delta", text: "world" },
+            fromArray<AgentEvent>([
+                { type: "text", text: "hello " },
+                { type: "text", text: "world" },
             ]),
         );
         expect(events).toEqual([
@@ -36,20 +36,13 @@ describe("consumeChatStream", () => {
         ]);
     });
 
-    it("forwards reasoning-delta chunks as text events", async () => {
+    it("folds reasoning events into the text channel with <think> markers", async () => {
         const events = await collect(
-            fromArray([{ type: "reasoning-delta", text: "thinking..." }]),
-        );
-        expect(events).toEqual([{ type: "text", text: "thinking..." }]);
-    });
-
-    it("wraps reasoning blocks with <think> markers", async () => {
-        const events = await collect(
-            fromArray([
+            fromArray<AgentEvent>([
                 { type: "reasoning-start" },
                 { type: "reasoning-delta", text: "step 1" },
                 { type: "reasoning-end" },
-                { type: "text-delta", text: "answer" },
+                { type: "text", text: "answer" },
             ]),
         );
         expect(events).toEqual([
@@ -60,12 +53,12 @@ describe("consumeChatStream", () => {
         ]);
     });
 
-    it("surfaces error chunks as error events without halting", async () => {
+    it("surfaces error events without halting", async () => {
         const events = await collect(
-            fromArray([
-                { type: "text-delta", text: "before" },
+            fromArray<AgentEvent>([
+                { type: "text", text: "before" },
                 { type: "error", error: new Error("boom") },
-                { type: "text-delta", text: "after" },
+                { type: "text", text: "after" },
             ]),
         );
         expect(events).toHaveLength(3);
@@ -77,20 +70,36 @@ describe("consumeChatStream", () => {
         expect(events[2]).toEqual({ type: "text", text: "after" });
     });
 
-    it("drops unknown chunk types", async () => {
+    it("forwards tool / finish events unchanged for the agentic UI", async () => {
         const events = await collect(
-            fromArray([
-                { type: "finish-step" },
-                { type: "tool-call", toolCallId: "x" },
-                { type: "text-delta", text: "ok" },
+            fromArray<AgentEvent>([
+                {
+                    type: "tool-call",
+                    toolCallId: "c1",
+                    toolName: "read_note",
+                    input: { path: "a.md" },
+                },
+                {
+                    type: "tool-result",
+                    toolCallId: "c1",
+                    toolName: "read_note",
+                    output: "ok",
+                },
+                { type: "finish-step", finishReason: "tool-calls" },
+                { type: "finish", finishReason: "stop" },
             ]),
         );
-        expect(events).toEqual([{ type: "text", text: "ok" }]);
+        expect(events.map((e) => e.type)).toEqual([
+            "tool-call",
+            "tool-result",
+            "finish-step",
+            "finish",
+        ]);
     });
 
     it("propagates iteration errors via promise rejection", async () => {
-        async function* failing(): AsyncIterable<ChatStreamChunk> {
-            yield { type: "text-delta", text: "first" };
+        async function* failing(): AsyncIterable<AgentEvent> {
+            yield { type: "text", text: "first" };
             throw new Error("network drop");
         }
         const iter = consumeChatStream(failing());
