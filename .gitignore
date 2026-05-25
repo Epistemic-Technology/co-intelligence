@@ -146,3 +146,6 @@ test-vault/
 
 #explore
 .explore/
+
+#local scratch files
+local/
