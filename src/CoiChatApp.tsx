@@ -1,49 +1,62 @@
-import { Component, createContext } from "solid-js";
-import { ModelChatMessage } from "@/types";
+import { Component, createContext, createEffect, on } from "solid-js";
 import { App, TFile } from "obsidian";
 
 import { ChatInterface } from "@/components/ChatInterface";
 import { CoIntelligencePlugin } from "@/CoIntelligencePlugin";
-import { ContextItems, Source } from "@/types";
-import { HandleChatChangeProps } from "@/ChatView";
+import {
+    createSessionStore,
+    type SessionStore,
+} from "@/session/session-store";
+import type { Session } from "@/session/types";
 
 export const PluginContext = createContext<CoIntelligencePlugin>();
 export const AppContext = createContext<App>();
 export const FileContext = createContext<TFile>();
+export const SessionStoreContext = createContext<SessionStore>();
 
 export interface AppProps {
-  app: App;
-  file: TFile;
-  plugin: CoIntelligencePlugin;
-  onChange: (props: HandleChatChangeProps) => void;
-  initialMessages: ModelChatMessage[];
-  initialContext: ContextItems | null;
-  initialSources?: Source[];
+    app: App;
+    file: TFile;
+    plugin: CoIntelligencePlugin;
+    initialSession: Session;
+    /**
+     * Fires whenever the session's `updatedAt` ticks forward. Called with the
+     * current store proxy — host (ChatView) reads `store.session` to persist.
+     */
+    onSessionChange?: (store: SessionStore) => void;
+    /** Fires after each successful assistant response (post sources). */
+    onAssistantResponseComplete?: () => void;
 }
 
-export const CoiChatApp: Component<AppProps> = ({
-  app,
-  file,
-  plugin,
-  onChange,
-  initialMessages,
-  initialContext = { notes: [], tags: [], sources: [] },
-  initialSources = [],
-}) => {
-  return (
-    <div class="coi-app">
-      <AppContext.Provider value={app}>
-        <FileContext.Provider value={file}>
-          <PluginContext.Provider value={plugin}>
-            <ChatInterface
-              initialMessages={initialMessages}
-              initialContext={initialContext}
-              initialSources={initialSources}
-              onChange={onChange}
-            />
-          </PluginContext.Provider>
-        </FileContext.Provider>
-      </AppContext.Provider>
-    </div>
-  );
+export const CoiChatApp: Component<AppProps> = (props) => {
+    const store = createSessionStore(props.initialSession);
+
+    if (props.onSessionChange) {
+        createEffect(
+            on(
+                () => store.session.updatedAt,
+                () => props.onSessionChange?.(store),
+                { defer: true },
+            ),
+        );
+    }
+
+    return (
+        <div class="coi-app">
+            <AppContext.Provider value={props.app}>
+                <FileContext.Provider value={props.file}>
+                    <PluginContext.Provider value={props.plugin}>
+                        <SessionStoreContext.Provider value={store}>
+                            <ChatInterface
+                                store={store}
+                                onAssistantResponseComplete={
+                                    props.onAssistantResponseComplete
+                                }
+                            />
+                        </SessionStoreContext.Provider>
+                    </PluginContext.Provider>
+                </FileContext.Provider>
+            </AppContext.Provider>
+        </div>
+    );
 };

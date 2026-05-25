@@ -1,5 +1,5 @@
-import { Accessor, createEffect, createSignal } from "solid-js";
-import { App, debounce, Notice } from "obsidian";
+import { Accessor, createSignal } from "solid-js";
+import { App, Notice } from "obsidian";
 
 import { CoIntelligencePlugin } from "@/CoIntelligencePlugin";
 import { ModelRegistry } from "@/services/model-registry";
@@ -7,16 +7,8 @@ import {
     cancelChatResponse,
     deleteAbortControllerForRequest,
     generateChatResponse,
-    generateChatTitle,
 } from "@/services/model-service";
-import type {
-    ChatRequest,
-    ContextItems,
-    Model,
-    ModelChatMessage,
-    Source,
-} from "@/types";
-import { HandleChatChangeProps } from "@/ChatView";
+import type { ChatRequest, ContextItems, Model } from "@/types";
 
 import { buildChatRequest } from "@/chat/request-builder";
 import {
@@ -25,6 +17,8 @@ import {
 } from "@/chat/source-processor";
 import { consumeChatStream } from "@/chat/stream-consumer";
 import { loadSystemPrompt } from "@/chat/system-prompt-loader";
+import type { SessionStore } from "@/session/session-store";
+import { messageText, sessionMessagesToModelMessages } from "@/session/types";
 import { getContext } from "@/utils/model-context";
 
 export interface UseChatControllerParams {
@@ -33,14 +27,12 @@ export interface UseChatControllerParams {
     registry: ModelRegistry;
     model: Accessor<Model | null>;
     contextItems: Accessor<ContextItems | null>;
-    initialMessages: ModelChatMessage[];
-    initialSources?: Source[];
-    onChange?: (props: HandleChatChangeProps) => void;
+    store: SessionStore;
+    /** Fires after each successful assistant response completes (post sources). */
+    onAssistantResponseComplete?: () => void;
 }
 
 export interface ChatController {
-    messages: Accessor<ModelChatMessage[]>;
-    sources: Accessor<Source[]>;
     isProcessing: Accessor<boolean>;
     send: (
         message: string,
@@ -51,59 +43,26 @@ export interface ChatController {
 }
 
 /**
- * Owns the chat send/cancel orchestration and the message/source state that
- * the in-flight request mutates. Caller still owns model and contextItems
- * accessors (driven by sibling UI components) and provides them as inputs.
- *
- * Phase 1 stepping stone: in Phase 2 this hook is replaced by a session
- * `createStore` shared across the plugin.
+ * Drives one chat send/cancel orchestration against a {@link SessionStore}.
+ * Mutates the store via named actions — every session change goes through the
+ * store, so persistence layers can observe a single update channel.
  */
 export function useChatController(
     params: UseChatControllerParams,
 ): ChatController {
     const {
         app,
-        plugin,
+        plugin: _plugin,
         registry,
         model,
         contextItems,
-        initialMessages,
-        initialSources = [],
-        onChange,
+        store,
+        onAssistantResponseComplete,
     } = params;
 
-    const [messages, setMessages] =
-        createSignal<ModelChatMessage[]>(initialMessages);
-    const [sources, setSources] = createSignal<Source[]>(initialSources);
-    const [lastSourceLinkNumber, setLastSourceLinkNumber] =
-        createSignal<number>(initialSources.length);
     const [isProcessing, setIsProcessing] = createSignal<boolean>(false);
     const [currentRequest, setCurrentRequest] =
         createSignal<ChatRequest | null>(null);
-
-    const triggerChange = debounce(async (regenNoteTitle: boolean = false) => {
-        let newTitle = "";
-        if (regenNoteTitle) {
-            newTitle = await generateChatTitle(messages(), plugin);
-        }
-        if (onChange) {
-            const currentModelId = currentRequest()?.modelId;
-            onChange({
-                newMessages: messages(),
-                newTitle,
-                contextItems: contextItems(),
-                lastModelId: currentModelId || null,
-                sources: sources(),
-            });
-        }
-    }, 750);
-
-    createEffect(() => {
-        contextItems();
-        sources();
-        messages();
-        triggerChange();
-    });
 
     const send = async (
         message: string,
@@ -122,11 +81,7 @@ export function useChatController(
             return;
         }
 
-        const newMessage: ModelChatMessage = {
-            role: "user",
-            content: message,
-        };
-        setMessages([...messages(), newMessage]);
+        store.appendUserMessage(message);
         setIsProcessing(true);
 
         const parsedContext = await getContext(contextItems(), app);
@@ -143,17 +98,18 @@ export function useChatController(
 
         const request = buildChatRequest({
             model: requestModel,
-            messages: messages(),
+            messages: sessionMessagesToModelMessages(store.session.messages),
             context: parsedContext,
             webSearch: webSearchEnabled,
             systemPrompt,
         });
         setCurrentRequest(request);
+        store.setLastModelId(requestModel.id);
+
+        const assistantId = store.beginAssistantMessage();
 
         try {
-            setIsProcessing(true);
             const responseStream = generateChatResponse(request, registry);
-            let accumulatedContent = "";
             let isFirstChunk = true;
 
             try {
@@ -168,29 +124,14 @@ export function useChatController(
                         continue;
                     }
                     if (event.type !== "text") {
+                        // Tool / approval / finish events: wired in Phase 5.
                         continue;
                     }
-                    const text = event.text;
                     if (isFirstChunk) {
-                        const assistantMessage: ModelChatMessage = {
-                            role: "assistant",
-                            content: text,
-                        };
-                        setMessages([...messages(), assistantMessage]);
-                        accumulatedContent += text;
                         isFirstChunk = false;
                         setIsProcessing(false);
-                    } else {
-                        accumulatedContent += text;
-                        setMessages((prevMessages) => {
-                            const updatedMessages = [...prevMessages];
-                            updatedMessages[updatedMessages.length - 1] = {
-                                role: "assistant",
-                                content: accumulatedContent,
-                            };
-                            return updatedMessages;
-                        });
                     }
+                    store.appendAssistantText(assistantId, event.text);
                 }
             } catch (error) {
                 console.error("Caught error:", error);
@@ -203,66 +144,56 @@ export function useChatController(
                 }
             }
 
-            if (isFirstChunk) {
+            const assistantMessage = store.session.messages.find(
+                (m) => m.id === assistantId,
+            );
+            const finalText = assistantMessage
+                ? messageText(assistantMessage)
+                : "";
+            if (finalText === "") {
+                store.appendAssistantText(
+                    assistantId,
+                    "No response received from the model.",
+                );
                 setIsProcessing(false);
-                setMessages([
-                    ...messages(),
-                    {
-                        role: "assistant",
-                        content: "No response received from the model.",
-                    },
-                ]);
             }
 
-            const lastMessage = messages()[messages().length - 1];
             const rawSources = await responseStream.sources;
 
             if (rawSources.length > 0) {
+                const currentText = messageText(
+                    store.session.messages.find((m) => m.id === assistantId)!,
+                );
                 const processed = processNumberedSources({
                     rawSources,
-                    content: (lastMessage.content as string) ?? "",
-                    offset: lastSourceLinkNumber(),
+                    content: currentText,
+                    offset: store.session.sources.length,
                 });
-                setMessages((prevMessages) => {
-                    const updatedMessages = [...prevMessages];
-                    updatedMessages[updatedMessages.length - 1] = {
-                        ...lastMessage,
-                        content: processed.content,
-                    } as ModelChatMessage;
-                    return updatedMessages;
-                });
-                setSources([...sources(), ...processed.newSources]);
-                setLastSourceLinkNumber(
-                    lastSourceLinkNumber() + processed.newSources.length,
-                );
+                store.replaceLastTextPart(assistantId, processed.content);
+                store.addSources(processed.newSources);
             } else {
-                const currentMessage = messages()[messages().length - 1];
+                const currentText = messageText(
+                    store.session.messages.find((m) => m.id === assistantId)!,
+                );
                 const newLinkSources = extractMarkdownLinkSources({
-                    content: (currentMessage.content as string) ?? "",
-                    existingSources: sources(),
+                    content: currentText,
+                    existingSources: store.session.sources,
                 });
                 if (newLinkSources.length > 0) {
-                    setSources([...sources(), ...newLinkSources]);
-                    setLastSourceLinkNumber(
-                        lastSourceLinkNumber() + newLinkSources.length,
-                    );
+                    store.addSources(newLinkSources);
                 }
             }
-            triggerChange(true);
+
+            onAssistantResponseComplete?.();
         } catch (error) {
             const errorMessage = (error as Error).message || "Unknown error";
             new Notice("Error generating response: " + errorMessage);
             console.error("Error generating response:", error);
             setIsProcessing(false);
-            setMessages((prevMessages) => [
-                ...prevMessages,
-                {
-                    role: "assistant",
-                    content:
-                        "Sorry, there was an error generating a response. Please try again.",
-                },
-            ]);
-            triggerChange();
+            store.appendAssistantText(
+                assistantId,
+                "Sorry, there was an error generating a response. Please try again.",
+            );
         } finally {
             setIsProcessing(false);
             setCurrentRequest(null);
@@ -275,14 +206,9 @@ export function useChatController(
         const request = currentRequest();
         if (!request) return;
         cancelChatResponse(request);
-
-        const cancelMessage: ModelChatMessage = {
-            role: "assistant",
-            content: "*Request cancelled by user*",
-        };
-        setMessages((prevMessages) => [...prevMessages, cancelMessage]);
-        triggerChange();
+        const cancelId = store.beginAssistantMessage();
+        store.appendAssistantText(cancelId, "*Request cancelled by user*");
     };
 
-    return { messages, sources, isProcessing, send, cancel };
+    return { isProcessing, send, cancel };
 }

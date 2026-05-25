@@ -3,7 +3,6 @@ import {
   For,
   Show,
   Accessor,
-  Setter,
   createSignal,
   createEffect,
 } from "solid-js";
@@ -15,17 +14,19 @@ import { contextTokenEstimate } from "@/utils/model-context";
 export interface ContextListProps {
   app: App;
   contextItems: Accessor<ContextItems | null>;
-  setContextItems: Setter<ContextItems | null>;
   onAddNote: (file: TFile) => void;
   onAddTag: (tag: Tag) => void;
+  onRemoveNote: (file: TFile) => void;
+  onRemoveTag: (tag: Tag) => void;
 }
 
 export const ContextList = ({
   app,
   contextItems,
-  setContextItems,
   onAddNote,
   onAddTag,
+  onRemoveNote,
+  onRemoveTag,
 }: ContextListProps) => {
   const [tokenCount, setTokenCount] = createSignal<number>(0);
 
@@ -40,23 +41,11 @@ export const ContextList = ({
   });
 
   const handleRemoveNote = (note: TFile) => {
-    setContextItems((prev) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        notes: prev.notes.filter((n) => n.basename !== note.basename),
-      };
-    });
+    onRemoveNote(note);
   };
 
   const handleRemoveTag = (tag: Tag) => {
-    setContextItems((prev) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        tags: prev.tags.filter((t) => t !== tag),
-      };
-    });
+    onRemoveTag(tag);
   };
 
   const handleKeyDown = (

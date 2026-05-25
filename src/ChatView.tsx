@@ -10,46 +10,34 @@ import { render } from "solid-js/web";
 
 import { CoiChatApp } from "@/CoiChatApp";
 import { CoIntelligencePlugin } from "@/CoIntelligencePlugin";
-import {
-    serializeCoiNote,
-    deserializeCoiNote,
-    renameNote,
-    isActiveCoiNote,
-    deserializeCoiNoteContent,
-    serializeCoiNoteContent,
-} from "@/utils/notes";
-import { Source, ContextItems, ModelChatMessage } from "@/types";
+import { renameNote, isActiveCoiNote } from "@/utils/notes";
+import { generateChatTitle } from "@/services/model-service";
+import { ensureSessionForNote } from "@/session/migration";
+import { renderSessionIntoNote } from "@/session/render-markdown";
+import { readSession, writeSession } from "@/session/session-storage";
+import type { SessionStore } from "@/session/session-store";
+import { createEmptySession, messageText } from "@/session/types";
 import "@/types-extended";
 
 export const VIEW_TYPE_COI_CHAT = "coi-chat-view";
 
-export interface HandleChatChangeProps {
-    newMessages: ModelChatMessage[];
-    newTitle: string;
-    contextItems: ContextItems | null;
-    sources?: Source[];
-    lastModelId: string | null;
-}
+const SAVE_DEBOUNCE_MS = 500;
 
 export class ChatView extends TextFileView {
     public plugin: CoIntelligencePlugin;
     public app: App;
     public file: TFile | null;
-    public messages: ModelChatMessage[] = [];
-    public contextItems: ContextItems = { notes: [], tags: [], sources: [] };
-    public sources: Source[] = [];
     public rootElement: Element | null = null;
     public dispose: (() => void) | null = null;
+    public sessionId: string | null = null;
 
-    private updating = false;
-    private debounceTimeout: number | null = null;
+    private saveTimeout: number | null = null;
 
     constructor(leaf: WorkspaceLeaf, plugin: CoIntelligencePlugin, app: App) {
         super(leaf);
         this.plugin = plugin;
         this.app = app;
         this.file = app.workspace.getActiveFile();
-        this.handleChatChange = this.handleChatChange.bind(this);
         this.icon = "bot-message-square";
     }
 
@@ -61,148 +49,33 @@ export class ChatView extends TextFileView {
         return this.file?.basename || "Co-Intelligence Chat";
     }
 
-    debounceUpdateViewData() {
-        if (this.debounceTimeout) {
-            window.clearTimeout(this.debounceTimeout);
-        }
-        this.debounceTimeout = window.setTimeout(() => {
-            this.debounceTimeout = null;
-            void this.updateViewData();
-        }, 500);
-    }
-
-    async updateViewData() {
-        if (this.updating) {
-            return;
-        }
-        if (!this.file) {
-            return "";
-        }
-        this.updating = true;
-        const currentNoteContent = await this.app.vault.cachedRead(this.file);
-        const content = serializeCoiNoteContent(
-            currentNoteContent,
-            this.app,
-            this.messages,
-            this.contextItems,
-        );
-        this.data = content;
-        this.requestSave();
-        this.updating = false;
-    }
-
-    getViewData() {
+    getViewData(): string {
         return this.data;
     }
 
+    /**
+     * Obsidian calls this when the file content is set externally (initial
+     * open, external edit, sync). We just stash the raw text — the session
+     * load and Solid render are driven by onLoadFile/onOpen.
+     */
     setViewData(data: string, clear: boolean): void {
         this.data = data;
-        if (!this.file) {
-            new Notice("Error: file is null while trying to set view data");
-            console.error("File is null while trying to set view data");
-            return;
-        }
         if (clear) {
             this.clear();
         }
-        const metadata = this.app.metadataCache.getFileCache(this.file);
-        const { messages, contextItems, sources } = deserializeCoiNoteContent(
-            data,
-            metadata,
-            this.app,
-        );
-        this.messages = messages;
-        this.contextItems = contextItems;
-        this.sources = sources;
     }
 
     clear(): void {
-        this.messages = [];
-        this.contextItems = {
-            notes: [],
-            tags: [],
-            sources: [],
-        };
-        this.sources = [];
         if (this.dispose) {
             this.dispose();
+            this.dispose = null;
         }
-    }
-
-    render() {
-        this.rootElement = this.rootElement || this.containerEl.children[1];
-        if (!this.rootElement) {
-            new Notice("Error: root element is null");
-            console.error("Root element is null");
-            return;
-        }
-        const file = this.file;
-        if (!(file instanceof TFile)) {
-            console.error("File is not an instance of TFile");
-            return;
-        }
-        this.dispose = render(
-            () => (
-                <CoiChatApp
-                    app={this.app}
-                    plugin={this.plugin}
-                    file={file}
-                    onChange={(props) => void this.handleChatChange(props)}
-                    initialMessages={this.messages}
-                    initialContext={this.contextItems}
-                    initialSources={this.sources}
-                />
-            ),
-            this.rootElement,
-        );
-    }
-
-    async handleChatChange({
-        newMessages,
-        newTitle,
-        contextItems,
-        sources,
-        lastModelId,
-    }: HandleChatChangeProps): Promise<void> {
-        if (this.updating) return;
-        this.updating = true;
-        if (!this.file) {
-            new Notice(
-                "Error: file is null while trying to handle chat change",
-            );
-            console.error("File is null while trying to handle chat change");
-            return;
-        }
-        try {
-            await serializeCoiNote(
-                this.file,
-                this.app,
-                newMessages,
-                contextItems,
-                lastModelId,
-                sources,
-            );
-            if (newTitle !== "" && newTitle !== this.file.basename) {
-                await renameNote(this.file, newTitle, this.app, this.plugin);
-            }
-        } catch (error) {
-            new Notice(`Error serializing CoiNote: ${String(error)}`);
-            console.error(`Error serializing CoiNote: ${String(error)}`);
-        } finally {
-            this.updating = false;
-        }
+        this.sessionId = null;
     }
 
     async onLoadFile(file: TFile): Promise<void> {
         this.file = file;
-        const { messages, contextItems, sources } = await deserializeCoiNote(
-            file,
-            this.app,
-        );
-        this.messages = messages;
-        this.contextItems = contextItems;
-        this.sources = sources;
-        this.render();
+        await this.loadAndRender(file);
     }
 
     onUnloadFile(_file: TFile): Promise<void> {
@@ -211,25 +84,114 @@ export class ChatView extends TextFileView {
     }
 
     async onOpen(): Promise<void> {
-        if (!this.file) {
-            return;
-        }
-        if (!isActiveCoiNote(this.file, this.app)) {
-            return;
-        }
-        const { messages, contextItems, sources } = await deserializeCoiNote(
-            this.file,
-            this.app,
-        );
-        this.messages = messages;
-        this.contextItems = contextItems;
-        this.sources = sources;
-        this.render();
+        if (!this.file) return;
+        if (!isActiveCoiNote(this.file, this.app)) return;
+        await this.loadAndRender(this.file);
     }
 
     async refresh(): Promise<void> {
         this.clear();
         await this.onOpen();
+    }
+
+    private async loadAndRender(file: TFile): Promise<void> {
+        const sessionId = await ensureSessionForNote(
+            file,
+            this.app,
+            this.plugin,
+        );
+        if (!sessionId) return;
+        this.sessionId = sessionId;
+
+        const session =
+            (await readSession(sessionId, this.app, this.plugin)) ??
+            createEmptySession(sessionId);
+
+        this.renderApp(file, session);
+    }
+
+    private renderApp(
+        file: TFile,
+        session: import("@/session/types").Session,
+    ): void {
+        this.rootElement = this.rootElement || this.containerEl.children[1];
+        if (!this.rootElement) {
+            new Notice("Error: root element is null");
+            console.error("Root element is null");
+            return;
+        }
+        this.dispose = render(
+            () => (
+                <CoiChatApp
+                    app={this.app}
+                    plugin={this.plugin}
+                    file={file}
+                    initialSession={session}
+                    onSessionChange={(store) => this.debounceSave(store)}
+                    onAssistantResponseComplete={() =>
+                        void this.regenerateTitle()
+                    }
+                />
+            ),
+            this.rootElement,
+        );
+    }
+
+    private debounceSave(store: SessionStore): void {
+        if (this.saveTimeout !== null) {
+            window.clearTimeout(this.saveTimeout);
+        }
+        this.saveTimeout = window.setTimeout(() => {
+            this.saveTimeout = null;
+            void this.persistSession(store);
+        }, SAVE_DEBOUNCE_MS);
+    }
+
+    private async persistSession(store: SessionStore): Promise<void> {
+        if (!this.file) return;
+        try {
+            await writeSession(store.session, this.app, this.plugin);
+            const currentNoteContent = await this.app.vault.cachedRead(
+                this.file,
+            );
+            const updatedNoteContent = renderSessionIntoNote(
+                currentNoteContent,
+                store.session,
+            );
+            this.data = updatedNoteContent;
+            this.requestSave();
+        } catch (error) {
+            new Notice(`Error saving session: ${String(error)}`);
+            console.error("Error saving session:", error);
+        }
+    }
+
+    private async regenerateTitle(): Promise<void> {
+        if (!this.file) return;
+        if (!this.sessionId) return;
+        try {
+            const session = await readSession(
+                this.sessionId,
+                this.app,
+                this.plugin,
+            );
+            if (!session) return;
+            const titleMessages = session.messages
+                .filter((m) => m.role === "user" || m.role === "assistant")
+                .map((m) => ({
+                    role: m.role as "user" | "assistant",
+                    content: messageText(m),
+                }));
+            const newTitle = await generateChatTitle(
+                titleMessages,
+                this.plugin,
+            );
+            if (newTitle && newTitle !== this.file.basename) {
+                await renameNote(this.file, newTitle, this.app, this.plugin);
+            }
+        } catch (error) {
+            console.error("Error regenerating chat title:", error);
+        }
     }
 
     onPaneMenu(menu: Menu, source: string): void {

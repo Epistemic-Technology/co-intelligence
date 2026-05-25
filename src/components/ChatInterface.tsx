@@ -1,34 +1,24 @@
-import { createSignal, useContext, Show } from "solid-js";
+import { createMemo, createSignal, useContext, Show } from "solid-js";
 import { TFile } from "obsidian";
 
 import { ModelRegistry } from "@/services/model-registry";
-import { Source, Model, ContextItems, Tag, ModelChatMessage } from "@/types";
-import { PluginContext, AppContext } from "@/CoiChatApp";
+import { ContextItems, Model, Tag } from "@/types";
+import { AppContext, PluginContext } from "@/CoiChatApp";
 import { ChatHistory } from "@/components/ChatHistory";
 import { UserInput } from "@/components/UserInput";
 import { ContextList } from "@/components/ContextList";
 import { SourceList } from "@/components/SourceList";
 
-import {
-    addNoteToContext,
-    addTagToContext,
-} from "@/chat/context-actions";
 import { useChatController } from "@/chat/use-chat-controller";
-import { HandleChatChangeProps } from "@/ChatView";
+import type { SessionStore } from "@/session/session-store";
+import { messageText, type SerializedContextItems } from "@/session/types";
 
 export interface ChatInterfaceProps {
-    initialMessages: ModelChatMessage[];
-    initialContext?: ContextItems | null;
-    initialSources?: Source[];
-    onChange?: (props: HandleChatChangeProps) => void;
+    store: SessionStore;
+    onAssistantResponseComplete?: () => void;
 }
 
-export const ChatInterface = ({
-    initialMessages,
-    initialContext = null,
-    initialSources = [],
-    onChange,
-}: ChatInterfaceProps) => {
+export const ChatInterface = (props: ChatInterfaceProps) => {
     const plugin = useContext(PluginContext);
     if (!plugin) {
         throw new Error("Plugin Context is not available");
@@ -44,8 +34,58 @@ export const ChatInterface = ({
         : registry.getDefaultModel();
 
     const [model, setModel] = createSignal<Model | null>(defaultModel);
-    const [contextItems, setContextItems] =
-        createSignal<ContextItems | null>(initialContext);
+
+    // Derive the TFile-backed UI shape from the path-backed session shape.
+    const contextItems = createMemo<ContextItems | null>(() => {
+        const ser = props.store.session.contextItems;
+        if (
+            ser.notes.length === 0 &&
+            ser.tags.length === 0 &&
+            ser.sources.length === 0
+        ) {
+            return null;
+        }
+        return {
+            notes: ser.notes
+                .map((p) => app.vault.getAbstractFileByPath(p))
+                .filter((f): f is TFile => f instanceof TFile),
+            tags: ser.tags,
+            sources: ser.sources,
+        };
+    });
+
+    const updateSerialized = (
+        mutate: (prev: SerializedContextItems) => SerializedContextItems,
+    ) => {
+        const next = mutate(props.store.session.contextItems);
+        props.store.setContextItems(next);
+    };
+
+    const handleLinkNote = (file: TFile) =>
+        updateSerialized((prev) =>
+            prev.notes.includes(file.path)
+                ? prev
+                : { ...prev, notes: [...prev.notes, file.path] },
+        );
+
+    const handleAddTag = (tag: Tag) =>
+        updateSerialized((prev) =>
+            prev.tags.includes(tag)
+                ? prev
+                : { ...prev, tags: [...prev.tags, tag] },
+        );
+
+    const handleRemoveNote = (file: TFile) =>
+        updateSerialized((prev) => ({
+            ...prev,
+            notes: prev.notes.filter((p) => p !== file.path),
+        }));
+
+    const handleRemoveTag = (tag: Tag) =>
+        updateSerialized((prev) => ({
+            ...prev,
+            tags: prev.tags.filter((t) => t !== tag),
+        }));
 
     const controller = useChatController({
         app,
@@ -53,33 +93,42 @@ export const ChatInterface = ({
         registry,
         model,
         contextItems,
-        initialMessages,
-        initialSources,
-        onChange,
+        store: props.store,
+        onAssistantResponseComplete: props.onAssistantResponseComplete,
     });
 
-    const handleLinkNote = (file: TFile) =>
-        setContextItems(addNoteToContext(contextItems(), file));
+    // The chat history component still works with ModelChatMessage today.
+    // Adapter — collapse each SessionMessage to { role, content: text } for the
+    // dumb-pipe history view. The agentic UI in Phase 5 swaps this out for a
+    // parts-aware renderer.
+    const messages = createMemo(() =>
+        props.store.session.messages
+            .filter((m) => m.role === "user" || m.role === "assistant")
+            .map((m) => ({
+                role: m.role as "user" | "assistant",
+                content: messageText(m),
+            })),
+    );
 
-    const handleAddTag = (tag: Tag) =>
-        setContextItems(addTagToContext(contextItems(), tag));
+    const sources = createMemo(() => props.store.session.sources);
 
     return (
         <div>
             <ChatHistory
-                messages={controller.messages}
+                messages={messages}
                 isProcessing={controller.isProcessing}
                 onCancelRequest={controller.cancel}
             />
-            <Show when={controller.sources().length > 0}>
-                <SourceList sources={controller.sources} />
+            <Show when={sources().length > 0}>
+                <SourceList sources={sources} />
             </Show>
             <ContextList
                 app={app}
                 contextItems={contextItems}
-                setContextItems={setContextItems}
                 onAddNote={handleLinkNote}
                 onAddTag={handleAddTag}
+                onRemoveNote={handleRemoveNote}
+                onRemoveTag={handleRemoveTag}
             />
             <UserInput
                 onSubmit={(msg, ws, sp) => void controller.send(msg, ws, sp)}

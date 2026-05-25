@@ -113,3 +113,21 @@ export function messageText(message: SessionMessage): string {
         .map((p) => p.text)
         .join("");
 }
+
+/**
+ * Converts Session messages into the AI SDK's ModelChatMessage shape for
+ * outgoing requests. Phase 2 stub: collapses each session message into its
+ * concatenated text. Tool calls / results / attachments are dropped here
+ * — Phase 3+ will round-trip them through proper AI SDK message parts when
+ * the first tools land.
+ */
+export function sessionMessagesToModelMessages(
+    messages: SessionMessage[],
+): Array<{ role: "user" | "assistant"; content: string }> {
+    return messages
+        .filter(
+            (m): m is SessionMessage & { role: "user" | "assistant" } =>
+                m.role === "user" || m.role === "assistant",
+        )
+        .map((m) => ({ role: m.role, content: messageText(m) }));
+}
