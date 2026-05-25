@@ -17,8 +17,11 @@ import { ContextList } from "@/components/ContextList";
 import { SourceList } from "@/components/SourceList";
 
 import { getContext } from "@/utils/model-context";
-import { ensureSourceTitle } from "@/utils/url";
 import { buildChatRequest } from "@/chat/request-builder";
+import {
+    extractMarkdownLinkSources,
+    processNumberedSources,
+} from "@/chat/source-processor";
 import { loadSystemPrompt } from "@/chat/system-prompt-loader";
 import { HandleChatChangeProps } from "@/ChatView";
 
@@ -223,71 +226,38 @@ export const ChatInterface = ({
                 ]);
             }
             const lastMessage = messages()[messages().length - 1];
+            const rawSources = await responseStream.sources;
 
-            // Handle new sources. Renumber and link Perplexity-style references
-            const newSources = await responseStream.sources;
-            let hasProcessedSources = false;
-
-            if (newSources.length > 0) {
-                const urlSources = newSources.filter(
-                    (s): s is Extract<typeof s, { sourceType: "url" }> =>
-                        s.sourceType === "url",
-                );
-                // Ensure all sources have meaningful titles
-                const sourcesWithTitles = urlSources.map(ensureSourceTitle);
-
-                // Filter out duplicates within the new sources (judged by URL)
-                const uniqueNewSources = sourcesWithTitles.filter(
-                    (source, index, arr) =>
-                        arr.findIndex((s) => s.url === source.url) === index,
-                );
-
-                // Replace source reference numbers [n] with [n+offset]
-                const offset = lastSourceLinkNumber();
-                const updatedContent = (
-                    (lastMessage.content as string) ?? ""
-                ).replace(/\[(\d+)\]/g, (match: string, num: string) => {
-                    const source = uniqueNewSources[parseInt(num) - 1];
-                    if (!source) return match;
-                    return ` [${parseInt(num) + offset}](${source.url})`;
+            if (rawSources.length > 0) {
+                const processed = processNumberedSources({
+                    rawSources,
+                    content: (lastMessage.content as string) ?? "",
+                    offset: lastSourceLinkNumber(),
                 });
                 setMessages((prevMessages) => {
                     const updatedMessages = [...prevMessages];
                     updatedMessages[updatedMessages.length - 1] = {
                         ...lastMessage,
-                        content: updatedContent,
+                        content: processed.content,
                     } as ModelChatMessage;
                     return updatedMessages;
                 });
-                setSources([...sources(), ...uniqueNewSources]);
+                setSources([...sources(), ...processed.newSources]);
                 setLastSourceLinkNumber(
-                    lastSourceLinkNumber() + uniqueNewSources.length,
+                    lastSourceLinkNumber() + processed.newSources.length,
                 );
-                hasProcessedSources = true;
-            }
-
-            // Handle markdown links in response and add to sources
-            // Only do this if we haven't already processed dedicated sources
-            if (!hasProcessedSources) {
+            } else {
                 const currentMessage = messages()[messages().length - 1];
-                const newLinks =
-                    ((currentMessage.content as string) ?? "").match(
-                        /\[(.*?)\]\((.*?)\)/g,
-                    ) || [];
-                newLinks.forEach((link) => {
-                    const [text, url] = link.slice(1, -1).split("](");
-                    const existingSource = sources().find(
-                        (source) => source.url === url,
-                    );
-                    if (!existingSource) {
-                        const sourceWithTitle = ensureSourceTitle({
-                            url,
-                            title: text,
-                        });
-                        setSources([...sources(), sourceWithTitle]);
-                        setLastSourceLinkNumber(lastSourceLinkNumber() + 1);
-                    }
+                const newLinkSources = extractMarkdownLinkSources({
+                    content: (currentMessage.content as string) ?? "",
+                    existingSources: sources(),
                 });
+                if (newLinkSources.length > 0) {
+                    setSources([...sources(), ...newLinkSources]);
+                    setLastSourceLinkNumber(
+                        lastSourceLinkNumber() + newLinkSources.length,
+                    );
+                }
             }
             triggerChange(true);
         } catch (error) {
