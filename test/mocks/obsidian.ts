@@ -27,9 +27,46 @@ export class TFolder extends TAbstractFile {
   }
 }
 
+// --- DataAdapter (in-memory) ---
+
+export class DataAdapter {
+  private files = new Map<string, string>();
+  private dirs = new Set<string>([""]);
+
+  getName(): string {
+    return "mock";
+  }
+
+  exists = vi.fn(async (path: string): Promise<boolean> => {
+    return this.files.has(path) || this.dirs.has(path);
+  });
+
+  read = vi.fn(async (path: string): Promise<string> => {
+    const v = this.files.get(path);
+    if (v === undefined) throw new Error(`No such file: ${path}`);
+    return v;
+  });
+
+  write = vi.fn(async (path: string, data: string): Promise<void> => {
+    this.files.set(path, data);
+  });
+
+  mkdir = vi.fn(async (path: string): Promise<void> => {
+    this.dirs.add(path);
+  });
+
+  remove = vi.fn(async (path: string): Promise<void> => {
+    this.files.delete(path);
+  });
+
+  list = vi.fn(async (_path: string) => ({ files: [], folders: [] }));
+}
+
 // --- Vault ---
 
 export class Vault {
+  adapter: DataAdapter = new DataAdapter();
+  configDir = ".obsidian";
   read = vi.fn().mockResolvedValue("");
   cachedRead = vi.fn().mockResolvedValue("");
   create = vi.fn().mockImplementation(async () => new TFile());
