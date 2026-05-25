@@ -22,6 +22,7 @@ import {
     extractMarkdownLinkSources,
     processNumberedSources,
 } from "@/chat/source-processor";
+import { consumeChatStream } from "@/chat/stream-consumer";
 import { loadSystemPrompt } from "@/chat/system-prompt-loader";
 import { HandleChatChangeProps } from "@/ChatView";
 
@@ -158,31 +159,19 @@ export const ChatInterface = ({
             const responseStream = generateChatResponse(request, registry);
             let accumulatedContent = "";
             let isFirstChunk = true;
-            let chunk;
 
             try {
-                for await (chunk of responseStream.fullStream) {
-                    if (chunk.type === "error") {
-                        console.error("Error:", chunk.error);
+                for await (const event of consumeChatStream(
+                    responseStream.fullStream,
+                )) {
+                    if (event.type === "error") {
+                        console.error("Error:", event.error);
                         new Notice(
                             "Unknown error occurred. See console log for details.",
                         );
-                    }
-                    if (chunk.type === "reasoning-start") {
-                        accumulatedContent += "<think>";
                         continue;
                     }
-                    if (chunk.type === "reasoning-end") {
-                        accumulatedContent += "</think>";
-                        continue;
-                    }
-                    if (
-                        chunk.type !== "text-delta" &&
-                        chunk.type !== "reasoning-delta"
-                    ) {
-                        continue;
-                    }
-                    const text = chunk.text;
+                    const text = event.text;
                     if (isFirstChunk) {
                         const assistantMessage: ModelChatMessage = {
                             role: "assistant",
