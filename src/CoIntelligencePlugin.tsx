@@ -26,6 +26,14 @@ import { CoiNoteFrontmatter } from "@/types";
 import "@/types-extended";
 
 import {
+    createPermissionBroker,
+    type PermissionBroker,
+} from "@/agent/permission-broker";
+import { mountApprovalModalBroker } from "@/agent/approval/obsidian-modal-broker";
+import { createDefaultToolRegistry } from "@/agent/tools";
+import type { ToolRegistry } from "@/agent/tool-registry";
+
+import {
     isCoiNote,
     isPathActiveCoiNote,
     createCOINote,
@@ -36,6 +44,9 @@ import {
 export class CoIntelligencePlugin extends Plugin {
     settings: CoIntelligenceSettings;
     registry: ModelRegistry | undefined;
+    tools: ToolRegistry | undefined;
+    permissionBroker: PermissionBroker | undefined;
+    private disposeApprovalModal: (() => void) | null = null;
     public isPerformingAutomaticRename: boolean = false;
 
     constructor(app: App, manifest: PluginManifest) {
@@ -46,6 +57,15 @@ export class CoIntelligencePlugin extends Plugin {
     async onload() {
         await this.loadSettings();
         this.registry = ModelRegistry.getInstance(this);
+        this.tools = createDefaultToolRegistry({
+            app: this.app,
+            plugin: this,
+        });
+        this.permissionBroker = createPermissionBroker();
+        this.disposeApprovalModal = mountApprovalModalBroker(
+            this.permissionBroker,
+            this.app,
+        );
         this.addSettingTab(new CoIntelligenceSettingsTab(this.app, this));
         this.addCommand(new NewChatCommand(this));
         this.addCommand(new ToggleChatViewCommand(this));
@@ -75,6 +95,16 @@ export class CoIntelligencePlugin extends Plugin {
 
     onloadOnLayoutReady() {
         this.registerMonkeyPatches();
+    }
+
+    onunload(): void {
+        if (this.disposeApprovalModal) {
+            this.disposeApprovalModal();
+            this.disposeApprovalModal = null;
+        }
+        if (this.permissionBroker) {
+            this.permissionBroker.clear();
+        }
     }
 
     private handleFileOpen(_file: TFile | null): void {}

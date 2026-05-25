@@ -10,6 +10,10 @@ import {
 } from "@/services/model-service";
 import type { ChatRequest, ContextItems, Model } from "@/types";
 
+import { currentPlatform } from "@/agent/tools";
+import type { PermissionBroker } from "@/agent/permission-broker";
+import type { ToolRegistry } from "@/agent/tool-registry";
+
 import { buildChatRequest } from "@/chat/request-builder";
 import {
     extractMarkdownLinkSources,
@@ -28,6 +32,10 @@ export interface UseChatControllerParams {
     model: Accessor<Model | null>;
     contextItems: Accessor<ContextItems | null>;
     store: SessionStore;
+    /** Optional — when omitted, tool calls are disabled for the controller. */
+    tools?: ToolRegistry;
+    /** Optional — used to gate approval-required tools. */
+    permissionBroker?: PermissionBroker;
     /** Fires after each successful assistant response completes (post sources). */
     onAssistantResponseComplete?: () => void;
 }
@@ -57,6 +65,8 @@ export function useChatController(
         model,
         contextItems,
         store,
+        tools,
+        permissionBroker,
         onAssistantResponseComplete,
     } = params;
 
@@ -109,7 +119,17 @@ export function useChatController(
         const assistantId = store.beginAssistantMessage();
 
         try {
-            const responseStream = generateChatResponse(request, registry);
+            const sdkTools = tools
+                ? tools.toAiSdkTools({
+                      platform: currentPlatform(),
+                      permissionBroker,
+                  })
+                : {};
+            const responseStream = generateChatResponse(
+                request,
+                registry,
+                sdkTools,
+            );
             let isFirstChunk = true;
 
             try {
@@ -123,15 +143,58 @@ export function useChatController(
                         );
                         continue;
                     }
-                    if (event.type !== "text") {
-                        // Tool / approval / finish events: wired in Phase 5.
+                    if (event.type === "text") {
+                        if (isFirstChunk) {
+                            isFirstChunk = false;
+                            setIsProcessing(false);
+                        }
+                        store.appendAssistantText(assistantId, event.text);
                         continue;
                     }
-                    if (isFirstChunk) {
-                        isFirstChunk = false;
-                        setIsProcessing(false);
+                    if (event.type === "tool-call") {
+                        store.addToolCallPart(assistantId, {
+                            type: "tool-call",
+                            toolCallId: event.toolCallId,
+                            toolName: event.toolName,
+                            input: event.input,
+                            status: "running",
+                        });
+                        continue;
                     }
-                    store.appendAssistantText(assistantId, event.text);
+                    if (event.type === "tool-result") {
+                        store.updateToolCallStatus(
+                            assistantId,
+                            event.toolCallId,
+                            "success",
+                        );
+                        store.addToolResultPart(assistantId, {
+                            type: "tool-result",
+                            toolCallId: event.toolCallId,
+                            toolName: event.toolName,
+                            output: event.output,
+                        });
+                        continue;
+                    }
+                    if (event.type === "tool-error") {
+                        store.updateToolCallStatus(
+                            assistantId,
+                            event.toolCallId,
+                            "error",
+                        );
+                        store.addToolResultPart(assistantId, {
+                            type: "tool-result",
+                            toolCallId: event.toolCallId,
+                            toolName: event.toolName,
+                            output:
+                                (event.error as Error)?.message ??
+                                String(event.error),
+                            isError: true,
+                        });
+                        continue;
+                    }
+                    // approval-requested / finish / finish-step /
+                    // tool-input-delta: not surfaced in the session today
+                    // (Phase 5 wires them in).
                 }
             } catch (error) {
                 console.error("Caught error:", error);
@@ -147,10 +210,8 @@ export function useChatController(
             const assistantMessage = store.session.messages.find(
                 (m) => m.id === assistantId,
             );
-            const finalText = assistantMessage
-                ? messageText(assistantMessage)
-                : "";
-            if (finalText === "") {
+            const hasAnyParts = (assistantMessage?.parts.length ?? 0) > 0;
+            if (!hasAnyParts) {
                 store.appendAssistantText(
                     assistantId,
                     "No response received from the model.",

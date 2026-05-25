@@ -94,6 +94,8 @@ export const ChatInterface = (props: ChatInterfaceProps) => {
         model,
         contextItems,
         store: props.store,
+        tools: plugin.tools,
+        permissionBroker: plugin.permissionBroker,
         onAssistantResponseComplete: props.onAssistantResponseComplete,
     });
 

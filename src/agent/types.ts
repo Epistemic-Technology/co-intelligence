@@ -1,14 +1,29 @@
+import type { App } from "obsidian";
 import type { z } from "zod";
+
+import type { CoIntelligencePlugin } from "@/CoIntelligencePlugin";
 
 export type ToolScope = "vault" | "web" | "mcp";
 
 export type ToolPlatform = "desktop" | "mobile";
 
 /**
- * Context passed to a tool's execute function. Will grow over time (app handle,
- * plugin handle, working directory, etc.) — kept minimal for Phase 1.
+ * Dependencies a tool may need: Obsidian app handle for vault tools, plugin
+ * handle for settings access. Bound at registry construction time and merged
+ * into the per-call {@link ToolExecutionContext}, so individual tools don't
+ * re-thread them through every call site.
  */
-export interface ToolExecutionContext {
+export interface ToolDependencies {
+    app: App;
+    plugin: CoIntelligencePlugin;
+}
+
+/**
+ * Context passed to a tool's execute function. The `app` / `plugin` handles
+ * come from {@link ToolDependencies}; `toolCallId` / `abortSignal` come from
+ * the AI SDK execute wrapper for each call.
+ */
+export interface ToolExecutionContext extends ToolDependencies {
     toolCallId: string;
     abortSignal?: AbortSignal;
 }

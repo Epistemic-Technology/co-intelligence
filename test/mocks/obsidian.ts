@@ -296,6 +296,33 @@ export class AbstractInputSuggest<T> {
   close(): void {}
 }
 
+export class Modal {
+  app: App;
+  containerEl = document.createElement("div");
+  modalEl = document.createElement("div");
+  titleEl = document.createElement("div");
+  contentEl = document.createElement("div");
+  shouldRestoreSelection = false;
+
+  constructor(app: App) {
+    this.app = app;
+  }
+
+  open(): void {}
+  close(): void {
+    this.onClose();
+  }
+  onOpen(): void | Promise<void> {}
+  onClose(): void {}
+
+  setTitle(_title: string): this {
+    return this;
+  }
+  setContent(_content: string | DocumentFragment): this {
+    return this;
+  }
+}
+
 export class SuggestModal<T> {
   app: App;
   inputEl = document.createElement("input");
@@ -401,6 +428,22 @@ export function getAllTags(cache: CachedMetadata): string[] | null {
   if (!cache.tags) return null;
   return cache.tags.map((t) => t.tag);
 }
+
+export const Platform = {
+  isDesktop: true,
+  isMobile: false,
+  isDesktopApp: true,
+  isMobileApp: false,
+  isIosApp: false,
+  isAndroidApp: false,
+  isPhone: false,
+  isTablet: false,
+  isMacOS: false,
+  isWin: false,
+  isLinux: true,
+  isSafari: false,
+  resourcePathPrefix: "app://obsidian.md/",
+};
 
 export const requestUrl = vi.fn().mockResolvedValue({ text: "", json: {} });
 

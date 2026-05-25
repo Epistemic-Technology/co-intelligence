@@ -1,7 +1,21 @@
 import { describe, it, expect, vi } from "vitest";
+import { App } from "obsidian";
+import { createRoot } from "solid-js";
 import { z } from "zod";
-import { createToolRegistry } from "@/agent/tool-registry";
-import type { CoiTool } from "@/agent/types";
+import {
+    createToolRegistry,
+    ToolApprovalDeniedError,
+} from "@/agent/tool-registry";
+import { createPermissionBroker } from "@/agent/permission-broker";
+import type CoIntelligencePlugin from "@/CoIntelligencePlugin";
+import type { CoiTool, ToolDependencies } from "@/agent/types";
+
+function makeDeps(): ToolDependencies {
+    return {
+        app: new App(),
+        plugin: {} as CoIntelligencePlugin,
+    };
+}
 
 function makeTool(
     overrides: Partial<CoiTool<unknown, unknown>> & { name: string },
@@ -84,7 +98,8 @@ describe("createToolRegistry", () => {
     });
 
     it("toAiSdkTools wraps execute to receive toolCallId + abortSignal", async () => {
-        const registry = createToolRegistry();
+        const deps = makeDeps();
+        const registry = createToolRegistry(deps);
         const execute = vi.fn(async () => "ok");
         registry.register(
             makeTool({ name: "echo", execute: execute as never }),
@@ -100,16 +115,126 @@ describe("createToolRegistry", () => {
         expect(result).toBe("ok");
         expect(execute).toHaveBeenCalledWith(
             { q: 1 },
-            { toolCallId: "call-1", abortSignal },
+            { ...deps, toolCallId: "call-1", abortSignal },
         );
     });
 
-    it("toAiSdkTools forwards requiresApproval as needsApproval", () => {
-        const registry = createToolRegistry();
-        registry.register(makeTool({ name: "destructive", requiresApproval: true }));
-        registry.register(makeTool({ name: "safe", requiresApproval: false }));
+    it("approval-required tools call the broker before executing", async () => {
+        const registry = createToolRegistry(makeDeps());
+        const execute = vi.fn(async () => "ran");
+        registry.register(
+            makeTool({
+                name: "edit_note",
+                requiresApproval: true,
+                execute: execute as never,
+            }),
+        );
+        const { result, broker } = await new Promise<{
+            result: unknown;
+            broker: ReturnType<typeof createPermissionBroker>;
+        }>((resolve) => {
+            createRoot(() => {
+                const broker = createPermissionBroker();
+                const set = registry.toAiSdkTools({ permissionBroker: broker });
+                const pending = (
+                    set.edit_note.execute as unknown as (
+                        input: unknown,
+                        opts: { toolCallId: string },
+                    ) => Promise<unknown>
+                )({ path: "a.md" }, { toolCallId: "c1" });
+                queueMicrotask(() => {
+                    broker.resolve("c1", "allow");
+                    void pending.then((result) => resolve({ result, broker }));
+                });
+            });
+        });
+        expect(result).toBe("ran");
+        expect(execute).toHaveBeenCalledOnce();
+        expect(broker.pending()).toEqual([]);
+    });
+
+    it("approval-required tools throw when broker denies", async () => {
+        const registry = createToolRegistry(makeDeps());
+        const execute = vi.fn(async () => "ran");
+        registry.register(
+            makeTool({
+                name: "edit_note",
+                requiresApproval: true,
+                execute: execute as never,
+            }),
+        );
+        const error = await new Promise<unknown>((resolve) => {
+            createRoot(() => {
+                const broker = createPermissionBroker();
+                const set = registry.toAiSdkTools({ permissionBroker: broker });
+                const pending = (
+                    set.edit_note.execute as unknown as (
+                        input: unknown,
+                        opts: { toolCallId: string },
+                    ) => Promise<unknown>
+                )({}, { toolCallId: "c1" });
+                queueMicrotask(() => {
+                    broker.resolve("c1", "deny");
+                    pending.then(
+                        () => resolve(new Error("did not throw")),
+                        (err) => resolve(err),
+                    );
+                });
+            });
+        });
+        expect(error).toBeInstanceOf(ToolApprovalDeniedError);
+        expect(execute).not.toHaveBeenCalled();
+    });
+
+    it("approval-required tools run unconditionally when no broker is provided", async () => {
+        const registry = createToolRegistry(makeDeps());
+        const execute = vi.fn(async () => "ran");
+        registry.register(
+            makeTool({
+                name: "edit_note",
+                requiresApproval: true,
+                execute: execute as never,
+            }),
+        );
         const set = registry.toAiSdkTools();
-        expect((set.destructive as { needsApproval?: boolean }).needsApproval).toBe(true);
-        expect((set.safe as { needsApproval?: boolean }).needsApproval).toBe(false);
+        const result = await (
+            set.edit_note.execute as unknown as (
+                input: unknown,
+                opts: { toolCallId: string },
+            ) => Promise<unknown>
+        )({}, { toolCallId: "c1" });
+        expect(result).toBe("ran");
+        expect(execute).toHaveBeenCalledOnce();
+    });
+
+    it("approval-not-required tools bypass the broker", async () => {
+        const registry = createToolRegistry(makeDeps());
+        const execute = vi.fn(async () => "ran");
+        registry.register(
+            makeTool({
+                name: "read_note",
+                requiresApproval: false,
+                execute: execute as never,
+            }),
+        );
+        const { result, broker } = await new Promise<{
+            result: unknown;
+            broker: ReturnType<typeof createPermissionBroker>;
+        }>((resolve) => {
+            createRoot(() => {
+                const broker = createPermissionBroker();
+                const set = registry.toAiSdkTools({ permissionBroker: broker });
+                void (
+                    set.read_note.execute as unknown as (
+                        input: unknown,
+                        opts: { toolCallId: string },
+                    ) => Promise<unknown>
+                )({}, { toolCallId: "c1" }).then((result) =>
+                    resolve({ result, broker }),
+                );
+            });
+        });
+        expect(result).toBe("ran");
+        expect(broker.pending()).toEqual([]);
     });
 });

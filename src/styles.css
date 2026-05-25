@@ -514,3 +514,24 @@ li button.coi-add-context-menu-option:focus-visible {
 .coi-settings-cta svg path {
     fill: var(--text-normal);
 }
+
+.coi-approval-desc {
+    margin: 0 0 0.5rem 0;
+    color: var(--text-muted);
+}
+
+.coi-approval-args {
+    max-height: 24rem;
+    overflow: auto;
+    padding: 0.5rem;
+    background: var(--background-secondary);
+    border-radius: var(--radius-s);
+    font-size: var(--font-smaller);
+}
+
+.coi-approval-buttons {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    margin-top: 1rem;
+}
