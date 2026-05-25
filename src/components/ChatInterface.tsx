@@ -18,6 +18,7 @@ import { SourceList } from "@/components/SourceList";
 
 import { getContext } from "@/utils/model-context";
 import { ensureSourceTitle } from "@/utils/url";
+import { buildChatRequest } from "@/chat/request-builder";
 import { loadSystemPrompt } from "@/chat/system-prompt-loader";
 import { HandleChatChangeProps } from "@/ChatView";
 
@@ -140,14 +141,13 @@ export const ChatInterface = ({
             );
         }
 
-        const request: ChatRequest = {
-            requestID: crypto.randomUUID(),
-            modelId: requestModel.id,
-            messages: [...messages()],
+        const request = buildChatRequest({
+            model: requestModel,
+            messages: messages(),
             context: parsedContext,
             webSearch: webSearchEnabled,
-            systemPrompt: systemPrompt,
-        };
+            systemPrompt,
+        });
         setCurrentRequest(request);
 
         try {
