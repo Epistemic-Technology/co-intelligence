@@ -31,6 +31,7 @@ export interface CoiNoteFrontmatter {
   "is-coi-chat": boolean;
   "coi-chat-view": boolean;
   "note-renamed": boolean;
+  "coi-session-id"?: string;
   "linked-notes"?: string[];
   "linked-tags"?: string[];
   tags: string[];
