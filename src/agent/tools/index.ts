@@ -14,10 +14,7 @@ import { searchVaultTool } from "@/agent/tools/vault/search_vault";
 import { setFrontmatterTool } from "@/agent/tools/vault/set_frontmatter";
 
 import { fetchUrlTool } from "@/agent/tools/web/fetch_url";
-import {
-    isSearchWebAvailable,
-    searchWebTool,
-} from "@/agent/tools/web/search_web";
+import { searchWebTool } from "@/agent/tools/web/search_web";
 
 /**
  * Returns the runtime platform tag passed to the registry's platform filter,
@@ -32,8 +29,10 @@ export function currentPlatform(): ToolPlatform {
  * first-party tools. Called once at plugin load (`onload`).
  *
  * Phase 3 registers: nine vault tools (vault/) and two web tools (web/).
- * `search_web` is gated on a configured Perplexity API key — registered only
- * when available so the model doesn't see a tool that can't run.
+ * `search_web` is registered even without a configured Perplexity API key
+ * so the model sees the capability and the user gets a clear "not configured"
+ * error if it's invoked. Hiding the tool would silently degrade to "the model
+ * can't search the web" with no visible cause.
  */
 export function createDefaultToolRegistry(
     dependencies: ToolDependencies,
@@ -51,9 +50,7 @@ export function createDefaultToolRegistry(
     registry.register(editNoteTool);
 
     registry.register(fetchUrlTool);
-    if (isSearchWebAvailable(dependencies.app)) {
-        registry.register(searchWebTool);
-    }
+    registry.register(searchWebTool);
 
     return registry;
 }
