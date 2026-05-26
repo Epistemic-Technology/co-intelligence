@@ -83,6 +83,9 @@ export class Vault {
   getMarkdownFiles = vi.fn().mockReturnValue([]);
   getAllLoadedFiles = vi.fn().mockReturnValue([]);
   createFolder = vi.fn().mockImplementation(async () => new TFolder());
+  getRoot = vi.fn().mockImplementation(() => new TFolder());
+  getFolderByPath = vi.fn().mockReturnValue(null);
+  getFiles = vi.fn().mockReturnValue([]);
 }
 
 // --- Workspace ---
@@ -96,6 +99,7 @@ export class WorkspaceLeaf {
 export class Workspace {
   getLeaf = vi.fn().mockReturnValue(new WorkspaceLeaf());
   getActiveViewOfType = vi.fn().mockReturnValue(null);
+  getActiveFile = vi.fn().mockReturnValue(null);
   on = vi.fn().mockReturnValue({ id: "mock-event-ref" });
   off = vi.fn();
   getLeavesOfType = vi.fn().mockReturnValue([]);
@@ -449,6 +453,26 @@ export const requestUrl = vi.fn().mockResolvedValue({ text: "", json: {} });
 
 export function htmlToMarkdown(html: string): string {
   return html;
+}
+
+export function stringifyYaml(obj: Record<string, unknown>): string {
+  return Object.entries(obj)
+    .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
+    .join("\n") + "\n";
+}
+
+export function parseYaml(text: string): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const line of text.split("\n")) {
+    const m = line.match(/^([^:]+):\s*(.*)$/);
+    if (!m) continue;
+    try {
+      out[m[1].trim()] = JSON.parse(m[2]);
+    } catch {
+      out[m[1].trim()] = m[2];
+    }
+  }
+  return out;
 }
 
 export function setIcon(_el: HTMLElement, _iconId: string): void {}

@@ -36,7 +36,12 @@ export interface ToolExecutionContext extends ToolDependencies {
 export interface CoiTool<INPUT = unknown, OUTPUT = unknown> {
     name: string;
     description: string;
-    inputSchema: z.ZodType<INPUT>;
+    /**
+     * Zod schema validating the model's tool args. Declared as a three-arg
+     * ZodType so schemas with `.default()` / `.optional()` (whose input and
+     * output types differ) remain assignable.
+     */
+    inputSchema: z.ZodType<INPUT, z.ZodTypeDef, unknown>;
     execute: (
         input: INPUT,
         ctx: ToolExecutionContext,
