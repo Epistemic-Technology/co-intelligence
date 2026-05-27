@@ -1,10 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { App, requestUrl } from "obsidian";
 
-import {
-    isSearchWebAvailable,
-    searchWebTool,
-} from "@/agent/tools/web/search_web";
+import { pickProvider, searchWebTool } from "@/agent/tools/web/search_web";
 import type CoIntelligencePlugin from "@/CoIntelligencePlugin";
 import type { ToolExecutionContext } from "@/agent/types";
 
@@ -14,51 +11,93 @@ function makeCtx(app: App): ToolExecutionContext {
     return { app, plugin: {} as CoIntelligencePlugin, toolCallId: "c" };
 }
 
+describe("pickProvider", () => {
+    it("prefers Tavily when both keys are set", () => {
+        const app = new App();
+        app.secretStorage.setSecret("coi-tavily-api-key", "t");
+        app.secretStorage.setSecret("coi-perplexity-api-key", "p");
+        expect(pickProvider(app)).toBe("tavily");
+    });
+
+    it("falls back to Perplexity when only its key is set", () => {
+        const app = new App();
+        app.secretStorage.setSecret("coi-perplexity-api-key", "p");
+        expect(pickProvider(app)).toBe("perplexity");
+    });
+
+    it("returns null when no provider is configured", () => {
+        expect(pickProvider(new App())).toBeNull();
+    });
+});
+
 describe("searchWebTool", () => {
     beforeEach(() => {
         mockedRequestUrl.mockReset();
     });
 
-    it("throws when no Perplexity key is configured", async () => {
-        const app = new App();
+    it("throws when no provider is configured", async () => {
         await expect(
-            searchWebTool.execute({ query: "hello" }, makeCtx(app)),
-        ).rejects.toThrow(/not configured/);
+            searchWebTool.execute({ query: "hi" }, makeCtx(new App())),
+        ).rejects.toThrow(/not configured: set a Tavily or Perplexity/);
     });
 
-    it("returns answer and citations from a sonar response", async () => {
+    it("uses Tavily when its key is set", async () => {
         const app = new App();
-        app.secretStorage.setSecret("coi-perplexity-api-key", "test-key");
+        app.secretStorage.setSecret("coi-tavily-api-key", "t");
         mockedRequestUrl.mockResolvedValue({
             status: 200,
             headers: {},
             text: "",
             json: {
-                choices: [{ message: { content: "the answer" } }],
-                search_results: [
-                    { title: "Title A", url: "https://a.example", snippet: "a..." },
-                    { url: "https://b.example" },
+                answer: "the answer",
+                results: [
+                    {
+                        title: "T",
+                        url: "https://a.example",
+                        content: "snippet",
+                    },
                 ],
             },
         } as never);
         const out = await searchWebTool.execute(
-            { query: "what is X" },
+            { query: "what" },
             makeCtx(app),
         );
+        expect(out.provider).toBe("tavily");
         expect(out.answer).toBe("the answer");
         expect(out.citations).toEqual([
-            {
-                title: "Title A",
-                url: "https://a.example",
-                snippet: "a...",
-            },
-            { url: "https://b.example" },
+            { title: "T", url: "https://a.example", snippet: "snippet" },
         ]);
+        const [args] = mockedRequestUrl.mock.calls[0];
+        expect((args as { url: string }).url).toContain("tavily.com");
     });
 
-    it("accepts plain-string citations as a fallback shape", async () => {
+    it("falls back to Perplexity when only its key is set", async () => {
         const app = new App();
-        app.secretStorage.setSecret("coi-perplexity-api-key", "test-key");
+        app.secretStorage.setSecret("coi-perplexity-api-key", "p");
+        mockedRequestUrl.mockResolvedValue({
+            status: 200,
+            headers: {},
+            text: "",
+            json: {
+                choices: [{ message: { content: "p-answer" } }],
+                search_results: [{ url: "https://b.example" }],
+            },
+        } as never);
+        const out = await searchWebTool.execute(
+            { query: "q" },
+            makeCtx(app),
+        );
+        expect(out.provider).toBe("perplexity");
+        expect(out.answer).toBe("p-answer");
+        expect(out.citations).toEqual([{ url: "https://b.example" }]);
+        const [args] = mockedRequestUrl.mock.calls[0];
+        expect((args as { url: string }).url).toContain("perplexity.ai");
+    });
+
+    it("accepts plain-string Perplexity citations as a fallback shape", async () => {
+        const app = new App();
+        app.secretStorage.setSecret("coi-perplexity-api-key", "p");
         mockedRequestUrl.mockResolvedValue({
             status: 200,
             headers: {},
@@ -73,17 +112,5 @@ describe("searchWebTool", () => {
             makeCtx(app),
         );
         expect(out.citations).toEqual([{ url: "https://x.example" }]);
-    });
-});
-
-describe("isSearchWebAvailable", () => {
-    it("is false without a key", () => {
-        expect(isSearchWebAvailable(new App())).toBe(false);
-    });
-
-    it("is true with a key configured", () => {
-        const app = new App();
-        app.secretStorage.setSecret("coi-perplexity-api-key", "k");
-        expect(isSearchWebAvailable(app)).toBe(true);
     });
 });

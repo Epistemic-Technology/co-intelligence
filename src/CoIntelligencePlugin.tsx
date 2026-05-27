@@ -182,7 +182,9 @@ export class CoIntelligencePlugin extends Plugin {
      * Returns true if any legacy key was found.
      */
     private migrateLegacyApiKeys(data: Record<string, unknown>): boolean {
-        const legacyFields: Record<ApiKeyProvider, string> = {
+        // Only pre-1.1 providers had inline keys to migrate; newer providers
+        // (e.g. tavily) never had a legacy storage path.
+        const legacyFields: Partial<Record<ApiKeyProvider, string>> = {
             openai: "openaiApiKey",
             anthropic: "anthropicApiKey",
             google: "googleApiKey",

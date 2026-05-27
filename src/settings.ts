@@ -68,13 +68,19 @@ class FileSuggest extends AbstractInputSuggest<TFile> {
   }
 }
 
-export type ApiKeyProvider = "openai" | "anthropic" | "google" | "perplexity";
+export type ApiKeyProvider =
+  | "openai"
+  | "anthropic"
+  | "google"
+  | "perplexity"
+  | "tavily";
 
 export const API_KEY_SECRET_IDS: Record<ApiKeyProvider, string> = {
   openai: "coi-openai-api-key",
   anthropic: "coi-anthropic-api-key",
   google: "coi-google-api-key",
   perplexity: "coi-perplexity-api-key",
+  tavily: "coi-tavily-api-key",
 };
 
 export function getApiKey(app: App, provider: ApiKeyProvider): string {
@@ -205,6 +211,11 @@ export class CoIntelligenceSettingsTab extends PluginSettingTab {
     this.addApiKeySetting(containerEl, "Anthropic API key", "anthropic");
     this.addApiKeySetting(containerEl, "Google API key", "google");
     this.addApiKeySetting(containerEl, "Perplexity API key", "perplexity");
+    this.addApiKeySetting(
+      containerEl,
+      "Tavily API key (web search)",
+      "tavily",
+    );
 
     new Setting(containerEl)
       .setName("Default folder")
