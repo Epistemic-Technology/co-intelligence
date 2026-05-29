@@ -6,7 +6,6 @@ import type { ToolDependencies, ToolPlatform } from "@/agent/types";
 import { appendToNoteTool } from "@/agent/tools/vault/append_to_note";
 import { createNoteTool } from "@/agent/tools/vault/create_note";
 import { editNoteTool } from "@/agent/tools/vault/edit_note";
-import { getActiveNoteTool } from "@/agent/tools/vault/get_active_note";
 import { listFolderTool } from "@/agent/tools/vault/list_folder";
 import { readFrontmatterTool } from "@/agent/tools/vault/read_frontmatter";
 import { readNoteTool } from "@/agent/tools/vault/read_note";
@@ -40,7 +39,6 @@ export function createDefaultToolRegistry(
     const registry = createToolRegistry(dependencies);
 
     registry.register(readNoteTool);
-    registry.register(getActiveNoteTool);
     registry.register(listFolderTool);
     registry.register(searchVaultTool);
     registry.register(readFrontmatterTool);

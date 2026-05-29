@@ -46,13 +46,6 @@ export class CoIntelligencePlugin extends Plugin {
     registry: ModelRegistry | undefined;
     tools: ToolRegistry | undefined;
     permissionBroker: PermissionBroker | undefined;
-    /**
-     * The most recent non-COI markdown file the user focused. `get_active_note`
-     * reads from this instead of `workspace.getActiveFile()` because when the
-     * chat view is focused, `getActiveFile()` returns the chat note itself —
-     * not what the model wants when asked "what is the user looking at".
-     */
-    lastUserFile: TFile | null = null;
     private disposeApprovalModal: (() => void) | null = null;
     public isPerformingAutomaticRename: boolean = false;
 
@@ -114,12 +107,7 @@ export class CoIntelligencePlugin extends Plugin {
         }
     }
 
-    private handleFileOpen(file: TFile | null): void {
-        if (!file) return;
-        if (file.extension !== "md") return;
-        if (isCoiNote(file, this.app)) return;
-        this.lastUserFile = file;
-    }
+    private handleFileOpen(_file: TFile | null): void {}
 
     private async handleFileRename(file: TAbstractFile, _oldPath: string) {
         if (!(file instanceof TFile)) {
