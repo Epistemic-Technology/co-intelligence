@@ -8,13 +8,13 @@ const inputSchema = z.object({
         .string()
         .min(1, "query is required")
         .describe(
-            "Search term. Matches case-insensitively against note basenames and (when content=true) note bodies.",
+            "Search term. Matches case-insensitively against note basenames and note bodies.",
         ),
     content: z
         .boolean()
-        .default(false)
+        .default(true)
         .describe(
-            "When true, scans note bodies and returns a snippet for each hit. Slower; use only when filename search isn't enough.",
+            "When true (default), scans note bodies and returns a snippet for each hit. Set false to match filenames only.",
         ),
     limit: z
         .number()
@@ -30,6 +30,8 @@ type Input = z.infer<typeof inputSchema>;
 interface Hit {
     path: string;
     name: string;
+    /** Obsidian wikilink form (e.g. `[[Foo]]`) ready for inline use. */
+    wikilink: string;
     /** Present only when content scan matched. ~120 chars around the first hit. */
     snippet?: string;
 }
@@ -43,14 +45,15 @@ interface Output {
 const SNIPPET_RADIUS = 60;
 
 /**
- * `search_vault` — finds notes by filename, and optionally by body content.
- * Returns up to `limit` hits with a snippet around the first content match.
- * Read-only; no approval.
+ * `search_vault` — finds notes by filename and body content (both by default).
+ * Each hit includes a `wikilink` field so the assistant can cite results with
+ * Obsidian `[[Note]]` links — the description below tells it to do exactly
+ * that.
  */
 export const searchVaultTool: CoiTool<Input, Output> = {
     name: "search_vault",
     description:
-        "Search vault notes by filename (always) and optionally by body content. Returns matching note paths with a short snippet around content matches.",
+        "Search vault notes by filename and content. Returns matching notes with a snippet around content matches. When referencing results in your answer, cite them with their `wikilink` field (e.g. [[Note]]) so the user can click through.",
     inputSchema,
     requiresApproval: false,
     scope: "vault",
@@ -64,7 +67,7 @@ export const searchVaultTool: CoiTool<Input, Output> = {
 
         for (const file of files) {
             if (file.basename.toLowerCase().includes(needle)) {
-                nameHits.push({ path: file.path, name: file.basename });
+                nameHits.push(makeHit(file));
                 if (nameHits.length >= limit) break;
             } else if (content) {
                 contentCandidates.push(file);
@@ -80,8 +83,7 @@ export const searchVaultTool: CoiTool<Input, Output> = {
                 const idx = body.toLowerCase().indexOf(needle);
                 if (idx === -1) continue;
                 hits.push({
-                    path: file.path,
-                    name: file.basename,
+                    ...makeHit(file),
                     snippet: makeSnippet(body, idx, needle.length),
                 });
                 if (hits.length >= limit) {
@@ -94,6 +96,14 @@ export const searchVaultTool: CoiTool<Input, Output> = {
         return { query, hits, truncated };
     },
 };
+
+function makeHit(file: TFile): Hit {
+    return {
+        path: file.path,
+        name: file.basename,
+        wikilink: `[[${file.basename}]]`,
+    };
+}
 
 function makeSnippet(body: string, idx: number, matchLen: number): string {
     const start = Math.max(0, idx - SNIPPET_RADIUS);

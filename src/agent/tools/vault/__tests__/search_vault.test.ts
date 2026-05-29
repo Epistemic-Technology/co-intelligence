@@ -33,6 +33,23 @@ describe("searchVaultTool", () => {
         );
         expect(out.hits.map((h) => h.path)).toEqual(["Project Plan.md"]);
         expect(out.hits[0].snippet).toBeUndefined();
+        expect(out.hits[0].wikilink).toBe("[[Project Plan]]");
+    });
+
+    it("defaults to scanning content", async () => {
+        const files = [file("a", "a.md")];
+        const app = new App();
+        app.vault.getMarkdownFiles = vi.fn().mockReturnValue(files);
+        app.vault.cachedRead = vi
+            .fn()
+            .mockResolvedValue("body mentions widget here");
+        const out = await searchVaultTool.execute(
+            // Schema default fills in content=true.
+            searchVaultTool.inputSchema.parse({ query: "widget" }) as never,
+            makeCtx(app),
+        );
+        expect(out.hits.map((h) => h.path)).toEqual(["a.md"]);
+        expect(out.hits[0].snippet).toContain("widget");
     });
 
     it("scans content and returns snippets when content=true", async () => {

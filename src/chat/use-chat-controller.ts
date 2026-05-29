@@ -131,15 +131,20 @@ export function useChatController(
                 sdkTools,
             );
             let isFirstChunk = true;
+            let streamError: unknown = null;
 
             try {
                 for await (const event of consumeChatStream(
                     responseStream.events,
                 )) {
                     if (event.type === "error") {
+                        streamError = event.error;
                         console.error("Error:", event.error);
                         new Notice(
-                            "Unknown error occurred. See console log for details.",
+                            "Error generating response: " +
+                                ((event.error as Error)?.message ??
+                                    "see console for details"),
+                            0,
                         );
                         continue;
                     }
@@ -197,6 +202,7 @@ export function useChatController(
                     // (Phase 5 wires them in).
                 }
             } catch (error) {
+                streamError = error;
                 console.error("Caught error:", error);
                 if ((error as Error).message) {
                     new Notice(
@@ -211,7 +217,15 @@ export function useChatController(
                 (m) => m.id === assistantId,
             );
             const hasAnyParts = (assistantMessage?.parts.length ?? 0) > 0;
-            if (!hasAnyParts) {
+            if (streamError && !hasAnyParts) {
+                const message =
+                    (streamError as Error)?.message ?? String(streamError);
+                store.appendAssistantText(
+                    assistantId,
+                    `*Error: ${message}*`,
+                );
+                setIsProcessing(false);
+            } else if (!hasAnyParts) {
                 store.appendAssistantText(
                     assistantId,
                     "No response received from the model.",
