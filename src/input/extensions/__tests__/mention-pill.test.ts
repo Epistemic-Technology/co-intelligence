@@ -79,6 +79,42 @@ describe("mentionPillExtension", () => {
         expect(parent.querySelector(".coi-pill-note")).toBeNull();
     });
 
+    it("Backspace from just after a pill deletes the whole range and fires onRemove", () => {
+        const onRemove = vi.fn();
+        handle = mountComposer({
+            parent,
+            initialDoc: "hi [[Foo]] end",
+            onSubmit: () => true,
+            extensions: [mentionPillExtension({ onRemove })],
+        });
+        // Caret immediately after `]]`
+        handle.view.dispatch({ selection: { anchor: 10 } });
+        const event = new KeyboardEvent("keydown", {
+            key: "Backspace",
+            bubbles: true,
+        });
+        handle.view.contentDOM.dispatchEvent(event);
+        expect(handle.getValue()).toBe("hi end");
+        expect(onRemove).toHaveBeenCalledWith("note", "Foo");
+    });
+
+    it("Delete from just before a pill deletes the whole range", () => {
+        handle = mountComposer({
+            parent,
+            initialDoc: "hi [[Foo]] end",
+            onSubmit: () => true,
+            extensions: [mentionPillExtension()],
+        });
+        // Caret immediately before `[[`
+        handle.view.dispatch({ selection: { anchor: 3 } });
+        const event = new KeyboardEvent("keydown", {
+            key: "Delete",
+            bubbles: true,
+        });
+        handle.view.contentDOM.dispatchEvent(event);
+        expect(handle.getValue()).toBe("hi end");
+    });
+
     it("clicking the remove button strips the pill range", () => {
         handle = mountComposer({
             parent,

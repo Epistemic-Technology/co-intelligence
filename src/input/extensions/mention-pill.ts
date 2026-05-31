@@ -1,8 +1,9 @@
-import { type Extension, RangeSet, RangeSetBuilder } from "@codemirror/state";
+import { Prec, type Extension, RangeSet, RangeSetBuilder } from "@codemirror/state";
 import {
     Decoration,
     type DecorationSet,
     EditorView,
+    keymap,
     ViewPlugin,
     type ViewUpdate,
     WidgetType,
@@ -194,5 +195,68 @@ export function mentionPillExtension(
         return value?.decorations ?? RangeSet.empty;
     });
 
-    return [plugin, atomicRanges];
+    // CM6's default contenteditable delete path doesn't actually honour
+    // `atomicRanges` for Backspace — it still chips away one bracket at a
+    // time. Catch Backspace / Delete explicitly so a single press wipes the
+    // whole pill range and the onRemove hook fires (otherwise pressing × is
+    // the only way to drop the context entry, which the user has called out
+    // as wrong).
+    const deletionKeymap = Prec.high(
+        keymap.of([
+            {
+                key: "Backspace",
+                run: (view) =>
+                    deletePillAt(view, "before", callbacks),
+            },
+            {
+                key: "Delete",
+                run: (view) =>
+                    deletePillAt(view, "after", callbacks),
+            },
+        ]),
+    );
+
+    return [plugin, atomicRanges, deletionKeymap];
+}
+
+function deletePillAt(
+    view: EditorView,
+    relativeTo: "before" | "after",
+    callbacks: MentionPillCallbacks,
+): boolean {
+    const sel = view.state.selection.main;
+    if (!sel.empty) return false;
+    const doc = view.state.doc.toString();
+    const matches = findPillMatches(doc);
+    for (const match of matches) {
+        const matchesCaret =
+            relativeTo === "before"
+                ? sel.from === match.to
+                : sel.from === match.from;
+        if (!matchesCaret) continue;
+        // Mirror the × button: also swallow a single adjacent space so we
+        // don't leave "hi  end" after deleting a mid-line pill.
+        let from = match.from;
+        let to = match.to;
+        if (
+            relativeTo === "before" &&
+            from > 0 &&
+            doc[from - 1] === " "
+        ) {
+            from -= 1;
+        } else if (
+            relativeTo === "after" &&
+            to < doc.length &&
+            doc[to] === " "
+        ) {
+            to += 1;
+        }
+        view.dispatch({
+            changes: { from, to, insert: "" },
+            selection: { anchor: from },
+        });
+        callbacks.onRemove?.(match.kind, match.label);
+        return true;
+    }
+    return false;
 }
