@@ -30,6 +30,8 @@ import {
 } from "@/input/extensions/slash-trigger";
 import { parseCommandLine } from "@/input/command-registry";
 import type { ChatCommandHost } from "@/input/commands";
+import { runToolDirect } from "@/input/run-tool-direct";
+import { currentPlatform } from "@/agent/tools";
 
 export interface UserInputProps {
     onSubmit: (
@@ -161,32 +163,61 @@ export const UserInput: Component<UserInputProps> = ({
     };
 
     /**
-     * Tries to run `line` as a slash command. Returns true if it matched a
-     * known command (and was executed), false if the line should be sent to
-     * the model instead.
+     * Tries to run `line` as a slash command. Resolves built-in commands
+     * first; falls through to the tool registry so /<tool-name> runs a tool
+     * directly (skipping the model). Returns true if anything matched.
      */
     const runIfCommand = (line: string): boolean => {
         const parsed = parseCommandLine(line);
         if (!parsed) return false;
+
         const command = plugin?.commands?.get(parsed.name);
-        if (!command) return false;
-        const host = buildCommandHost();
-        if (!host) return false;
-        void command.run({ args: parsed.args, host });
-        return true;
+        if (command) {
+            const host = buildCommandHost();
+            if (!host) return false;
+            void command.run({ args: parsed.args, host });
+            return true;
+        }
+
+        const tool = plugin?.tools?.get(parsed.name);
+        if (tool && app && plugin) {
+            void runToolDirect({
+                tool,
+                rawArgs: parsed.args,
+                app,
+                plugin,
+                store,
+                permissionBroker: plugin.permissionBroker,
+            });
+            return true;
+        }
+
+        return false;
     };
 
     const listSlashItems = (query: string): SlashSuggestItem[] => {
         const commands = plugin?.commands?.list() ?? [];
+        const tools =
+            plugin?.tools?.list({ platform: currentPlatform() }) ?? [];
         const q = query.toLowerCase();
-        return commands
+
+        const commandItems: SlashSuggestItem[] = commands
             .filter((c) => c.name.toLowerCase().startsWith(q))
-            .slice(0, 10)
             .map((c) => ({
                 name: c.name,
                 description: c.description,
                 parameterHint: c.parameterHint,
             }));
+
+        const toolItems: SlashSuggestItem[] = tools
+            .filter((t) => t.name.toLowerCase().startsWith(q))
+            .map((t) => ({
+                name: t.name,
+                description: `Tool: ${t.description}`,
+                parameterHint: "<json args>",
+            }));
+
+        return [...commandItems, ...toolItems].slice(0, 10);
     };
 
     // The mount runs in onMount (not in ref={...}) so the host element is
