@@ -535,3 +535,45 @@ li button.coi-add-context-menu-option:focus-visible {
     justify-content: flex-end;
     margin-top: 1rem;
 }
+
+.coi-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0 0.4rem;
+    margin: 0 1px;
+    border-radius: var(--radius-s);
+    background: var(--background-modifier-hover);
+    color: var(--text-normal);
+    font-size: 0.9em;
+    line-height: 1.4;
+    vertical-align: baseline;
+    cursor: default;
+}
+
+.coi-pill-note {
+    background: var(--background-modifier-success);
+}
+
+.coi-pill-tag {
+    background: var(--background-modifier-border-focus);
+}
+
+.coi-pill-label {
+    user-select: none;
+}
+
+.coi-pill-remove {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 1em;
+    line-height: 1;
+}
+
+.coi-pill-remove:hover {
+    color: var(--text-normal);
+}
