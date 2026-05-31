@@ -140,6 +140,7 @@ export const ChatInterface = (props: ChatInterfaceProps) => {
                 onRemoveNote={handleRemoveNote}
                 onAddTag={handleAddTag}
                 onRemoveTag={handleRemoveTag}
+                store={props.store}
                 initialSystemPrompt={
                     plugin.settings.defaultSystemPromptNote || ""
                 }

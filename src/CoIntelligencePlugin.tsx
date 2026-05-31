@@ -32,6 +32,11 @@ import {
 import { mountApprovalModalBroker } from "@/agent/approval/obsidian-modal-broker";
 import { createDefaultToolRegistry } from "@/agent/tools";
 import type { ToolRegistry } from "@/agent/tool-registry";
+import {
+    createCommandRegistry,
+    type CommandRegistry,
+} from "@/input/command-registry";
+import { builtInCommands, type ChatCommandHost } from "@/input/commands";
 
 import {
     isCoiNote,
@@ -46,6 +51,7 @@ export class CoIntelligencePlugin extends Plugin {
     registry: ModelRegistry | undefined;
     tools: ToolRegistry | undefined;
     permissionBroker: PermissionBroker | undefined;
+    commands: CommandRegistry<ChatCommandHost> | undefined;
     private disposeApprovalModal: (() => void) | null = null;
     public isPerformingAutomaticRename: boolean = false;
 
@@ -66,6 +72,10 @@ export class CoIntelligencePlugin extends Plugin {
             this.permissionBroker,
             this.app,
         );
+        this.commands = createCommandRegistry<ChatCommandHost>();
+        for (const command of builtInCommands) {
+            this.commands.register(command);
+        }
         this.addSettingTab(new CoIntelligenceSettingsTab(this.app, this));
         this.addCommand(new NewChatCommand(this));
         this.addCommand(new ToggleChatViewCommand(this));

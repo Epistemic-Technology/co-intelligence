@@ -15,6 +15,7 @@ import { SystemPromptSelector } from "@/components/SystemPromptSelector";
 import { AppContext, PluginContext } from "@/CoiChatApp";
 import { ModelRegistry } from "@/services/model-registry";
 import { Model, Tag } from "@/types";
+import type { SessionStore } from "@/session/session-store";
 
 import { mountComposer, type ComposerHandle } from "@/input/composer";
 import { mentionPillExtension } from "@/input/extensions/mention-pill";
@@ -23,6 +24,12 @@ import {
     type NoteSuggestItem,
     type NoteSuggestProviders,
 } from "@/input/extensions/note-suggest";
+import {
+    slashTriggerExtension,
+    type SlashSuggestItem,
+} from "@/input/extensions/slash-trigger";
+import { parseCommandLine } from "@/input/command-registry";
+import type { ChatCommandHost } from "@/input/commands";
 
 export interface UserInputProps {
     onSubmit: (
@@ -36,6 +43,8 @@ export interface UserInputProps {
     onRemoveNote?: (file: TFile) => void;
     onAddTag?: (tag: Tag) => void;
     onRemoveTag?: (tag: Tag) => void;
+    /** Required so slash commands like `/clear` can act on the session. */
+    store: SessionStore;
     initialSystemPrompt?: string;
 }
 
@@ -47,6 +56,7 @@ export const UserInput: Component<UserInputProps> = ({
     onRemoveNote,
     onAddTag,
     onRemoveTag,
+    store,
     initialSystemPrompt = "",
 }) => {
     const app = useContext(AppContext);
@@ -127,23 +137,95 @@ export const UserInput: Component<UserInputProps> = ({
         }
     };
 
+    /**
+     * Builds the per-invocation host commands run against. We rebuild on
+     * every command so accessors / setters read the freshest signal values.
+     */
+    const buildCommandHost = (): ChatCommandHost | null => {
+        if (!app || !plugin) return null;
+        return {
+            app,
+            plugin,
+            store,
+            modelRegistry: registry,
+            model: { current: currentModel, set: updateModel },
+            systemPrompt: {
+                current: selectedSystemPrompt,
+                set: setSelectedSystemPrompt,
+            },
+            webSearch: {
+                current: webSearchEnabled,
+                set: setWebSearchEnabled,
+            },
+        };
+    };
+
+    /**
+     * Tries to run `line` as a slash command. Returns true if it matched a
+     * known command (and was executed), false if the line should be sent to
+     * the model instead.
+     */
+    const runIfCommand = (line: string): boolean => {
+        const parsed = parseCommandLine(line);
+        if (!parsed) return false;
+        const command = plugin?.commands?.get(parsed.name);
+        if (!command) return false;
+        const host = buildCommandHost();
+        if (!host) return false;
+        void command.run({ args: parsed.args, host });
+        return true;
+    };
+
+    const listSlashItems = (query: string): SlashSuggestItem[] => {
+        const commands = plugin?.commands?.list() ?? [];
+        const q = query.toLowerCase();
+        return commands
+            .filter((c) => c.name.toLowerCase().startsWith(q))
+            .slice(0, 10)
+            .map((c) => ({
+                name: c.name,
+                description: c.description,
+                parameterHint: c.parameterHint,
+            }));
+    };
+
     // The mount runs in onMount (not in ref={...}) so the host element is
     // attached to the document by the time CM6 reads
     // `parent.ownerDocument.defaultView`.
     onMount(() => {
         if (!composerHost) return;
+        let handleRef: ComposerHandle | null = null;
         const handle = mountComposer({
             parent: composerHost,
             placeholder: hasModels()
-                ? "Type your message..."
+                ? "Type your message... (or `/` for commands)"
                 : "No models available",
             extensions: [
+                slashTriggerExtension({
+                    list: listSlashItems,
+                    onAccept(name) {
+                        if (!handleRef) return;
+                        const parsed = parseCommandLine(
+                            handleRef.getValue(),
+                        );
+                        const args = parsed?.args ?? "";
+                        handleRef.setValue("");
+                        const command = plugin?.commands?.get(name);
+                        const host = buildCommandHost();
+                        if (command && host) {
+                            void command.run({ args, host });
+                        }
+                    },
+                }),
                 noteSuggestExtension(suggestProviders),
                 mentionPillExtension({ onRemove: handlePillRemove }),
             ],
             onSubmit(text) {
                 const trimmed = text.trim();
                 if (!trimmed) return false;
+                // /-commands run locally and clear the editor; they never
+                // reach the model.
+                if (runIfCommand(trimmed)) return true;
                 if (!hasModels()) return false;
                 onSubmit(
                     trimmed,
@@ -153,6 +235,7 @@ export const UserInput: Component<UserInputProps> = ({
                 return true;
             },
         });
+        handleRef = handle;
         setComposer(handle);
         onCleanup(() => handle.destroy());
         handle.focus();
