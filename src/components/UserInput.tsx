@@ -1,10 +1,11 @@
 import {
-  Component,
-  Accessor,
-  createSignal,
-  createEffect,
-  useContext,
-  Show,
+    Component,
+    Accessor,
+    createSignal,
+    createEffect,
+    onCleanup,
+    useContext,
+    Show,
 } from "solid-js";
 import { TFile } from "obsidian";
 
@@ -16,274 +17,224 @@ import { AppContext, PluginContext } from "@/CoiChatApp";
 import { ModelRegistry } from "@/services/model-registry";
 import { Model, Tag } from "@/types";
 
+import {
+    mountComposer,
+    type ComposerHandle,
+} from "@/input/composer";
+import { mentionPillExtension } from "@/input/extensions/mention-pill";
+
 export interface UserInputProps {
-  onSubmit: (
-    value: string,
-    webSearchEnabled: boolean,
-    systemPrompt?: string,
-  ) => void;
-  currentModel: Accessor<Model | null>;
-  updateModel: (model: Model | null) => void;
-  onLinkNote?: (file: TFile) => void;
-  onAddTag?: (tag: Tag) => void;
-  initialSystemPrompt?: string;
+    onSubmit: (
+        value: string,
+        webSearchEnabled: boolean,
+        systemPrompt?: string,
+    ) => void;
+    currentModel: Accessor<Model | null>;
+    updateModel: (model: Model | null) => void;
+    onLinkNote?: (file: TFile) => void;
+    onAddTag?: (tag: Tag) => void;
+    initialSystemPrompt?: string;
 }
 
 export const UserInput: Component<UserInputProps> = ({
-  onSubmit,
-  currentModel,
-  updateModel,
-  onLinkNote,
-  onAddTag,
-  initialSystemPrompt = "",
+    onSubmit,
+    currentModel,
+    updateModel,
+    onLinkNote,
+    onAddTag,
+    initialSystemPrompt = "",
 }) => {
-  let textareaRef: HTMLTextAreaElement | undefined;
-  const app = useContext(AppContext);
-  const plugin = useContext(PluginContext);
-  const registry = ModelRegistry.getInstance(plugin);
-  const hasModels = () => registry.availableModels.length > 0;
+    const app = useContext(AppContext);
+    const plugin = useContext(PluginContext);
+    const registry = ModelRegistry.getInstance(plugin);
+    const hasModels = () => registry.availableModels.length > 0;
 
-  // Add effect to auto-focus the textarea when component mounts
-  createEffect(() => {
-    if (textareaRef) {
-      textareaRef.focus();
-    }
-  });
+    const [webSearchEnabled, setWebSearchEnabled] = createSignal(false);
+    const [selectedSystemPrompt, setSelectedSystemPrompt] =
+        createSignal(initialSystemPrompt);
+    const [composer, setComposer] = createSignal<ComposerHandle | null>(null);
+    const [isModalOpen, setIsModalOpen] = createSignal(false);
 
-  /**
-   * Tracks whether a suggestion modal (wikilink or tag) is currently open
-   * Prevents multiple modals from opening simultaneously
-   */
-  const [isModalOpen, setIsModalOpen] = createSignal(false);
+    const mountInto = (parent: HTMLDivElement) => {
+        const handle = mountComposer({
+            parent,
+            placeholder: hasModels()
+                ? "Type your message..."
+                : "No models available",
+            extensions: [mentionPillExtension],
+            onSubmit(text) {
+                const trimmed = text.trim();
+                if (!trimmed) return false;
+                if (!hasModels()) return false;
+                onSubmit(
+                    trimmed,
+                    webSearchEnabled(),
+                    selectedSystemPrompt(),
+                );
+                return true;
+            },
+        });
+        setComposer(handle);
 
-  const [webSearchEnabled, setWebSearchEnabled] = createSignal(false);
-  const [selectedSystemPrompt, setSelectedSystemPrompt] =
-    createSignal(initialSystemPrompt);
+        const inputListener = () => handleEditorInput(handle);
+        handle.view.contentDOM.addEventListener("input", inputListener);
 
-  /**
-   * Handles input in the textarea, detecting wiki links, tags, and showing suggestions
-   * - Adds closing brackets when [[ is typed
-   * - Shows suggestion modals for wikilinks and tags
-   */
-  const handleInput = () => {
-    if (!textareaRef || !app || isModalOpen()) return;
+        onCleanup(() => {
+            handle.view.contentDOM.removeEventListener(
+                "input",
+                inputListener,
+            );
+            handle.destroy();
+        });
 
-    const value = textareaRef.value;
-    const caretPos = textareaRef.selectionStart;
+        // Defer focus until after the mount finishes so CM6's selection is
+        // ready to receive it.
+        queueMicrotask(() => handle.focus());
+    };
 
-    // Detect if user just typed [[ to auto-complete with closing brackets
-    if (caretPos >= 2 && value.substring(caretPos - 2, caretPos) === "[[") {
-      // Add closing ]] brackets automatically
-      const newValue =
-        value.substring(0, caretPos) + "]]" + value.substring(caretPos);
-      textareaRef.value = newValue;
+    /**
+     * Detects `[[` and `#` typing and opens the Obsidian suggestion modal,
+     * mirroring the textarea behaviour. Selection from the modal inserts
+     * into the composer via dispatch.
+     */
+    const handleEditorInput = (handle: ComposerHandle) => {
+        if (!app || isModalOpen()) return;
+        const view = handle.view;
+        const head = view.state.selection.main.head;
+        const doc = view.state.doc.toString();
+        const before = doc.slice(0, head);
 
-      // Keep cursor position between brackets
-      textareaRef.setSelectionRange(caretPos, caretPos);
+        // Just typed `[[`?
+        if (before.endsWith("[[")) {
+            openWikilinkModal(handle, "");
+            return;
+        }
 
-      setIsModalOpen(true);
-      const modal = new NoteLinkSuggestionModal(app, "", (file) => {
-        handleNoteSelect(file);
-        setIsModalOpen(false);
-      });
-      modal.open();
+        // Caret inside an open `[[...` (no closing `]]` yet on this segment)?
+        const openIdx = before.lastIndexOf("[[");
+        if (openIdx !== -1) {
+            const segment = before.slice(openIdx + 2);
+            if (!segment.includes("]") && !segment.includes("\n")) {
+                openWikilinkModal(handle, segment);
+                return;
+            }
+        }
 
-      modal.onClose = () => {
-        setIsModalOpen(false);
-      };
-    }
+        // Just typed `#` (start of doc / line / after whitespace)?
+        if (head > 0 && before.endsWith("#")) {
+            const prev = head - 2 >= 0 ? doc[head - 2] : "\n";
+            if (prev === "" || /\s/.test(prev) || prev === "\n") {
+                openTagModal(handle);
+                return;
+            }
+        }
+    };
 
-    // Detect if user just typed # with nothing to the right
-    if (
-      caretPos >= 1 &&
-      value.substring(caretPos - 1, caretPos) === "#" &&
-      (caretPos === value.length || /\s/.test(value.charAt(caretPos)))
-    ) {
-      setIsModalOpen(true);
-      const modal = new TagSuggestionModal(app, "", (tag) => {
-        handleTagSelect(tag);
-        setIsModalOpen(false);
-      });
-      modal.open();
+    const openWikilinkModal = (handle: ComposerHandle, query: string) => {
+        if (!app) return;
+        setIsModalOpen(true);
+        const modal = new NoteLinkSuggestionModal(app, query, (file) => {
+            insertWikilink(handle, file);
+            setIsModalOpen(false);
+        });
+        modal.onClose = () => setIsModalOpen(false);
+        modal.open();
+    };
 
-      modal.onClose = () => {
-        setIsModalOpen(false);
-      };
-    }
-
-    // Check if cursor is inside a wikilink
-    const textBeforeCaret = value.substring(0, caretPos);
-    const lastOpenBracket = textBeforeCaret.lastIndexOf("[[");
-    const textAfterCaret = value.substring(caretPos);
-    const nextCloseBracket = textAfterCaret.indexOf("]]");
-
-    // If we're inside a wikilink and not already showing the modal
-    if (
-      lastOpenBracket !== -1 &&
-      nextCloseBracket !== -1 &&
-      lastOpenBracket + 2 <= caretPos && // Cursor after [[
-      caretPos <= textBeforeCaret.length + nextCloseBracket && // Cursor before ]]
-      !isModalOpen()
-    ) {
-      const query = textBeforeCaret.substring(lastOpenBracket + 2);
-      setIsModalOpen(true);
-      const modal = new NoteLinkSuggestionModal(app, query, (file) => {
-        handleNoteSelect(file);
-        setIsModalOpen(false);
-      });
-      modal.open();
-
-      modal.onClose = () => {
-        setIsModalOpen(false);
-      };
-    }
-
-    // Check if cursor is immediately after a # with no text to the right
-    if (!isModalOpen()) {
-      const lastHashBeforeCaret = textBeforeCaret.lastIndexOf("#");
-      if (
-        lastHashBeforeCaret !== -1 &&
-        lastHashBeforeCaret === caretPos - 1 &&
-        (caretPos === value.length || /\s/.test(value.charAt(caretPos)))
-      ) {
+    const openTagModal = (handle: ComposerHandle) => {
+        if (!app) return;
         setIsModalOpen(true);
         const modal = new TagSuggestionModal(app, "", (tag) => {
-          handleTagSelect(tag);
-          setIsModalOpen(false);
+            insertTag(handle, tag);
+            setIsModalOpen(false);
         });
+        modal.onClose = () => setIsModalOpen(false);
         modal.open();
+    };
 
-        modal.onClose = () => {
-          setIsModalOpen(false);
-        };
-      }
-    }
-  };
-
-  /**
-   * Handles keyboard events in the textarea
-   * - Submit on Enter (unless Shift is held or modal is open)
-   */
-  const handleKeyDown = (event: KeyboardEvent) => {
-    if (
-      event.key === "Enter" &&
-      !event.shiftKey &&
-      textareaRef &&
-      !isModalOpen()
-    ) {
-      event.preventDefault();
-      onSubmit(textareaRef.value, webSearchEnabled(), selectedSystemPrompt());
-      textareaRef.value = "";
-    }
-  };
-
-  /**
-   * Handles when a note is selected from the suggestion modal
-   * - Inserts the note title as a wikilink at the cursor position
-   * - Replaces any existing text between [[ and ]]
-   * - Positions cursor after the wikilink
-   * - Calls onLinkNote callback if provided
-   */
-  const handleNoteSelect = (file: TFile) => {
-    if (!textareaRef) return;
-
-    const value = textareaRef.value;
-    const caretPos = textareaRef.selectionStart;
-
-    const textBeforeCaret = value.substring(0, caretPos);
-    const lastOpenBracket = textBeforeCaret.lastIndexOf("[[");
-
-    const textAfterCaret = value.substring(caretPos);
-    const nextCloseBracket = textAfterCaret.indexOf("]]");
-
-    // Replace the content between [[ and ]]
-    const newValue =
-      value.substring(0, lastOpenBracket + 2) +
-      file.basename +
-      (nextCloseBracket !== -1
-        ? value.substring(caretPos + nextCloseBracket)
-        : "]]" + value.substring(caretPos));
-
-    textareaRef.value = newValue;
-
-    // Position cursor after the inserted wikilink
-    const newCursorPos = lastOpenBracket + file.basename.length + 4; // 4 for [[ and ]]
-    textareaRef.setSelectionRange(newCursorPos, newCursorPos);
-
-    textareaRef.focus();
-
-    if (onLinkNote) {
-      onLinkNote(file);
-    }
-  };
-
-  /**
-   * Handles when a tag is selected from the suggestion modal
-   * - Inserts the tag at the cursor position, replacing the # if needed
-   * - Positions cursor after the inserted tag
-   */
-  const handleTagSelect = (tag: Tag) => {
-    if (!textareaRef) return;
-
-    const value = textareaRef.value;
-    const caretPos = textareaRef.selectionStart;
-
-    const textBeforeCaret = value.substring(0, caretPos);
-    const lastHashPosition = textBeforeCaret.lastIndexOf("#");
-
-    // Replace the # with the selected tag (which already includes #)
-    const newValue =
-      value.substring(0, lastHashPosition) + tag + value.substring(caretPos);
-
-    textareaRef.value = newValue;
-
-    const newCursorPos = lastHashPosition + tag.length;
-    textareaRef.setSelectionRange(newCursorPos, newCursorPos);
-
-    textareaRef.focus();
-
-    if (onAddTag) {
-      onAddTag(tag);
-    }
-  };
-
-  const toggleWebSearchEnabled = () => {
-    setWebSearchEnabled(!webSearchEnabled());
-  };
-
-  return (
-    <div class="coi-user-input">
-      <textarea
-        ref={textareaRef}
-        onKeyDown={handleKeyDown}
-        onInput={handleInput}
-        rows={4}
-        disabled={!hasModels()}
-        placeholder={
-          hasModels() ? "Type your message..." : "No models available"
+    /**
+     * Replaces the active `[[partial` segment at the caret with a finished
+     * `[[Basename]]` wikilink. Idempotent if there's no open bracket.
+     */
+    const insertWikilink = (handle: ComposerHandle, file: TFile) => {
+        const view = handle.view;
+        const head = view.state.selection.main.head;
+        const doc = view.state.doc.toString();
+        const before = doc.slice(0, head);
+        const openIdx = before.lastIndexOf("[[");
+        const link = `[[${file.basename}]]`;
+        if (openIdx === -1) {
+            view.dispatch({
+                changes: { from: head, insert: link },
+                selection: { anchor: head + link.length },
+            });
+        } else {
+            view.dispatch({
+                changes: { from: openIdx, to: head, insert: link },
+                selection: { anchor: openIdx + link.length },
+            });
         }
-      />
-      <div class="coi-user-input-options">
-        <ModelSelector
-          selectedModel={currentModel}
-          onModelChange={updateModel}
-        />
-        <SystemPromptSelector
-          selectedPrompt={selectedSystemPrompt}
-          onPromptChange={setSelectedSystemPrompt}
-        />
-        <Show when={currentModel()?.toggleWebSearch}>
-          <div>
-            <input
-              type="checkbox"
-              name="webSearchCheckbox"
-              checked={webSearchEnabled()}
-              onChange={toggleWebSearchEnabled}
-            />
-            <label for="webSearchCheckbox">Web search</label>
-          </div>
-        </Show>
-      </div>
-    </div>
-  );
+        view.focus();
+        onLinkNote?.(file);
+    };
+
+    /**
+     * Replaces the trailing `#` (or `#partial`) at the caret with the chosen
+     * tag (which itself already includes the leading `#`).
+     */
+    const insertTag = (handle: ComposerHandle, tag: Tag) => {
+        const view = handle.view;
+        const head = view.state.selection.main.head;
+        const doc = view.state.doc.toString();
+        const before = doc.slice(0, head);
+        const hashIdx = before.lastIndexOf("#");
+        const from = hashIdx === -1 ? head : hashIdx;
+        view.dispatch({
+            changes: { from, to: head, insert: tag },
+            selection: { anchor: from + tag.length },
+        });
+        view.focus();
+        onAddTag?.(tag);
+    };
+
+    // Refresh the composer's enabled-feel placeholder if models load later.
+    createEffect(() => {
+        const handle = composer();
+        if (!handle) return;
+        handle.view.contentDOM.setAttribute(
+            "aria-disabled",
+            hasModels() ? "false" : "true",
+        );
+    });
+
+    const toggleWebSearchEnabled = () => {
+        setWebSearchEnabled(!webSearchEnabled());
+    };
+
+    return (
+        <div class="coi-user-input">
+            <div class="coi-composer" ref={mountInto} />
+            <div class="coi-user-input-options">
+                <ModelSelector
+                    selectedModel={currentModel}
+                    onModelChange={updateModel}
+                />
+                <SystemPromptSelector
+                    selectedPrompt={selectedSystemPrompt}
+                    onPromptChange={setSelectedSystemPrompt}
+                />
+                <Show when={currentModel()?.toggleWebSearch}>
+                    <div>
+                        <input
+                            type="checkbox"
+                            name="webSearchCheckbox"
+                            checked={webSearchEnabled()}
+                            onChange={toggleWebSearchEnabled}
+                        />
+                        <label for="webSearchCheckbox">Web search</label>
+                    </div>
+                </Show>
+            </div>
+        </div>
+    );
 };

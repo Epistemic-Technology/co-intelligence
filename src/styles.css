@@ -577,3 +577,42 @@ li button.coi-add-context-menu-option:focus-visible {
 .coi-pill-remove:hover {
     color: var(--text-normal);
 }
+
+.coi-composer {
+    width: 100%;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s);
+    background: var(--background-primary);
+    min-height: 6rem;
+    max-height: 18rem;
+    overflow-y: auto;
+}
+
+.coi-composer .cm-editor {
+    background: transparent;
+    outline: none;
+}
+
+.coi-composer .cm-editor.cm-focused {
+    outline: none;
+}
+
+.coi-composer .cm-content {
+    padding: 0.5rem 0.75rem;
+    font-family: var(--font-text);
+    font-size: var(--font-text-size);
+    color: var(--text-normal);
+    min-height: 5rem;
+}
+
+.coi-composer .cm-scroller {
+    overflow: visible;
+}
+
+.coi-composer .cm-line {
+    padding: 0;
+}
+
+.coi-composer .cm-placeholder {
+    color: var(--text-faint);
+}
