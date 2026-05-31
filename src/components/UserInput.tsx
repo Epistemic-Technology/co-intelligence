@@ -4,6 +4,7 @@ import {
     createSignal,
     createEffect,
     onCleanup,
+    onMount,
     useContext,
     Show,
 } from "solid-js";
@@ -55,9 +56,17 @@ export const UserInput: Component<UserInputProps> = ({
     const [composer, setComposer] = createSignal<ComposerHandle | null>(null);
     const [isModalOpen, setIsModalOpen] = createSignal(false);
 
-    const mountInto = (parent: HTMLDivElement) => {
+    let composerHost: HTMLDivElement | undefined;
+
+    // The mount runs in onMount (not in ref={...}) so the host element is
+    // actually attached to the document by the time CM6 reads
+    // `parent.ownerDocument.defaultView` — Obsidian's flavour of EditorView
+    // dereferences `defaultView.CSSStyleSheet`, and Solid's refs fire before
+    // mount, so a synchronous EditorView construction crashes there.
+    onMount(() => {
+        if (!composerHost) return;
         const handle = mountComposer({
-            parent,
+            parent: composerHost,
             placeholder: hasModels()
                 ? "Type your message..."
                 : "No models available",
@@ -87,10 +96,8 @@ export const UserInput: Component<UserInputProps> = ({
             handle.destroy();
         });
 
-        // Defer focus until after the mount finishes so CM6's selection is
-        // ready to receive it.
-        queueMicrotask(() => handle.focus());
-    };
+        handle.focus();
+    });
 
     /**
      * Detects `[[` and `#` typing and opens the Obsidian suggestion modal,
@@ -213,7 +220,12 @@ export const UserInput: Component<UserInputProps> = ({
 
     return (
         <div class="coi-user-input">
-            <div class="coi-composer" ref={mountInto} />
+            <div
+                class="coi-composer"
+                ref={(el) => {
+                    composerHost = el;
+                }}
+            />
             <div class="coi-user-input-options">
                 <ModelSelector
                     selectedModel={currentModel}
