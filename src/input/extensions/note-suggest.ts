@@ -128,43 +128,64 @@ class SuggestController {
         if (!this.tooltipEl) {
             this.tooltipEl = document.createElement("div");
             this.tooltipEl.className = "coi-suggest";
+            this.tooltipEl.style.position = "fixed";
+            // Park offscreen until the measure phase places it; otherwise
+            // the first paint flashes at 0,0.
+            this.tooltipEl.style.left = "-9999px";
             document.body.appendChild(this.tooltipEl);
         }
         const el = this.tooltipEl;
-        el.empty();
+        el.textContent = "";
         const state = this.state;
         state.items.forEach((item, idx) => {
-            const row = el.createDiv({
-                cls:
-                    "coi-suggest-item" +
-                    (idx === state.selectedIdx ? " is-selected" : ""),
-            });
-            row.createDiv({
-                cls: "coi-suggest-label",
-                text: item.label,
-            });
+            const row = document.createElement("div");
+            row.className =
+                "coi-suggest-item" +
+                (idx === state.selectedIdx ? " is-selected" : "");
+            const labelEl = document.createElement("div");
+            labelEl.className = "coi-suggest-label";
+            labelEl.textContent = item.label;
+            row.appendChild(labelEl);
             if (item.sublabel) {
-                row.createDiv({
-                    cls: "coi-suggest-sublabel",
-                    text: item.sublabel,
-                });
+                const sub = document.createElement("div");
+                sub.className = "coi-suggest-sublabel";
+                sub.textContent = item.sublabel;
+                row.appendChild(sub);
             }
             row.addEventListener("mousedown", (event) => {
                 event.preventDefault();
                 state.selectedIdx = idx;
                 this.accept();
             });
+            el.appendChild(row);
         });
         this.positionTooltip();
     }
 
     private positionTooltip(): void {
-        if (!this.tooltipEl || !this.state) return;
-        const coords = this.view.coordsAtPos(this.state.from);
-        if (!coords) return;
-        this.tooltipEl.style.position = "fixed";
-        this.tooltipEl.style.left = `${coords.left}px`;
-        this.tooltipEl.style.top = `${coords.bottom + 4}px`;
+        // CM6 disallows layout reads during the update phase, so defer to a
+        // measure callback. By the time `write` runs the editor is past the
+        // update barrier and reading coords is safe.
+        this.view.requestMeasure({
+            read: () => {
+                if (!this.state) return null;
+                const caret = this.view.coordsAtPos(this.state.to);
+                if (caret) return { mode: "caret" as const, rect: caret };
+                const trigger = this.view.coordsAtPos(this.state.from);
+                if (trigger) {
+                    return { mode: "trigger" as const, rect: trigger };
+                }
+                return {
+                    mode: "fallback" as const,
+                    rect: this.view.contentDOM.getBoundingClientRect(),
+                };
+            },
+            write: (result) => {
+                if (!result || !this.tooltipEl) return;
+                this.tooltipEl.style.left = `${result.rect.left}px`;
+                this.tooltipEl.style.top = `${result.rect.bottom + 4}px`;
+            },
+        });
     }
 
     private removeTooltip(): void {

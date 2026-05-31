@@ -1,4 +1,4 @@
-import { type Extension, RangeSetBuilder } from "@codemirror/state";
+import { type Extension, RangeSet, RangeSetBuilder } from "@codemirror/state";
 import {
     Decoration,
     type DecorationSet,
@@ -164,13 +164,15 @@ function buildDecorations(
  * dispatches a delete transaction; `callbacks.onRemove` lets callers update
  * any external state (linked-notes context, etc.) when that happens.
  *
- * Decoration rebuild runs on every doc / selection change so the widgets
- * follow edits and so the caret-inside-the-range exception works.
+ * Decorations rebuild on every doc / selection change so the widgets follow
+ * edits. The same ranges are registered as `EditorView.atomicRanges`, so
+ * caret navigation skips over the pills and a single Backspace deletes a
+ * full pill instead of trying to chip away at one bracket at a time.
  */
 export function mentionPillExtension(
     callbacks: MentionPillCallbacks = {},
 ): Extension {
-    return ViewPlugin.fromClass(
+    const plugin = ViewPlugin.fromClass(
         class {
             decorations: DecorationSet;
             constructor(view: EditorView) {
@@ -186,4 +188,11 @@ export function mentionPillExtension(
             decorations: (v) => v.decorations,
         },
     );
+
+    const atomicRanges = EditorView.atomicRanges.of((view) => {
+        const value = view.plugin(plugin);
+        return value?.decorations ?? RangeSet.empty;
+    });
+
+    return [plugin, atomicRanges];
 }
