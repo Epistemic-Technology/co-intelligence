@@ -34,7 +34,14 @@ export default defineConfig({
       fileName: () => "main.js",
     },
     rollupOptions: {
-      external: ["obsidian", "electron"], // don't bundle the host libs
+      // Obsidian's runtime already loads CodeMirror; importing it as a peer
+      // keeps our bundle small and avoids two CM6 instances in the host.
+      external: [
+        "obsidian",
+        "electron",
+        "@codemirror/state",
+        "@codemirror/view",
+      ],
       output: {
         exports: "named",
         assetFileNames: () => "styles.css", // Always output CSS as styles.css
