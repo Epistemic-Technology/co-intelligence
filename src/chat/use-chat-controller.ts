@@ -73,6 +73,15 @@ export function useChatController(
     const [isProcessing, setIsProcessing] = createSignal<boolean>(false);
     const [currentRequest, setCurrentRequest] =
         createSignal<ChatRequest | null>(null);
+    const [currentAssistantId, setCurrentAssistantId] = createSignal<
+        string | null
+    >(null);
+    /**
+     * Set by `cancel()`, read by the stream error handlers so they treat the
+     * resulting AbortError as expected silence rather than a real failure.
+     * Reset at the start of every `send()`.
+     */
+    let cancelled = false;
 
     const send = async (
         message: string,
@@ -91,6 +100,7 @@ export function useChatController(
             return;
         }
 
+        cancelled = false;
         store.appendUserMessage(message);
         setIsProcessing(true);
 
@@ -117,6 +127,7 @@ export function useChatController(
         store.setLastModelId(requestModel.id);
 
         const assistantId = store.beginAssistantMessage();
+        setCurrentAssistantId(assistantId);
 
         try {
             const sdkTools = tools
@@ -138,6 +149,9 @@ export function useChatController(
                     responseStream.events,
                 )) {
                     if (event.type === "error") {
+                        if (cancelled || isAbortError(event.error)) {
+                            continue;
+                        }
                         streamError = event.error;
                         console.error("Error:", event.error);
                         new Notice(
@@ -202,14 +216,19 @@ export function useChatController(
                     // (Phase 5 wires them in).
                 }
             } catch (error) {
-                streamError = error;
-                console.error("Caught error:", error);
-                if ((error as Error).message) {
-                    new Notice(
-                        "Error generating response: " +
-                            (error as Error).message,
-                        0,
-                    );
+                if (cancelled || isAbortError(error)) {
+                    // Expected: cancel() already wrote the cancellation
+                    // message and aborted the request.
+                } else {
+                    streamError = error;
+                    console.error("Caught error:", error);
+                    if ((error as Error).message) {
+                        new Notice(
+                            "Error generating response: " +
+                                (error as Error).message,
+                            0,
+                        );
+                    }
                 }
             }
 
@@ -280,10 +299,50 @@ export function useChatController(
         setIsProcessing(false);
         const request = currentRequest();
         if (!request) return;
+        cancelled = true;
         cancelChatResponse(request);
+
+        const assistantId = currentAssistantId();
+        if (assistantId) {
+            const message = store.session.messages.find(
+                (m) => m.id === assistantId,
+            );
+            for (const part of message?.parts ?? []) {
+                if (part.type !== "tool-call") continue;
+                if (part.status !== "running") continue;
+                store.updateToolCallStatus(
+                    assistantId,
+                    part.toolCallId,
+                    "error",
+                );
+                store.addToolResultPart(assistantId, {
+                    type: "tool-result",
+                    toolCallId: part.toolCallId,
+                    toolName: part.toolName,
+                    output: "Tool call cancelled by user",
+                    isError: true,
+                });
+            }
+        }
+
         const cancelId = store.beginAssistantMessage();
         store.appendAssistantText(cancelId, "*Request cancelled by user*");
     };
 
     return { isProcessing, send, cancel };
+}
+
+/**
+ * AI SDK / fetch aborts surface as DOMException("AbortError") or wrapped
+ * errors whose message mentions "abort". We treat these as expected when the
+ * user clicked Cancel, so they don't pop a Notice.
+ */
+function isAbortError(error: unknown): boolean {
+    if (!error) return false;
+    const e = error as { name?: string; message?: string };
+    if (e.name === "AbortError") return true;
+    if (typeof e.message === "string" && /abort/i.test(e.message)) {
+        return true;
+    }
+    return false;
 }
