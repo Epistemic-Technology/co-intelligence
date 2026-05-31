@@ -57,7 +57,7 @@ describe("mentionPillExtension", () => {
             parent,
             initialDoc: "hi [[Foo]]",
             onSubmit: () => true,
-            extensions: [mentionPillExtension],
+            extensions: [mentionPillExtension()],
         });
         // Move caret away from the wikilink range.
         handle.view.dispatch({ selection: { anchor: 0 } });
@@ -73,7 +73,7 @@ describe("mentionPillExtension", () => {
             parent,
             initialDoc: "[[Foo]]",
             onSubmit: () => true,
-            extensions: [mentionPillExtension],
+            extensions: [mentionPillExtension()],
         });
         handle.view.dispatch({ selection: { anchor: 3 } });
         expect(parent.querySelector(".coi-pill-note")).toBeNull();
@@ -84,7 +84,7 @@ describe("mentionPillExtension", () => {
             parent,
             initialDoc: "hi [[Foo]] end",
             onSubmit: () => true,
-            extensions: [mentionPillExtension],
+            extensions: [mentionPillExtension()],
         });
         handle.view.dispatch({ selection: { anchor: 0 } });
         const remove = parent.querySelector<HTMLButtonElement>(

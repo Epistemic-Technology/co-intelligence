@@ -137,7 +137,9 @@ export const ChatInterface = (props: ChatInterfaceProps) => {
                 currentModel={model}
                 updateModel={setModel}
                 onLinkNote={handleLinkNote}
+                onRemoveNote={handleRemoveNote}
                 onAddTag={handleAddTag}
+                onRemoveTag={handleRemoveTag}
                 initialSystemPrompt={
                     plugin.settings.defaultSystemPromptNote || ""
                 }
