@@ -658,3 +658,72 @@ li button.coi-add-context-menu-option:focus-visible {
     font-size: 0.85em;
     margin-top: 0.1rem;
 }
+
+.coi-tool-card {
+    margin: 0.4rem 0;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s);
+    background: var(--background-secondary);
+    overflow: hidden;
+}
+
+.coi-tool-card-summary {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.6rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+.coi-tool-card-summary::-webkit-details-marker {
+    display: none;
+}
+
+.coi-tool-card-icon {
+    color: var(--text-muted);
+    font-family: var(--font-monospace);
+    font-size: 0.9em;
+}
+
+.coi-tool-card-name {
+    font-family: var(--font-monospace);
+    color: var(--text-normal);
+    font-weight: 500;
+}
+
+.coi-tool-card-status {
+    color: var(--text-muted);
+    font-size: 0.85em;
+    margin-left: auto;
+}
+
+.coi-tool-card-body {
+    margin: 0;
+    padding: 0.5rem 0.75rem;
+    background: var(--background-primary);
+    border-top: 1px solid var(--background-modifier-border);
+    color: var(--text-normal);
+    font-family: var(--font-monospace);
+    font-size: 0.85em;
+    overflow-x: auto;
+}
+
+.coi-tool-status-error,
+.coi-tool-result.is-error {
+    border-color: var(--background-modifier-error);
+}
+
+.coi-tool-status-error .coi-tool-card-status,
+.coi-tool-result.is-error .coi-tool-card-status {
+    color: var(--text-error);
+}
+
+.coi-tool-status-denied .coi-tool-card-status {
+    color: var(--text-warning, var(--text-muted));
+}
+
+.coi-tool-status-success .coi-tool-card-icon,
+.coi-tool-result:not(.is-error) .coi-tool-card-icon {
+    color: var(--text-success, var(--text-accent));
+}

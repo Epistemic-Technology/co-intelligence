@@ -11,7 +11,7 @@ import { SourceList } from "@/components/SourceList";
 
 import { useChatController } from "@/chat/use-chat-controller";
 import type { SessionStore } from "@/session/session-store";
-import { messageText, type SerializedContextItems } from "@/session/types";
+import type { SerializedContextItems } from "@/session/types";
 
 export interface ChatInterfaceProps {
     store: SessionStore;
@@ -99,17 +99,10 @@ export const ChatInterface = (props: ChatInterfaceProps) => {
         onAssistantResponseComplete: props.onAssistantResponseComplete,
     });
 
-    // The chat history component still works with ModelChatMessage today.
-    // Adapter — collapse each SessionMessage to { role, content: text } for the
-    // dumb-pipe history view. The agentic UI in Phase 5 swaps this out for a
-    // parts-aware renderer.
     const messages = createMemo(() =>
-        props.store.session.messages
-            .filter((m) => m.role === "user" || m.role === "assistant")
-            .map((m) => ({
-                role: m.role as "user" | "assistant",
-                content: messageText(m),
-            })),
+        props.store.session.messages.filter(
+            (m) => m.role === "user" || m.role === "assistant",
+        ),
     );
 
     const sources = createMemo(() => props.store.session.sources);

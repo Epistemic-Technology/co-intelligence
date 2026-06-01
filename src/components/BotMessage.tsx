@@ -1,58 +1,23 @@
-import { Component, useContext, Show } from "solid-js";
-import { ModelChatMessage } from "@/types";
+import { Component } from "solid-js";
 
-import { ChatMessage } from "@/components/ChatMessage";
-import { MarkdownView } from "@/components/MarkdownView";
-import { FileContext } from "@/CoiChatApp";
+import type { SessionMessage } from "@/session/types";
+import { MessageParts } from "@/components/parts/MessageParts";
+import { useLinkClicks } from "@/components/parts/useLinkClicks";
 
 export interface BotMessageProps {
-  message: ModelChatMessage;
+    message: SessionMessage;
 }
 
-export const BotMessage: Component<BotMessageProps> = ({
-  message,
-}: BotMessageProps) => {
-  const file = useContext(FileContext);
-  const filePath = file?.path || "";
-  const content = (message.content as string) ?? "";
-  // Perplexity models use <think> tags to indicate the reasoning section.
-  // OpenAI models use chunk types instead. These are translated into <think>
-  // tags by handleSendMessage in ChatInterface.tsx
-  const openTagIndex = content.indexOf("<think>");
-  const closeTagIndex = content.indexOf("</think>", openTagIndex);
-
-  let thoughts = "";
-  let mainContent = "";
-  if (openTagIndex > -1 && closeTagIndex > -1) {
-    thoughts = content.substring(openTagIndex + 7, closeTagIndex);
-    mainContent = content.substring(closeTagIndex + 8);
-  } else if (openTagIndex > -1) {
-    thoughts = content.substring(openTagIndex + 7);
-    mainContent = "";
-  } else {
-    thoughts = "";
-    mainContent = content;
-  }
-
-  const newMessage = {
-    ...message,
-    content: mainContent,
-  } as ModelChatMessage;
-
-  return (
-    <div class="coi-bot-message-container">
-      <Show when={thoughts.length > 0}>
-        <details
-          class="coi-thinking-details"
-          open={openTagIndex > -1 && closeTagIndex === -1}
-        >
-          <summary class="coi-thinking-summary">Thinking...</summary>
-          <div class="coi-thinking-section">
-            <MarkdownView markdown={thoughts} sourcePath={filePath} />
-          </div>
-        </details>
-      </Show>
-      <ChatMessage message={newMessage} className="coi-bot-message" />
-    </div>
-  );
+/**
+ * Assistant message — renders each of the message's structured parts via
+ * the parts router so tool calls, results, and reasoning all surface as
+ * their own affordances instead of being smushed into a single text blob.
+ */
+export const BotMessage: Component<BotMessageProps> = (props) => {
+    const onClick = useLinkClicks();
+    return (
+        <div class="coi-bot-message" onClick={onClick}>
+            <MessageParts parts={props.message.parts} />
+        </div>
+    );
 };
