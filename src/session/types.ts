@@ -72,6 +72,24 @@ export interface SerializedContextItems {
  * tool calls, parts, approvals, and step history. The markdown note body is a
  * human-readable view regenerated from this.
  */
+/**
+ * How the controller handles tools that declare `requiresApproval: true`.
+ *
+ * - `ask`: surface the approval card and wait for the user (default).
+ * - `auto`: skip the prompt and run the tool immediately. Use when you
+ *   trust the agent and want it to keep moving.
+ * - `readonly`: refuse approval-required tools without prompting. Read-only
+ *   tools still work, so the agent can still answer questions about the
+ *   vault but can't modify anything.
+ */
+export type ApprovalMode = "ask" | "auto" | "readonly";
+
+export interface SessionSettings {
+    /** Hard ceiling on agent-loop steps for this session. */
+    maxSteps?: number;
+    approvalMode?: ApprovalMode;
+}
+
 export interface Session {
     id: string;
     version: number;
@@ -83,6 +101,8 @@ export interface Session {
     contextItems: SerializedContextItems;
     sources: Source[];
     lastModelId: ModelId | null;
+    /** Per-session overrides. Missing fields fall back to plugin defaults. */
+    settings?: SessionSettings;
 }
 
 /**

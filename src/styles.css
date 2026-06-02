@@ -842,3 +842,70 @@ li button.coi-add-context-menu-option:focus-visible {
     font-family: var(--font-monospace);
     white-space: nowrap;
 }
+
+.coi-session-settings {
+    margin-bottom: 0.5rem;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s);
+    background: var(--background-secondary);
+}
+
+.coi-session-settings-summary {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    width: 100%;
+    padding: 0.35rem 0.6rem;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    color: var(--text-muted);
+    font-size: 0.85em;
+    cursor: pointer;
+    text-align: left;
+}
+
+.coi-session-settings-summary:hover {
+    color: var(--text-normal);
+}
+
+.coi-session-settings-chevron {
+    color: var(--text-faint);
+    width: 0.75rem;
+}
+
+.coi-session-settings-summary-values {
+    margin-left: auto;
+    color: var(--text-faint);
+    font-family: var(--font-monospace);
+    font-size: 0.85em;
+}
+
+.coi-session-settings-body {
+    padding: 0.5rem 0.75rem 0.6rem;
+    border-top: 1px solid var(--background-modifier-border);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1.25rem;
+}
+
+.coi-session-settings-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    font-size: 0.85em;
+    color: var(--text-muted);
+}
+
+.coi-session-settings-field input,
+.coi-session-settings-field select {
+    background: var(--background-primary);
+    color: var(--text-normal);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s);
+    padding: 0.25rem 0.5rem;
+}
+
+.coi-session-settings-field input[type="number"] {
+    width: 5rem;
+}

@@ -1,4 +1,4 @@
-import { Accessor, createSignal } from "solid-js";
+import { Accessor, createMemo, createSignal } from "solid-js";
 import { App, Notice } from "obsidian";
 
 import { CoIntelligencePlugin } from "@/CoIntelligencePlugin";
@@ -83,8 +83,12 @@ export function useChatController(
         string | null
     >(null);
     const [currentStep, setCurrentStep] = createSignal<number>(0);
-    // Static for now; Phase 5 #69 wires per-session overrides into here.
-    const [maxSteps] = createSignal<number>(DEFAULT_MAX_STEPS);
+    const maxSteps = createMemo<number>(
+        () => store.session.settings?.maxSteps ?? DEFAULT_MAX_STEPS,
+    );
+    const approvalMode = createMemo(
+        () => store.session.settings?.approvalMode ?? "ask",
+    );
     /**
      * Set by `cancel()`, read by the stream error handlers so they treat the
      * resulting AbortError as expected silence rather than a real failure.
@@ -144,12 +148,14 @@ export function useChatController(
                 ? tools.toAiSdkTools({
                       platform: currentPlatform(),
                       permissionBroker,
+                      approvalMode: approvalMode(),
                   })
                 : {};
             const responseStream = generateChatResponse(
                 request,
                 registry,
                 sdkTools,
+                maxSteps(),
             );
             let isFirstChunk = true;
             let streamError: unknown = null;

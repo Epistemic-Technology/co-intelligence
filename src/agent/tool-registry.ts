@@ -12,6 +12,8 @@ export interface ToolRegistryFilter {
     scope?: ToolScope;
 }
 
+export type ApprovalMode = "ask" | "auto" | "readonly";
+
 export interface ToAiSdkToolsOptions extends ToolRegistryFilter {
     /**
      * When set, approval-required tools are gated through the broker inside
@@ -20,6 +22,13 @@ export interface ToAiSdkToolsOptions extends ToolRegistryFilter {
      * unconditionally (intended only for tests / non-interactive contexts).
      */
     permissionBroker?: PermissionBroker;
+    /**
+     * Controls how the execute wrapper treats `requiresApproval: true` tools:
+     * - `"ask"` (default): consult the broker.
+     * - `"auto"`: skip the broker and run immediately.
+     * - `"readonly"`: refuse without prompting (the model sees `tool-error`).
+     */
+    approvalMode?: ApprovalMode;
 }
 
 export interface ToolRegistry {
@@ -92,7 +101,8 @@ export function createToolRegistry(
             return filtered(filter);
         },
         toAiSdkTools(options) {
-            const { permissionBroker, ...filter } = options ?? {};
+            const { permissionBroker, approvalMode, ...filter } = options ?? {};
+            const mode: ApprovalMode = approvalMode ?? "ask";
             const out: ToolSet = {};
             for (const t of filtered(filter)) {
                 out[t.name] = aiTool({
@@ -105,15 +115,20 @@ export function createToolRegistry(
                             abortSignal?: AbortSignal;
                         },
                     ) => {
-                        if (t.requiresApproval && permissionBroker) {
-                            const decision =
-                                await permissionBroker.requestApproval({
-                                    toolCallId: opts.toolCallId,
-                                    toolName: t.name,
-                                    input,
-                                });
-                            if (decision === "deny") {
+                        if (t.requiresApproval) {
+                            if (mode === "readonly") {
                                 throw new ToolApprovalDeniedError(t.name);
+                            }
+                            if (mode === "ask" && permissionBroker) {
+                                const decision =
+                                    await permissionBroker.requestApproval({
+                                        toolCallId: opts.toolCallId,
+                                        toolName: t.name,
+                                        input,
+                                    });
+                                if (decision === "deny") {
+                                    throw new ToolApprovalDeniedError(t.name);
+                                }
                             }
                         }
                         if (!dependencies) {

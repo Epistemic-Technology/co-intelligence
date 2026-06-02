@@ -5,6 +5,7 @@ import { ModelRegistry } from "@/services/model-registry";
 import { ContextItems, Model, Tag } from "@/types";
 import { AppContext, PluginContext } from "@/CoiChatApp";
 import { ChatHistory } from "@/components/ChatHistory";
+import { SessionSettingsHeader } from "@/components/SessionSettingsHeader";
 import { UserInput } from "@/components/UserInput";
 import { ContextList } from "@/components/ContextList";
 import { SourceList } from "@/components/SourceList";
@@ -109,6 +110,7 @@ export const ChatInterface = (props: ChatInterfaceProps) => {
 
     return (
         <div>
+            <SessionSettingsHeader store={props.store} />
             <ChatHistory
                 messages={messages}
                 isProcessing={controller.isProcessing}

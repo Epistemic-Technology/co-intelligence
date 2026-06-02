@@ -27,6 +27,7 @@ export function generateChatResponse(
     request: ChatRequest,
     registry: ModelRegistry,
     tools: ToolSet = {},
+    maxSteps?: number,
 ): AgentEventStream {
     const model = registry.getLanguageModel(request.modelId);
 
@@ -89,6 +90,7 @@ export function generateChatResponse(
         messages: finalConfig.messages,
         system: finalConfig.system,
         tools: finalConfig.tools,
+        maxSteps,
         abortSignal: finalConfig.abortSignal,
         providerOptions: finalConfig.providerOptions,
         headers: finalConfig.headers,

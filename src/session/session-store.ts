@@ -4,6 +4,7 @@ import type {
     MessagePart,
     SerializedContextItems,
     Session,
+    SessionSettings,
     ToolCallStatus,
 } from "@/session/types";
 
@@ -43,6 +44,8 @@ export interface SessionStore {
     addSources(sources: Source[]): void;
     setContextItems(items: SerializedContextItems): void;
     setLastModelId(id: ModelId | null): void;
+    /** Shallow-merges the supplied keys into `session.settings`. */
+    updateSettings(patch: SessionSettings): void;
 
     /** Replaces the entire session — typically on file load. */
     replaceSession(next: Session): void;
@@ -172,6 +175,12 @@ export function createSessionStore(initial: Session): SessionStore {
 
         setLastModelId(id) {
             setSession("lastModelId", id);
+            touch();
+        },
+
+        updateSettings(patch) {
+            const next = { ...(session.settings ?? {}), ...patch };
+            setSession("settings", next);
             touch();
         },
 
