@@ -149,6 +149,9 @@ export async function* translate(
                     input: chunk.toolCall.input,
                 };
                 break;
+            case "start-step":
+                yield { type: "start-step" };
+                break;
             case "finish-step":
                 yield {
                     type: "finish-step",

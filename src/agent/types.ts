@@ -87,6 +87,7 @@ export type AgentEvent =
           toolName: string;
           input: unknown;
       }
+    | { type: "start-step" }
     | {
           type: "finish-step";
           finishReason: string;

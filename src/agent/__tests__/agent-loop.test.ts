@@ -210,12 +210,18 @@ describe("translate", () => {
     it("drops chunk types it doesn't recognize", async () => {
         const events = await collect([
             { type: "start" },
-            { type: "start-step", request: {} as never, warnings: [] },
             { type: "text-end", id: "t1" },
             { type: "tool-input-start", id: "c1", toolName: "x" },
             { type: "text-delta", id: "t1", text: "kept" },
         ]);
         expect(events).toEqual([{ type: "text", text: "kept" }]);
+    });
+
+    it("maps start-step chunks to start-step events", async () => {
+        const events = await collect([
+            { type: "start-step", request: {} as never, warnings: [] },
+        ]);
+        expect(events).toEqual([{ type: "start-step" }]);
     });
 
     it("emits events in source order across a realistic mixed stream", async () => {
@@ -257,6 +263,7 @@ describe("translate", () => {
             },
         ]);
         expect(events.map((e) => e.type)).toEqual([
+            "start-step",
             "text",
             "tool-call",
             "tool-result",

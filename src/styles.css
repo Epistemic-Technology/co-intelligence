@@ -831,3 +831,14 @@ li button.coi-add-context-menu-option:focus-visible {
     border-radius: var(--radius-s);
     background: var(--background-primary);
 }
+
+.coi-processing-step-badge {
+    margin: 0 0.5rem 0 auto;
+    padding: 0.1rem 0.5rem;
+    border-radius: var(--radius-s);
+    background: var(--background-modifier-hover);
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    font-family: var(--font-monospace);
+    white-space: nowrap;
+}

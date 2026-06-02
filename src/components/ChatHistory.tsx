@@ -16,6 +16,8 @@ import { ProcessingIndicator } from "@/components/ProcessingIndicator";
 export interface ChatHistoryProps {
     messages: Accessor<readonly SessionMessage[]>;
     isProcessing: Accessor<boolean>;
+    currentStep?: Accessor<number>;
+    maxSteps?: Accessor<number>;
     onCancelRequest?: () => void;
 }
 
@@ -48,7 +50,11 @@ export const ChatHistory: Component<ChatHistoryProps> = (props) => {
                 }
             </For>
             <Show when={props.isProcessing()}>
-                <ProcessingIndicator onCancel={props.onCancelRequest} />
+                <ProcessingIndicator
+                    currentStep={props.currentStep}
+                    maxSteps={props.maxSteps}
+                    onCancel={props.onCancelRequest}
+                />
             </Show>
         </div>
     );

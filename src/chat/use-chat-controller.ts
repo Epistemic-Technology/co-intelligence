@@ -10,6 +10,7 @@ import {
 } from "@/services/model-service";
 import type { ChatRequest, ContextItems, Model } from "@/types";
 
+import { DEFAULT_MAX_STEPS } from "@/agent/agent-loop";
 import { currentPlatform } from "@/agent/tools";
 import type { PermissionBroker } from "@/agent/permission-broker";
 import type { ToolRegistry } from "@/agent/tool-registry";
@@ -42,6 +43,11 @@ export interface UseChatControllerParams {
 
 export interface ChatController {
     isProcessing: Accessor<boolean>;
+    /** Step index of the in-flight agent loop. 0 when idle, 1 on the first model
+     * call, incremented on each subsequent `start-step` event. */
+    currentStep: Accessor<number>;
+    /** Hard ceiling on agent-loop steps (mirrors `stopWhen: stepCountIs(N)`). */
+    maxSteps: Accessor<number>;
     send: (
         message: string,
         webSearchEnabled?: boolean,
@@ -76,6 +82,9 @@ export function useChatController(
     const [currentAssistantId, setCurrentAssistantId] = createSignal<
         string | null
     >(null);
+    const [currentStep, setCurrentStep] = createSignal<number>(0);
+    // Static for now; Phase 5 #69 wires per-session overrides into here.
+    const [maxSteps] = createSignal<number>(DEFAULT_MAX_STEPS);
     /**
      * Set by `cancel()`, read by the stream error handlers so they treat the
      * resulting AbortError as expected silence rather than a real failure.
@@ -101,6 +110,7 @@ export function useChatController(
         }
 
         cancelled = false;
+        setCurrentStep(0);
         store.appendUserMessage(message);
         setIsProcessing(true);
 
@@ -211,9 +221,13 @@ export function useChatController(
                         });
                         continue;
                     }
+                    if (event.type === "start-step") {
+                        setCurrentStep((n) => n + 1);
+                        continue;
+                    }
                     // approval-requested / finish / finish-step /
                     // tool-input-delta: not surfaced in the session today
-                    // (Phase 5 wires them in).
+                    // (Phase 5 wires the rest in).
                 }
             } catch (error) {
                 if (cancelled || isAbortError(error)) {
@@ -290,6 +304,7 @@ export function useChatController(
             );
         } finally {
             setIsProcessing(false);
+            setCurrentStep(0);
             setCurrentRequest(null);
             deleteAbortControllerForRequest(request);
         }
@@ -297,6 +312,7 @@ export function useChatController(
 
     const cancel = () => {
         setIsProcessing(false);
+        setCurrentStep(0);
         const request = currentRequest();
         if (!request) return;
         cancelled = true;
@@ -329,7 +345,7 @@ export function useChatController(
         store.appendAssistantText(cancelId, "*Request cancelled by user*");
     };
 
-    return { isProcessing, send, cancel };
+    return { isProcessing, currentStep, maxSteps, send, cancel };
 }
 
 /**

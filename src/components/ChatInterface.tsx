@@ -112,6 +112,8 @@ export const ChatInterface = (props: ChatInterfaceProps) => {
             <ChatHistory
                 messages={messages}
                 isProcessing={controller.isProcessing}
+                currentStep={controller.currentStep}
+                maxSteps={controller.maxSteps}
                 onCancelRequest={controller.cancel}
             />
             <Show when={sources().length > 0}>
