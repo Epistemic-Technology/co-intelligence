@@ -89,6 +89,25 @@ describe("ToolResultCard", () => {
         );
     });
 
+    it("renders edit_note diffs via DiffView instead of raw JSON", () => {
+        const { container } = render(() => (
+            <ToolResultCard
+                part={{
+                    type: "tool-result",
+                    toolCallId: "1",
+                    toolName: "edit_note",
+                    output: {
+                        path: "a.md",
+                        replacements: 1,
+                        diff: "--- a.md\n+++ a.md\n-old\n+new",
+                    },
+                }}
+            />
+        ));
+        expect(container.querySelector(".coi-diff")).not.toBeNull();
+        expect(container.querySelector(".coi-tool-card-body")).toBeNull();
+    });
+
     it("opens by default and tags errors visually", () => {
         const { container } = render(() => (
             <ToolResultCard

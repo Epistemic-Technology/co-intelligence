@@ -1,4 +1,4 @@
-import { Component, Show } from "solid-js";
+import { Component, type JSX, Show } from "solid-js";
 
 import type {
     ApprovalDecision,
@@ -8,6 +8,13 @@ import type {
 export interface ApprovalPromptProps {
     request: PendingApproval;
     onDecide: (decision: ApprovalDecision) => void;
+    /**
+     * Custom preview content rendered between the header and the action
+     * buttons. When omitted, the prompt shows the request input as
+     * pretty-printed JSON — fine for most tools. Specialised callers (e.g.
+     * the edit_note diff preview) pass their own preview here.
+     */
+    children?: JSX.Element;
 }
 
 /**
@@ -35,8 +42,17 @@ export const ApprovalPrompt: Component<ApprovalPromptProps> = (props) => {
                     Approve <code>{props.request.toolName}</code>?
                 </span>
             </div>
-            <Show when={hasArgs(props.request.input)}>
-                <pre class="coi-approval-prompt-args">{argsJson()}</pre>
+            <Show
+                when={props.children !== undefined}
+                fallback={
+                    <Show when={hasArgs(props.request.input)}>
+                        <pre class="coi-approval-prompt-args">
+                            {argsJson()}
+                        </pre>
+                    </Show>
+                }
+            >
+                {props.children}
             </Show>
             <div class="coi-approval-prompt-buttons">
                 <button

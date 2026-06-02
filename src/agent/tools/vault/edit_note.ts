@@ -2,6 +2,7 @@ import { TFile, normalizePath } from "obsidian";
 import { z } from "zod";
 
 import type { CoiTool } from "@/agent/types";
+import { attemptEdit, makeUnifiedDiff } from "@/utils/edit-note-diff";
 
 const inputSchema = z.object({
     path: z
@@ -67,26 +68,19 @@ export const editNoteTool: CoiTool<Input, Output> = {
         };
 
         await app.vault.process(file, (current) => {
-            const occurrences = countOccurrences(current, oldText);
-            if (occurrences === 0) {
-                throw new Error(
-                    `oldText not found in "${normalized}"`,
-                );
+            const outcome = attemptEdit(
+                { content: current, oldText, newText, replaceAll },
+                normalized,
+            );
+            if (outcome.kind === "error") {
+                throw new Error(outcome.message);
             }
-            if (occurrences > 1 && !replaceAll) {
-                throw new Error(
-                    `oldText appears ${occurrences} times in "${normalized}"; set replaceAll=true or narrow the match`,
-                );
-            }
-            const next = replaceAll
-                ? current.split(oldText).join(newText)
-                : current.replace(oldText, newText);
             result = {
-                replacements: occurrences,
+                replacements: outcome.replacements,
                 before: current,
-                after: next,
+                after: outcome.after,
             };
-            return next;
+            return outcome.after;
         });
 
         return {
@@ -96,49 +90,3 @@ export const editNoteTool: CoiTool<Input, Output> = {
         };
     },
 };
-
-function countOccurrences(haystack: string, needle: string): number {
-    let count = 0;
-    let idx = 0;
-    while ((idx = haystack.indexOf(needle, idx)) !== -1) {
-        count++;
-        idx += needle.length;
-    }
-    return count;
-}
-
-/**
- * Minimal unified-diff renderer. Not byte-exact with `diff` since we don't
- * need patch round-trip — just a human-readable summary the approval card can
- * show line-by-line.
- */
-function makeUnifiedDiff(path: string, before: string, after: string): string {
-    const beforeLines = before.split("\n");
-    const afterLines = after.split("\n");
-    const out: string[] = [`--- ${path}`, `+++ ${path}`];
-
-    let i = 0;
-    let j = 0;
-    while (i < beforeLines.length || j < afterLines.length) {
-        if (
-            i < beforeLines.length &&
-            j < afterLines.length &&
-            beforeLines[i] === afterLines[j]
-        ) {
-            out.push(` ${beforeLines[i]}`);
-            i++;
-            j++;
-            continue;
-        }
-        if (i < beforeLines.length) {
-            out.push(`-${beforeLines[i]}`);
-            i++;
-        }
-        if (j < afterLines.length) {
-            out.push(`+${afterLines[j]}`);
-            j++;
-        }
-    }
-
-    return out.join("\n");
-}

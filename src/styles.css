@@ -760,3 +760,74 @@ li button.coi-add-context-menu-option:focus-visible {
 .coi-tool-result:not(.is-error) .coi-tool-card-icon {
     color: var(--text-success, var(--text-accent));
 }
+
+.coi-diff {
+    margin: 0;
+    padding: 0.4rem 0;
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s);
+    font-family: var(--font-monospace);
+    font-size: 0.85em;
+    overflow-x: auto;
+    color: var(--text-normal);
+}
+
+.coi-diff-line {
+    display: flex;
+    padding: 0 0.5rem;
+    white-space: pre;
+}
+
+.coi-diff-marker {
+    display: inline-block;
+    width: 1.2em;
+    color: var(--text-muted);
+    user-select: none;
+    flex-shrink: 0;
+}
+
+.coi-diff-added {
+    background: rgba(var(--color-green-rgb, 0, 200, 0), 0.12);
+}
+
+.coi-diff-added .coi-diff-marker {
+    color: var(--text-success, var(--text-accent));
+}
+
+.coi-diff-removed {
+    background: rgba(var(--color-red-rgb, 220, 50, 50), 0.12);
+}
+
+.coi-diff-removed .coi-diff-marker {
+    color: var(--text-error);
+}
+
+.coi-diff-header {
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.coi-edit-preview {
+    margin: 0 0 0.6rem 0;
+}
+
+.coi-edit-preview-summary {
+    color: var(--text-muted);
+    font-size: 0.85em;
+    margin-bottom: 0.3rem;
+}
+
+.coi-edit-preview-loading {
+    color: var(--text-muted);
+    font-style: italic;
+    padding: 0.5rem 0;
+}
+
+.coi-edit-preview-error {
+    color: var(--text-error);
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--background-modifier-error);
+    border-radius: var(--radius-s);
+    background: var(--background-primary);
+}

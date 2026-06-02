@@ -1,9 +1,11 @@
 import { Component, For, Show, useContext } from "solid-js";
 
 import { PluginContext } from "@/CoiChatApp";
+import type { ApprovalDecision } from "@/agent/permission-broker";
 import type { MessagePart } from "@/session/types";
 
 import { ApprovalPrompt } from "@/components/parts/ApprovalPrompt";
+import { EditNoteApprovalPrompt } from "@/components/parts/EditNoteApprovalPrompt";
 import { ReasoningBlock } from "@/components/parts/ReasoningBlock";
 import { TextPart } from "@/components/parts/TextPart";
 import { ToolCallCard } from "@/components/parts/ToolCallCard";
@@ -64,17 +66,24 @@ const ToolCallPart: Component<{
             fallback={<ToolCallCard part={props.part} />}
             keyed
         >
-            {(request) => (
-                <ApprovalPrompt
-                    request={request}
-                    onDecide={(decision) =>
-                        plugin?.permissionBroker?.resolve(
-                            request.toolCallId,
-                            decision,
-                        )
-                    }
-                />
-            )}
+            {(request) => {
+                const onDecide = (decision: ApprovalDecision) =>
+                    plugin?.permissionBroker?.resolve(
+                        request.toolCallId,
+                        decision,
+                    );
+                if (request.toolName === "edit_note") {
+                    return (
+                        <EditNoteApprovalPrompt
+                            request={request}
+                            onDecide={onDecide}
+                        />
+                    );
+                }
+                return (
+                    <ApprovalPrompt request={request} onDecide={onDecide} />
+                );
+            }}
         </Show>
     );
 };
