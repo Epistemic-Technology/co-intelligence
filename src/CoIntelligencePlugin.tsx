@@ -29,7 +29,6 @@ import {
     createPermissionBroker,
     type PermissionBroker,
 } from "@/agent/permission-broker";
-import { mountApprovalModalBroker } from "@/agent/approval/obsidian-modal-broker";
 import { createDefaultToolRegistry } from "@/agent/tools";
 import type { ToolRegistry } from "@/agent/tool-registry";
 import {
@@ -52,7 +51,6 @@ export class CoIntelligencePlugin extends Plugin {
     tools: ToolRegistry | undefined;
     permissionBroker: PermissionBroker | undefined;
     commands: CommandRegistry<ChatCommandHost> | undefined;
-    private disposeApprovalModal: (() => void) | null = null;
     public isPerformingAutomaticRename: boolean = false;
 
     constructor(app: App, manifest: PluginManifest) {
@@ -68,10 +66,6 @@ export class CoIntelligencePlugin extends Plugin {
             plugin: this,
         });
         this.permissionBroker = createPermissionBroker();
-        this.disposeApprovalModal = mountApprovalModalBroker(
-            this.permissionBroker,
-            this.app,
-        );
         this.commands = createCommandRegistry<ChatCommandHost>();
         for (const command of builtInCommands) {
             this.commands.register(command);
@@ -108,10 +102,6 @@ export class CoIntelligencePlugin extends Plugin {
     }
 
     onunload(): void {
-        if (this.disposeApprovalModal) {
-            this.disposeApprovalModal();
-            this.disposeApprovalModal = null;
-        }
         if (this.permissionBroker) {
             this.permissionBroker.clear();
         }

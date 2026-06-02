@@ -1,7 +1,9 @@
-import { Component, For } from "solid-js";
+import { Component, For, Show, useContext } from "solid-js";
 
+import { PluginContext } from "@/CoiChatApp";
 import type { MessagePart } from "@/session/types";
 
+import { ApprovalPrompt } from "@/components/parts/ApprovalPrompt";
 import { ReasoningBlock } from "@/components/parts/ReasoningBlock";
 import { TextPart } from "@/components/parts/TextPart";
 import { ToolCallCard } from "@/components/parts/ToolCallCard";
@@ -30,7 +32,7 @@ const PartRouter: Component<{ part: MessagePart }> = (props) => {
         case "reasoning":
             return <ReasoningBlock text={props.part.text} />;
         case "tool-call":
-            return <ToolCallCard part={props.part} />;
+            return <ToolCallPart part={props.part} />;
         case "tool-result":
             return <ToolResultCard part={props.part} />;
         case "attachment":
@@ -38,4 +40,41 @@ const PartRouter: Component<{ part: MessagePart }> = (props) => {
         default:
             return null;
     }
+};
+
+/**
+ * Picks between the static tool-call card and the in-chat approval prompt
+ * by reading the permission broker's pending list. When the broker has an
+ * entry matching this part's toolCallId, the approval card replaces the
+ * static card so the user can act on it without leaving the chat.
+ */
+const ToolCallPart: Component<{
+    part: Extract<MessagePart, { type: "tool-call" }>;
+}> = (props) => {
+    const plugin = useContext(PluginContext);
+    const pendingForCall = () => {
+        const queue = plugin?.permissionBroker?.pending() ?? [];
+        return queue.find(
+            (p) => p.toolCallId === props.part.toolCallId,
+        );
+    };
+    return (
+        <Show
+            when={pendingForCall()}
+            fallback={<ToolCallCard part={props.part} />}
+            keyed
+        >
+            {(request) => (
+                <ApprovalPrompt
+                    request={request}
+                    onDecide={(decision) =>
+                        plugin?.permissionBroker?.resolve(
+                            request.toolCallId,
+                            decision,
+                        )
+                    }
+                />
+            )}
+        </Show>
+    );
 };

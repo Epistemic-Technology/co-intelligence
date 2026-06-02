@@ -515,25 +515,58 @@ li button.coi-add-context-menu-option:focus-visible {
     fill: var(--text-normal);
 }
 
-.coi-approval-desc {
-    margin: 0 0 0.5rem 0;
-    color: var(--text-muted);
-}
-
-.coi-approval-args {
-    max-height: 24rem;
-    overflow: auto;
-    padding: 0.5rem;
-    background: var(--background-secondary);
+.coi-approval-prompt {
+    margin: 0.5rem 0;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--background-modifier-border);
+    border-left: 3px solid var(--text-accent);
     border-radius: var(--radius-s);
-    font-size: var(--font-smaller);
+    background: var(--background-secondary);
 }
 
-.coi-approval-buttons {
+.coi-approval-prompt-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.coi-approval-prompt-icon {
+    color: var(--text-accent);
+    font-weight: 600;
+}
+
+.coi-approval-prompt-title {
+    color: var(--text-normal);
+}
+
+.coi-approval-prompt-title code {
+    font-family: var(--font-monospace);
+    color: var(--text-normal);
+    background: transparent;
+}
+
+.coi-approval-prompt-args {
+    margin: 0 0 0.6rem 0;
+    padding: 0.5rem 0.75rem;
+    max-height: 18rem;
+    overflow: auto;
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s);
+    font-family: var(--font-monospace);
+    font-size: 0.85em;
+    color: var(--text-normal);
+}
+
+.coi-approval-prompt-buttons {
     display: flex;
     gap: 0.5rem;
     justify-content: flex-end;
-    margin-top: 1rem;
+}
+
+.coi-approval-button {
+    cursor: pointer;
 }
 
 .coi-pill {
